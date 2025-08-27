@@ -1328,6 +1328,114 @@ export async function add_new_housing(data, filename = '', res, folder = 'housin
     }
 }
 
+export async function add_new_housingV3(data, filename = '', res) {
+    try {
+        const {
+            Name,
+            Neighborhood,
+            Type,
+            MaxOccupancy,
+            NumBedrooms,
+            Pool,
+            ManagerName,
+            ManagerEmail,
+            Description,
+            location,
+            ManagerMobile,
+            OwnerName,
+            OwnerEmail,
+            OwnerMobile,
+            amenities,
+            google_map,
+            bedrooms,
+            admin_notes,
+            bookingStatus,
+            booking_notes,
+            terms_and_conditions
+        } = data;
+
+        const amenitiesString = Array.isArray(amenities) ? amenities.join(', ') : amenities;
+
+        const housingData = await Housing.create({
+            Name,
+            Neighborhood,
+            Type,
+            MaxOccupancy,
+            NumBedrooms,
+            Pool,
+            ImageURL: filename,
+            ManagerName,
+            ManagerEmail,
+            Description,
+            location,
+            ManagerMobile,
+            OwnerName,
+            OwnerEmail,
+            OwnerMobile,
+            amenities: amenitiesString,
+            google_map,
+            admin_notes,
+            bookingStatus,
+            booking_notes,
+            terms_and_conditions
+        });
+
+        const housingId = housingData.id;
+
+        let parsedBedrooms = [];
+        if (bedrooms) {
+            try {
+                parsedBedrooms = typeof bedrooms == 'string' ? JSON.parse(bedrooms) : bedrooms;
+            } catch (err) {
+                console.warn('Invalid JSON in bedrooms field:', err.message);
+            }
+        }
+
+        for (const bedroom of parsedBedrooms) {
+            const { bedroom_number, beds } = bedroom;
+            for (const bed of beds) {
+                const { bed_number, bed_type } = bed;
+                await HousingBedrooms.create({
+                    HousingID: housingId,
+                    bedroom_number,
+                    bed_number,
+                    bed_type,
+                });
+            }
+        }
+
+        // return {
+        //     statusCode: StatusCodes.OK,
+        //     success: true,
+        //     message: "Housing added successfully!",
+        // };
+
+        res.status(200)
+            .json({
+                success: true,
+                message: "Housing added successfully!",
+            });
+        return
+
+    } catch (error) {
+        console.error("Error in add_new_housing:", error);
+
+        res.status(200)
+            .json({
+                success: false,
+                message: "Failed to add housing",
+            });
+        return
+
+        // return {
+        //     statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+        //     success: false,
+        //     message: "Failed to add housing",
+        //     error: error.message,
+        // };
+    }
+}
+
 // view all housing - new (07-03-2025 kamal) 
 export async function View_HousingNew(req) {
     try {
@@ -1518,6 +1626,108 @@ export async function updateHousingNew({ id, filename }, req) {
 }
 
 
+export async function updateHousingNewV3(id, req, res) {
+    try {
+        const {
+            Name,
+            Neighborhood,
+            Type,
+            MaxOccupancy,
+            NumBedrooms,
+            Pool,
+            ManagerName,
+            ManagerEmail,
+            Description,
+            location,
+            ManagerMobile,
+            OwnerName,
+            OwnerEmail,
+            OwnerMobile,
+            amenities,
+            google_map,
+            bedrooms,
+            admin_notes,
+            bookingStatus,
+            booking_notes,
+            terms_and_conditions,
+            ImageURL
+        } = req.body;
+
+        const amenitiesString = Array.isArray(amenities) ? amenities.join(", ") : amenities;
+
+        const existingHousing = await Housing.findOne({ where: { id } });
+        if (!existingHousing) {
+            return res.status(404).json({
+                success: false,
+                message: "Housing not found"
+            });
+        }
+
+        // Prepare updateData
+        const updateData = {
+            Name,
+            Neighborhood,
+            Type,
+            MaxOccupancy,
+            NumBedrooms,
+            Pool,
+            ManagerName,
+            ManagerEmail,
+            Description,
+            location,
+            ManagerMobile,
+            OwnerName,
+            OwnerEmail,
+            OwnerMobile,
+            amenities: amenitiesString,
+            google_map,
+            admin_notes,
+            bookingStatus,
+            booking_notes,
+            terms_and_conditions,
+        };
+
+        // Only update ImageURL if new one is provided
+        if (ImageURL) {
+            updateData.ImageURL = ImageURL;
+        } else {
+            updateData.ImageURL = existingHousing.ImageURL; // keep old one
+        }
+
+        // Update housing
+        await Housing.update(updateData, { where: { id } });
+
+        // Update bedrooms
+        await HousingBedrooms.destroy({ where: { HousingID: id } });
+        const parsedBedrooms = typeof bedrooms === "string" ? JSON.parse(bedrooms) : bedrooms;
+
+        for (const bedroom of parsedBedrooms) {
+            const { bedroom_number, beds } = bedroom;
+            for (const bed of beds) {
+                const { bed_number, bed_type } = bed;
+                await HousingBedrooms.create({
+                    HousingID: id,
+                    bedroom_number,
+                    bed_number,
+                    bed_type,
+                });
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Housing and Bedrooms updated successfully!',
+        });
+
+    } catch (error) {
+        console.error("Error in updateHousingNewV3:", error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to update housing',
+            error: error.message,
+        });
+    }
+}
 
 
 // VIEW HOUSING BED TYPES(11-03-2025)

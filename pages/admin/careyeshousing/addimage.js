@@ -44,7 +44,7 @@ const CareyeshousingAddimage = () => {
     const form = event.currentTarget;
     setLoading(true);
 
-    if (form.checkValidity() === false) {
+    if (form.checkValidity() == false) {
       event.stopPropagation();
       setLoading(false);
       setValidateDefault(true);
@@ -62,7 +62,7 @@ const CareyeshousingAddimage = () => {
       const res = await axios.put(housingAddImageUrl, body); // s3 integration
       // const res = await axios.post(housingAddImageUrl, body);
       const msg = res.data.message;
-      if (res.data.success === true) {
+      if (res.data.success == true) {
         Swal.fire({
           icon: "success",
           title: "Success!",

@@ -16,7 +16,6 @@ const LoginPage = () => {
   const [success, setSuccess] = useState("");
 
 
-
   useEffect(() => {
     const rememberFlag = localStorage.getItem("rememberMe") === "true";
     setRememberMe(rememberFlag);
@@ -94,74 +93,91 @@ const LoginPage = () => {
   return (
     <>
       <FrontendHeader />
-      <div className="heading">
-        <h1>Profile</h1>
-        <h2>My Profile</h2>
-        <p>Your profile information is displayed below.</p>
-      </div>
-      <div className={styles.loginContainer}>
-        <div className={styles.loginBox}>
-          <div className={styles.leftSide}>
-            <img
-              src="https://eboxtickets.com/images/sigin.png"
-              alt="Login Illustration"
-              className={styles.illustration}
-            />
+      <section id="sign-up">
+        <div className="container">
+          <div className="section-heading">
+            <h1>Profile</h1>
+            <h2>My Profile</h2>
+            <p className="text-center body-text">Your profile information is displayed below.</p>
           </div>
 
-          <div className={styles.rightSide}>
-            <h1>Login</h1>
-            <p>Welcome back! Please login to your account.</p>
+          <div className="form-content">
+            <div className="row align-items-center">
+              <div className="col-md-6 col-sm-12 sig_img">
+                <img src="https://eboxtickets.com/images/sigin.png" alt="Login Illustration" /></div>
 
-            {error && <h5 className={styles.error}>{error}</h5>}
-            {success && <h5 className={styles.success}>{success}</h5>}
+              <div className="col-md-6 col-sm-12 sig_img">
+                <div className="contact-form">
+                  <h1 className="fw-bold">Login</h1>
+                  <p className="body-text">Welcome back! Please login to your account.</p>
 
-            <form className={styles.loginForm} onSubmit={handleSubmit}>
-              <div className={styles.inputGroup}>
-                <label htmlFor="email">Email</label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="Enter your email"
-                />
+                  <form className="signup-pageform" onSubmit={handleSubmit}>
+
+                    <div>
+                      <input
+                        id="email"
+                        type="email"
+                        name="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder=" email"
+                        className="form-control"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <input
+                        id="password"
+                        type="password"
+                        name="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder=" password"
+                        className="form-control"
+                        required
+                      />
+                    </div>
+                    <div className="row justify-content-between">
+                      <div className="col-6">
+                        <div className="form-check">
+                          <input
+                            type="checkbox"
+                            className="form-check-input"
+                            id="rememberMe"
+                            name="remember_me"
+                          />
+                          <label className="form-check-label text-14" htmlFor="rememberMe">
+                            Remember Me
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="col-6 text-end">
+                        <a href="users/forgotcpassword" className="for_pass fw-bold">
+                          Forgot your password?
+                        </a>
+                      </div>
+                    </div>
+
+
+
+                    <button type="submit" className="primery-button w-100 text-14 mt-3">
+                      Login
+                    </button>
+                  </form>
+                  <hr style={{ borderColor: "currentColor" }} />
+                  <div className="reg_btn text-center">
+                    <p className="text-14">
+                      Don't have an account? <Link className="rg fw-bold" href="/register">Sign up</Link>
+                    </p>
+                  </div>
+                </div>
               </div>
-
-              <div className={styles.inputGroup}>
-                <label htmlFor="password">Password</label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="Enter your password"
-                />
-              </div>
-
-              <div className={styles.checkbox}>
-                <input
-                  type="checkbox"
-                  id="rememberMe"
-                  checked={rememberMe}
-                  onChange={() => setRememberMe(!rememberMe)}
-                />
-                <label htmlFor="rememberMe">Remember Me</label>
-              </div>
-
-              <button type="submit" className={styles.loginButton} disabled={loading}>
-                {loading ? "Logging in..." : "Login"}
-              </button>
-
-              <p className={styles.signupText}>
-                Don't have an account? <Link href="/register">Sign up</Link>
-              </p>
-            </form>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       <FrontendFooter />
     </>

@@ -52,13 +52,13 @@ const FrontendFooter = () => {
           <hr/>
           <div className="col-md-12 col-sm-12 text-policy">
           <ul className="footer-policybox text-white d-flex justify-content-center">
-            <li><Link href="/pages/terms-and-conditions">Terms of Use Policy</Link></li>
-            <li><Link href="/pages/refund">Refund Policy</Link></li>
-            <li><Link href="/pages/privacy-policy">Privacy Policy</Link></li>
-            <li><Link href="/pages/delivery-policy">Delivery Policy</Link></li>
-            <li><Link href="/pages/branding">Branding</Link></li>
-            <li><Link href="/pages/cookie-policy">Cookie Policy</Link></li>
-            <li><Link href="/pages/requestdemo">Request Demo</Link></li>
+            <li><Link href="/terms-and-conditions">Terms of Use Policy</Link></li>
+            <li><Link href="/refund">Refund Policy</Link></li>
+            <li><Link href="/privacy-policy">Privacy Policy</Link></li>
+            <li><Link href="/delivery-policy">Delivery Policy</Link></li>
+            <li><Link href="/branding">Branding</Link></li>
+            <li><Link href="/cookie-policy">Cookie Policy</Link></li>
+            <li><Link href="/request-demo">Request Demo</Link></li>
           </ul>
         </div>
       </div>

@@ -37,127 +37,118 @@ const RegisterPage = () => {
           </div>
 
           <div className="form-content">
-<div className="row">
-<div className="col-md-6 col-sm-12 sig_img">
-              <img src="https://eboxtickets.com/images/sigin.png" alt="" />
-          </div>
-
-          <div className="col-md-6 col-sm-12 sig_img">
-          <div className={styles.rightSide}>
-                <h1>Create Account</h1>
-                <p>Fill in the details below to register.</p>
-
-                <form className={styles.loginForm} onSubmit={handleSubmit}>
-                  <div className={styles.inputGroup}>
-                    <label htmlFor="firstName">First Name</label>
-                    <input
-                      id="firstName"
-                      type="text"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleChange}
-                      placeholder="Enter first name"
-                      required
-                    />
-                  </div>
-
-                  <div className={styles.inputGroup}>
-                    <label htmlFor="lastName">Last Name</label>
-                    <input
-                      id="lastName"
-                      type="text"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleChange}
-                      placeholder="Enter last name"
-                      required
-                    />
-                  </div>
-
-                  <div className={styles.inputGroup}>
-                    <label htmlFor="email">Email</label>
-                    <input
-                      id="email"
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="Enter email"
-                      required
-                    />
-                  </div>
-
-                  <div className={styles.inputGroup}>
-                    <label htmlFor="password">Password</label>
-                    <input
-                      id="password"
-                      type="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="Enter password"
-                      required
-                    />
-                  </div>
-
-                  <div className={styles.checkbox}>
-                    <span>Gender: </span>
-                    <label>
-                      <input
-                        type="radio"
-                        name="gender"
-                        value="male"
-                        checked={formData.gender === "male"}
-                        onChange={handleChange}
-                        required
-                      />{" "}
-                      Male
-                    </label>
-                    <label>
-                      <input
-                        type="radio"
-                        name="gender"
-                        value="female"
-                        checked={formData.gender === "female"}
-                        onChange={handleChange}
-                      />{" "}
-                      Female
-                    </label>
-                    <label>
-                      <input
-                        type="radio"
-                        name="gender"
-                        value="other"
-                        checked={formData.gender === "other"}
-                        onChange={handleChange}
-                      />{" "}
-                      Other
-                    </label>
-                  </div>
-
-                  <div className={styles.inputGroup}>
-                    <label htmlFor="dob">Date of Birth</label>
-                    <input
-                      id="dob"
-                      type="date"
-                      name="dob"
-                      value={formData.dob}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-
-                  <button type="submit" className={styles.loginButton}>
-                    Register
-                  </button>
-
-                  <p className={styles.signupText}>
-                    Already have an account? <Link href="/login">Login</Link>
-                  </p>
-                </form>
+            <div className="row">
+              <div className="col-md-6 col-sm-12 sig_img">
+                <img src="https://eboxtickets.com/images/sigin.png" alt="" />
               </div>
-          </div>
-</div>
+
+              <div className="col-md-6 col-sm-12 sig_img">
+                <div className="contact-form">
+                  <h1 className="fw-bold">Create Account</h1>
+                  <p className="body-text">Fill in the details below to register.</p>
+
+                  <form className="signup-pageform" onSubmit={handleSubmit}>
+                    <div>
+                      <input
+                        id="firstName"
+                        type="text"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        placeholder="first name"
+                        className="form-control"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <input
+                        id="lastName"
+                        type="text"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        placeholder=" last name"
+                        className="form-control"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <input
+                        id="email"
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder=" email"
+                        className="form-control"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <input
+                        id="password"
+                        type="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder=" password"
+                        className="form-control"
+                        required
+                      />
+                    </div>
+
+                    <div className="row align-items-center">
+                      <label className="col-sm-3 col-form-label">Gender</label>
+                      <div className="col-sm-9 d-flex">
+                        <input className="ms-1" type="radio" name="gender" value="male" />
+                        <label className="col-form-label ms-1">Male</label>
+
+                        <input className="ms-1" type="radio" name="gender" value="female" />
+                        <label className="col-form-label ms-1">Female</label>
+                      </div>
+                    </div>
+
+
+                    <div className="row align-items-center">
+                      <label className="col-sm-3 col-form-label">Date of Birth</label>
+                      <div className="col-sm-9">
+                        <input
+                          type="date"
+                          className="form-control"
+                          name="dob"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form_checkb gap-2 d-flex align-items-start">
+                      <input className="mt-1" type="checkbox" name="termscheck" required />
+                      <p className="chack_cont">By Creating An Account You Agree To Our <span><a target="_blank" href="https://eboxtickets.com/pages/privacy-policy">
+                        Privacy Policy </a> </span>
+                        and Accept Our
+                        <span> <a target="_blank" href="https://eboxtickets.com/pages/terms-and-conditions">Terms and Conditions</a> </span>
+                        .
+                      </p>
+                    </div>
+
+
+                    <button type="submit" className="primery-button w-100 text-14 mt-3">
+                      Register
+                    </button>
+                  </form>
+                  <hr style={{ borderColor: "currentColor" }} />
+                  <div className="reg_btn text-center">
+                    <p className="text-14">
+                      Already have an account?
+                      <a className="rg fw-bold" href="login"> Log in</a>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

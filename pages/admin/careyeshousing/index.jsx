@@ -34,7 +34,7 @@ import {
 import { Tooltip, OverlayTrigger } from "react-bootstrap";
 import copy from "copy-to-clipboard";
 
-const Careyeshousing = () => {
+const CareyesHousing = () => {
     
     const [basic, setBasic] = useState(false);
     const navigate = useRouter();
@@ -46,13 +46,14 @@ const Careyeshousing = () => {
     const [neighborhood, setNeighborhood] = useState("");
     const [neighborhoods, setNeighborhoods] = useState([]);
     const [housingTypes, setHousingTypes] = useState([]);
-    const hasFetched = useRef(false); // 🛡 Prevent multiple fetches
+    const hasFetched = useRef(false); // Prevent multiple fetches
     const [type, setType] = useState("");
     const [numBedrooms, setNumBedrooms] = useState("");
     const [managerName, setManagerName] = useState("");
     const [managerEmail, setManagerEmail] = useState("");
     const [location, setLocation] = useState("");
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+
     useEffect(() => {
         if (typeof window !== "undefined") {
             var StaticMessage = localStorage.getItem("staticAdded");
@@ -94,7 +95,6 @@ const Careyeshousing = () => {
             },
         });
     };
-
 
     const [copied, setCopied] = useState(false);
     const handleCopy = (houseName) => {
@@ -332,9 +332,6 @@ const Careyeshousing = () => {
 
     const { globalFilter, pageIndex, pageSize } = state;
 
-    // View housing data
-    //
-
     const fetchInitialData = async () => {
         if (hasFetched.current) return;
         hasFetched.current = true;
@@ -437,8 +434,6 @@ const Careyeshousing = () => {
             }
         });
     };
-
-
 
     const handleSearch = async (event) => {
         event.preventDefault()
@@ -1065,5 +1060,5 @@ const Careyeshousing = () => {
         </>
     );
 };
-Careyeshousing.layout = "Contentlayout";
-export default Careyeshousing;
+CareyesHousing.layout = "Contentlayout";
+export default CareyesHousing;

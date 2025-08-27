@@ -2,7 +2,7 @@ import {
     search_Housing, View_HousingNew, view_HousingByIdNew, View_HousingBedTypes, view_HouseDetail, addOrUpdateHousing, view_HousingImage, getHousingByStatus, View_HousingNeighborhood, View_HousingTypes,
     addUpdateHousing, getAssignedHousing, View_HousingAmenities
 } from "@/shared/services/admin/housing/housingservices";
-import { add_new_housing, updateHousingNew, deleteHousingImage,deleteHousing } from "@/shared/services/admin/housing/housing_services";
+import { add_new_housing, updateHousingNew, deleteHousingImage, deleteHousing } from "@/shared/services/admin/housing/housing_services";
 import { housingImageUpload } from "@/utils/fileUpload";
 import { uploadToS3 } from '@/utils/s3Uploader';
 import { s3FileUpload } from "@/utils/s3FileUpload";
@@ -193,7 +193,7 @@ const handler = async (req, res) => {
                 break;
             }
             case "DELETE": {
-                const { id, imageId } = query;            
+                const { id, imageId } = query;
 
                 if (id) {
                     const deletionResult = await deleteHousing({ id }, res);

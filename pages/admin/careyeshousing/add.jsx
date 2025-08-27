@@ -228,7 +228,7 @@ const CareyeshousingAdd = () => {
     useEffect(() => {
         if (neighborhood) {
             // Use a different variable name (e.g., `item`) to avoid conflict with the state variable `neighborhood`
-            const selectedNeighborhoodData = neighborhoods.find(item => item.id === parseInt(neighborhood));
+            const selectedNeighborhoodData = neighborhoods.find(item => item.id == parseInt(neighborhood));
             if (selectedNeighborhoodData) {
                 setLocation(selectedNeighborhoodData.location);
             }
@@ -266,7 +266,6 @@ const CareyeshousingAdd = () => {
 
     const [selectedAmenities, setSelectedAmenities] = useState([]);
 
-
     // Checkbox click handler
     const handleCheckboxChange = (id) => {
         setSelectedAmenities((prev) =>
@@ -295,24 +294,24 @@ const CareyeshousingAdd = () => {
             // const bookNowContent = bookNowRef.current.summernote('code');
             // setIsLoading(false);
             // const housingAddUrl = '/api/v1/housings-new/';
-            const housingAddUrl = '/api/v2/housings-new/';
+            const housingAddUrl = '/api/v2/housings-neww/';
             const body = new FormData();
             // body.append("key", "addHousing");
             body.append("Name", name.trim());
             body.append("Neighborhood", neighborhood)
             body.append("Type", type)
             body.append("MaxOccupancy", maxOccupancy),
-                body.append("NumBedrooms", numBedrooms),
-                body.append("Pool", pool)
+            body.append("NumBedrooms", numBedrooms),
+            body.append("Pool", pool)
             body.append("ImageURL", ImageURL),
-                body.append("ManagerName", managerName),
-                body.append("ManagerEmail", managerEmail),
-                body.append("ManagerMobile", managerMobile),
-                body.append("OwnerName", ownerName),
-                body.append("OwnerEmail", ownerEmail),
-                body.append("OwnerMobile", ownerMobile),
-                body.append('google_map', googleMap),
-                body.append("Description", textContent.trim());
+            body.append("ManagerName", managerName),
+            body.append("ManagerEmail", managerEmail),
+            body.append("ManagerMobile", managerMobile),
+            body.append("OwnerName", ownerName),
+            body.append("OwnerEmail", ownerEmail),
+            body.append("OwnerMobile", ownerMobile),
+            body.append('google_map', googleMap),
+            body.append("Description", textContent.trim());
             // body.append("booking_notes", bookNowContent.trim());
             if (bookingStatus == "Y") {
                 const bookNowContent = bookNowRef.current.summernote('code');
@@ -329,17 +328,16 @@ const CareyeshousingAdd = () => {
             body.append("admin_notes", adminNotesContent.trim());
             body.append("terms_and_conditions", termsContent.trim());
             body.append('location', location),
-                body.append('bookingStatus', bookingStatus);
-            // body.append('bedrooms', bedrooms),
+            body.append('bookingStatus', bookingStatus);
             body.append('bedrooms', JSON.stringify(bedrooms));
             await axios.post(housingAddUrl, body)
                 .then((res) => {
                     if (res.data.success) {
                         setIsLoading(false);
                         const msg = res.data.message;
-                        localStorage.setItem("staticAdded", msg);
-                        navigate.push('/admin/careyeshousing/');
-                        // routeChange()
+                        // localStorage.setItem("staticAdded", msg);
+                        // navigate.push('/admin/careyeshousingsss/');
+                        // routeChange();
                     } else {
                         console.log("error")
                         setIsLoading(false);
