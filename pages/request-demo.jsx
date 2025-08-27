@@ -4,10 +4,10 @@ import FrontendFooter from "@/shared/layout-components/frontelements/frontendfoo
 import Link from "next/link";
 
 const RequestDemo = () => {
-    const [backgroundImage, setIsMobile] = useState('/assets/img/slider_bg9.jpg');
+    const [backgroundImage, setIsMobile] = useState('https://eboxtickets.com/images/about-slider_bg.jpg');
     return (
         <>
-             <FrontendHeader backgroundImage={backgroundImage} />
+            <FrontendHeader backgroundImage={backgroundImage} />
             <section id="request-demo" className="py-5 px-0">
                 <div className="container">
                     <div className="demo-innerconent bg-white">

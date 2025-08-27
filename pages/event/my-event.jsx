@@ -26,7 +26,6 @@ const MyEventsPage = () => {
         <>
             <FrontendHeader />
             <FrontLeftSideBar />
-
             <FrontendFooter />
 
         </>

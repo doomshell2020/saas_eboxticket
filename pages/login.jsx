@@ -89,16 +89,16 @@ const LoginPage = () => {
       setLoading(false);
     }
   };
-
+  const [backgroundImage, setIsMobile] = useState('https://eboxtickets.com/images/about-slider_bg.jpg');
   return (
     <>
-      <FrontendHeader />
+      <FrontendHeader backgroundImage={backgroundImage} />
       <section id="sign-up">
         <div className="container">
           <div className="section-heading">
-            <h1>Profile</h1>
-            <h2>My Profile</h2>
-            <p className="text-center body-text">Your profile information is displayed below.</p>
+            <h1>Login</h1>
+            <h2>Login</h2>
+            <p className="text-center body-text">Existing users use the form below to sign in.</p>
           </div>
 
           <div className="form-content">
