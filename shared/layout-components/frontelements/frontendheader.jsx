@@ -70,7 +70,7 @@ const FrontendHeader = ({ backgroundImage, isStripeShowing = false }) => {
                 <Link href="/" className="navLink">Home</Link>
                 <Link href="/calender" className="navLink">Event Calendar</Link>
                 <Link href="/tickets/my-tickets" className="navLink">My Tickets</Link>
-                <Link href="/cart" className="navLink">Cart<span class="position-absolute top-0 left-100 translate-middle badge rounded-pill bg-danger">2<span class="visually-hidden">unread messages</span>
+                <Link href="/cart" className="navLink">Cart<span className="position-absolute top-0 left-100 translate-middle badge rounded-pill bg-danger">2<span className="visually-hidden">unread messages</span>
                 </span>
                 </Link>
                 <Link href="/contact-us" className="navLink">Contact Us</Link>

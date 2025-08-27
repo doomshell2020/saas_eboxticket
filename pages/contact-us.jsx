@@ -90,7 +90,7 @@ const ContactUs = () => {
                                         rows="4"
                                         placeholder="Description"
                                     ></textarea>
-                                    <button type="submit" className="primery-button w-100">Submit <i class="fas fa-angle-double-right"></i></button>
+                                    <button type="submit" className="primery-button w-100">Submit <i className="fas fa-angle-double-right"></i></button>
                                 </form>
                             </div>
                         </div>
