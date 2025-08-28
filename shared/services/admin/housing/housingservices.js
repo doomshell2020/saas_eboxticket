@@ -1341,6 +1341,44 @@ export async function View_HousingNew(req) {
 }
 
 
+// ServerA
+export async function fetchAllHousingDetailsV3(req, res) {
+    try {
+        let { offset = 0, limit = 50 } = req.query; // default 50 per batch
+        const data = await Housing.findAll({
+            include: [
+                { model: HousingImage },
+                {
+                    model: HousingBedrooms,
+                    separate: true,
+                    order: [['id', 'DESC']],
+                    include: [{ model: HousingBedType }]
+                },
+                { model: HousingNeighborhood, attributes: ["name"] },
+                { model: HousingTypes, attributes: ["name"] }
+            ],
+            offset: parseInt(offset),
+            limit: parseInt(limit),
+            order: [['id', 'DESC']],
+        });
+        // console.log('>>>>>>>>>>>>',data);      
+        // return {
+        //     data,
+        //     nextOffset: parseInt(offset) + parseInt(limit)
+        // }
+        return res.send({
+            message: "Batch fetched successfully",
+            status: true,
+            data,
+            nextOffset: parseInt(offset) + parseInt(limit)
+        });
+    } catch (error) {
+        return res.send({
+            message: error.message,
+            status: false,
+        });
+    }
+}
 
 
 // View housing for id
@@ -1910,123 +1948,123 @@ export async function GetHousingNeighborhood(req) {
 
 
 export async function searchEventHousingNew(query) {
-  try {
-    const {
-      Name,
-      Neighborhood,
-      Type,
-      NumBedrooms,
-      Status,
-      location,
-      paymentStatus,
-    } = query;
+    try {
+        const {
+            Name,
+            Neighborhood,
+            Type,
+            NumBedrooms,
+            Status,
+            location,
+            paymentStatus,
+        } = query;
 
-    const filters = {};
-    if (Name) filters.Name = { [Op.like]: `%${Name}%` };
-    if (Neighborhood) filters.Neighborhood = Neighborhood;
-    if (Type) filters.Type = Type;
-    if (NumBedrooms) filters.NumBedrooms = NumBedrooms;
-    if (location) filters.location = location;
+        const filters = {};
+        if (Name) filters.Name = { [Op.like]: `%${Name}%` };
+        if (Neighborhood) filters.Neighborhood = Neighborhood;
+        if (Type) filters.Type = Type;
+        if (NumBedrooms) filters.NumBedrooms = NumBedrooms;
+        if (location) filters.location = location;
 
-    const eventHousingWhere = { EventID: 111 };
+        const eventHousingWhere = { EventID: 111 };
 
-    if (Status == 2) {
-      eventHousingWhere.Status = 2;
-      eventHousingWhere.isBooked = { [Op.ne]: 'Y' };
-    } else if (['Y', 'N', 'P'].includes(Status)) {
-      eventHousingWhere.isBooked = Status;
-    } else if (Status) {
-      eventHousingWhere.Status = Status;
-    }
+        if (Status == 2) {
+            eventHousingWhere.Status = 2;
+            eventHousingWhere.isBooked = { [Op.ne]: 'Y' };
+        } else if (['Y', 'N', 'P'].includes(Status)) {
+            eventHousingWhere.isBooked = Status;
+        } else if (Status) {
+            eventHousingWhere.Status = Status;
+        }
 
-    const bookingWhere = {};
-    if (paymentStatus) {
-      bookingWhere.payment_status = paymentStatus;
-    }
+        const bookingWhere = {};
+        if (paymentStatus) {
+            bookingWhere.payment_status = paymentStatus;
+        }
 
-    const searchResults = await Housing.findAll({
-      where: filters,
-      include: [
-        {
-          model: EventHousing,
-          where: eventHousingWhere,
-        },
-        {
-          model: HousingBedrooms,
-          separate: true,
-          order: [['id', 'ASC']],
-          include: [{ model: HousingBedType }],
-        },
-        { model: HousingNeighborhood, attributes: ['name'] },
-        { model: HousingTypes, attributes: ['name'] },
-        {
-          model: AccommodationBooking,
-          where: Object.keys(bookingWhere).length ? bookingWhere : undefined,
-          attributes: [
-            'user_id',
-            'event_id',
-            'first_name',
-            'last_name',
-            'email',
-            'payment_status',
-            'check_in_date',
-            'check_out_date',
-            'total_night_stay',
-          ],
-          include: [
-            {
-              model: MyOrders,
-              attributes: ['total_amount', 'user_id', 'event_id'],
-              include: [
+        const searchResults = await Housing.findAll({
+            where: filters,
+            include: [
                 {
-                  model: BookTicket,
-                  attributes: ['order_id', 'event_id', 'ticket_buy'],
+                    model: EventHousing,
+                    where: eventHousingWhere,
                 },
-              ],
-            },
-          ],
-        },
-      ],
-      attributes: [
-        'Name',
-        'Neighborhood',
-        'Type',
-        'MaxOccupancy',
-        'NumBedrooms',
-        'Pool',
-        'Distance',
-        'ManagerName',
-        'ManagerEmail',
-        'ManagerMobile',
-        'location',
-        'OwnerName',
-        'OwnerEmail',
-        'OwnerMobile',
-        'amenities',
-      ],
-      order: [['createdAt', 'DESC']],
-    });
+                {
+                    model: HousingBedrooms,
+                    separate: true,
+                    order: [['id', 'ASC']],
+                    include: [{ model: HousingBedType }],
+                },
+                { model: HousingNeighborhood, attributes: ['name'] },
+                { model: HousingTypes, attributes: ['name'] },
+                {
+                    model: AccommodationBooking,
+                    where: Object.keys(bookingWhere).length ? bookingWhere : undefined,
+                    attributes: [
+                        'user_id',
+                        'event_id',
+                        'first_name',
+                        'last_name',
+                        'email',
+                        'payment_status',
+                        'check_in_date',
+                        'check_out_date',
+                        'total_night_stay',
+                    ],
+                    include: [
+                        {
+                            model: MyOrders,
+                            attributes: ['total_amount', 'user_id', 'event_id'],
+                            include: [
+                                {
+                                    model: BookTicket,
+                                    attributes: ['order_id', 'event_id', 'ticket_buy'],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+            attributes: [
+                'Name',
+                'Neighborhood',
+                'Type',
+                'MaxOccupancy',
+                'NumBedrooms',
+                'Pool',
+                'Distance',
+                'ManagerName',
+                'ManagerEmail',
+                'ManagerMobile',
+                'location',
+                'OwnerName',
+                'OwnerEmail',
+                'OwnerMobile',
+                'amenities',
+            ],
+            order: [['createdAt', 'DESC']],
+        });
 
-    const modifiedData = searchResults.map((item, index) => ({
-      SNO: index + 1,
-      ...item.toJSON(),
-    }));
+        const modifiedData = searchResults.map((item, index) => ({
+            SNO: index + 1,
+            ...item.toJSON(),
+        }));
 
-    return {
-      statusCode: 200,
-      success: true,
-      message: 'Accommodation data retrieved successfully based on search filters.',
-      data: modifiedData,
-    };
-  } catch (error) {
-    console.error('Search API Error:', error);
-    return {
-      statusCode: 500,
-      success: false,
-      message: 'An error occurred while retrieving accommodation data.',
-      error: error.message,
-    };
-  }
+        return {
+            statusCode: 200,
+            success: true,
+            message: 'Accommodation data retrieved successfully based on search filters.',
+            data: modifiedData,
+        };
+    } catch (error) {
+        console.error('Search API Error:', error);
+        return {
+            statusCode: 500,
+            success: false,
+            message: 'An error occurred while retrieving accommodation data.',
+            error: error.message,
+        };
+    }
 }
 
 

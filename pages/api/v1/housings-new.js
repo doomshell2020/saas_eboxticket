@@ -101,9 +101,6 @@ const handler = async (req, res) => {
                     res.json(eventHousing);
                     break;
                 }
-
-
-
                 else {
                     const Viewhousing = await View_HousingNew(req);
                     res.status(200).json(Viewhousing);
