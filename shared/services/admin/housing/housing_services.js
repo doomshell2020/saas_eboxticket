@@ -1,9 +1,11 @@
-import { Housing, User, Emailtemplet, HousingImage, Event, EventHousing, EventHousingRelations, InvitationEvent, HousingBedrooms, HousingBedType, HousingNeighborhood, HousingTypes, HousingAmenities, AccommodationBooking, MyOrders, BookTicket } from "../../../../database/models"
+import { Housing, User, Emailtemplet, HousingImage, Event, EventHousing, EventHousingRelations, InvitationEvent, HousingBedrooms, HousingBedType, HousingNeighborhood, HousingTypes, HousingAmenities, AccommodationBooking, MyOrders, BookTicket } from "@/database/models"
 import { StatusCodes } from 'http-status-codes';
 import { sendEmail, sendEmailWithBCC } from "@/utils/sendEmail"
 import { sendAccommodationTemplate } from "@/utils/email-templates";
 import { deleteFromS3 } from '@/utils/s3Delete';
 import { uploadToS3 } from '@/utils/s3Uploader';
+import { sequelize } from "@/database/connection";
+
 
 import moment from "moment";
 let SITE_URL = process.env.NEXT_PUBLIC_SITE_URL;
@@ -1436,6 +1438,139 @@ export async function add_new_housingV3(data, filename = '', res) {
     }
 }
 
+export async function syncAllProperty(req, res) {
+    const allData = req.body.data;
+    const transaction = await sequelize.transaction();
+    try {
+        let results = [];
+
+        for (const propertyData of allData) {
+            // ✅ Upsert main Housing
+            const [property, created] = await Housing.upsert(
+                {
+                    id: propertyData.id,
+                    Name: propertyData.Name,
+                    Neighborhood: propertyData.Neighborhood,
+                    Type: propertyData.Type,
+                    MaxOccupancy: propertyData.MaxOccupancy,
+                    NumBedrooms: propertyData.NumBedrooms,
+                    Pool: propertyData.Pool,
+                    Distance: propertyData.Distance,
+                    ImageURL: propertyData.ImageURL,
+                    WebsiteURL: propertyData.WebsiteURL,
+                    ManagerName: propertyData.ManagerName,
+                    ManagerEmail: propertyData.ManagerEmail,
+                    ManagerMobile: propertyData.ManagerMobile,
+                    Description: propertyData.Description,
+                    OwnerID: propertyData.OwnerID,
+                    location: propertyData.location,
+                    OwnerName: propertyData.OwnerName,
+                    OwnerEmail: propertyData.OwnerEmail,
+                    OwnerMobile: propertyData.OwnerMobile,
+                    amenities: propertyData.amenities,
+                    admin_notes: propertyData.admin_notes,
+                    google_map: propertyData.google_map,
+                    booking_notes: propertyData.booking_notes,
+                    terms_and_conditions: propertyData.terms_and_conditions,
+                    Status: propertyData.Status,
+                    bookingStatus: propertyData.bookingStatus,
+                    createdAt: propertyData.createdAt,
+                    updatedAt: propertyData.updatedAt
+                },
+                { returning: true, transaction }
+            );
+
+            results.push({
+                id: propertyData.id,
+                message: created ? "Inserted new property" : "Updated property"
+            });
+        }
+
+        await transaction.commit();
+
+        // // ✅ Upsert EventHousings
+        // if (propertyData.EventHousings && propertyData.EventHousings.length) {
+        //     for (const eh of propertyData.EventHousings) {
+        //         await EventHousing.upsert(
+        //             {
+        //                 id: eh.id,
+        //                 EventID: eh.EventID,
+        //                 HousingID: eh.HousingID,
+        //                 Status: eh.Status,
+        //                 InternalNotes: eh.InternalNotes,
+        //                 NightlyPrice: eh.NightlyPrice,
+        //                 BaseNightlyPrice: eh.BaseNightlyPrice,
+        //                 totalAfterTaxes: eh.totalAfterTaxes,
+        //                 NightlyPayoutAmount: eh.NightlyPayoutAmount,
+        //                 AvailabilityStartDate: eh.AvailabilityStartDate,
+        //                 AvailabilityEndDate: eh.AvailabilityEndDate,
+        //                 ServiceFee: eh.ServiceFee,
+        //                 MexicanVAT: eh.MexicanVAT,
+        //                 AccommodationTax: eh.AccommodationTax,
+        //                 OndalindaFee: eh.OndalindaFee,
+        //                 TotalOndalindaFeeAmount: eh.TotalOndalindaFeeAmount,
+        //                 TotalStripeFeeAmount: eh.TotalStripeFeeAmount,
+        //                 stripe_fee: eh.stripe_fee,
+        //                 OwnerAmount: eh.OwnerAmount,
+        //                 ticket_stripe_fee_percentage: eh.ticket_stripe_fee_percentage,
+        //                 ticket_bank_fee_percentage: eh.ticket_bank_fee_percentage,
+        //                 ticket_processing_fee_percentage: eh.ticket_processing_fee_percentage,
+        //                 ServiceFeeAmount: eh.ServiceFeeAmount,
+        //                 MexicanVATAmount: eh.MexicanVATAmount,
+        //                 AccommodationTaxAmount: eh.AccommodationTaxAmount,
+        //                 OndalindaFeeAmount: eh.OndalindaFeeAmount,
+        //                 stripe_fee_amount: eh.stripe_fee_amount,
+        //                 ticket_bank_fee_amount: eh.ticket_bank_fee_amount,
+        //                 ticket_processing_fee_amount: eh.ticket_processing_fee_amount,
+        //                 ticket_stripe_fee_amount: eh.ticket_stripe_fee_amount,
+        //                 isBooked: eh.isBooked,
+        //                 isDateExtensionRequestedSent: eh.isDateExtensionRequestedSent,
+        //                 extensionCheckInDate: eh.extensionCheckInDate,
+        //                 extensionCheckOutDate: eh.extensionCheckOutDate,
+        //                 extensionRequestedBy: eh.extensionRequestedBy,
+        //                 extensionRequestedAt: eh.extensionRequestedAt,
+        //                 createdAt: eh.createdAt,
+        //                 updatedAt: eh.updatedAt
+        //             },
+        //             { transaction }
+        //         );
+        //     }
+        // }
+
+        // // ✅ Upsert Housing Beds
+        // if (propertyData.Housings && propertyData.Housings.length) {
+        //     for (const h of propertyData.Housings) {
+        //         await HousingBed.upsert(
+        //             {
+        //                 id: h.id,
+        //                 HousingID: h.HousingID,
+        //                 bedroom_number: h.bedroom_number,
+        //                 bed_number: h.bed_number,
+        //                 bed_type: h.bed_type,
+        //                 status: h.status,
+        //                 createdAt: h.createdAt,
+        //                 updatedAt: h.updatedAt
+        //             },
+        //             { transaction }
+        //         );
+        //     }
+        // }
+
+        return res.send({
+            success: true,
+            message: "Properties synced successfully",
+            results
+        });
+    } catch (error) {
+        await transaction.rollback();
+        console.error("Sync error:", error);
+        return res.send({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
 // view all housing - new (07-03-2025 kamal) 
 export async function View_HousingNew(req) {
     try {
@@ -1726,6 +1861,45 @@ export async function updateHousingNewV3(id, req, res) {
             message: 'Failed to update housing',
             error: error.message,
         });
+    }
+}
+
+export async function addUpdateHousingImagesV3(id, req, res) {
+    try {
+        const { housingImages } = req.body;
+        return res.send({
+            success: true,
+            data: req.body
+        });
+        // // Check if filenames is an array
+        // if (!Array.isArray(filenames) || filenames.length === 0) {
+        //     return {
+        //         statusCode: StatusCodes.BAD_REQUEST,
+        //         success: false,
+        //         message: "No image files provided.",
+        //     };
+        // }
+        // Map through filenames to create image records
+        // const housingImages = await Promise.all(
+        //     filenames.map(async (filename) => {
+        //         const housingData = await HousingImage.create({
+        //             HousingID,
+        //             URL: filename,
+        //         });
+        //         return housingData;
+        //     })
+        // );
+        // return {
+        //     statusCode: StatusCodes.OK,
+        //     success: true,
+        //     message: "Housing images added successfully!",
+        //     // images: housingImages.map((image) => image.id),
+        // };
+    } catch (error) {
+        return {
+            success: false,
+            message: error.message || "An error occurred while adding housing images.",
+        };
     }
 }
 

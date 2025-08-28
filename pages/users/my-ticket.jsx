@@ -7,13 +7,10 @@ import FrontendFooter from "@/shared/layout-components/frontelements/frontendfoo
 
 
 const Cart = () => {
-    const [backgroundImage] = useState("https://eboxtickets.com/images/about-slider_bg.jpg");
-
+    const [backgroundImage, setIsMobile] = useState('https://eboxtickets.com/images/about-slider_bg.jpg');
     return (
         <>
             <FrontendHeader backgroundImage={backgroundImage} />
-
-         
             <FrontendFooter />
         </>
     );

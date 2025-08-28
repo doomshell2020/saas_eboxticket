@@ -1,8 +1,8 @@
 import {
-    search_Housing, View_HousingNew, view_HousingByIdNew, View_HousingBedTypes, view_HouseDetail, addOrUpdateHousing, view_HousingImage, getHousingByStatus, View_HousingNeighborhood, View_HousingTypes,
+    search_Housing, View_HousingNew, view_HousingByIdNew, View_HousingBedTypes, view_HouseDetail, addOrUpdateHousing, view_HousingImage, getHousingByStatus, View_HousingNeighborhood, View_HousingTypes, fetchAllHousingDetailsV3,
     addUpdateHousing, getAssignedHousing, View_HousingAmenities
 } from "@/shared/services/admin/housing/housingservices";
-import { add_new_housing, add_new_housingV3, updateHousingNew, updateHousingNewV3, deleteHousingImage, deleteHousing } from "@/shared/services/admin/housing/housing_services";
+import { add_new_housing, add_new_housingV3, updateHousingNew, updateHousingNewV3, addUpdateHousingImagesV3, syncAllProperty, deleteHousingImage, deleteHousing } from "@/shared/services/admin/housing/housing_services";
 import { checkApiKey } from '@/middleware/checkApiKey';
 
 
@@ -10,11 +10,15 @@ const handler = async (req, res) => {
     return checkApiKey(req, res, async () => {
         try {
             const { method, query } = req;
+            const { action } = query;
 
             switch (method) {
 
                 case "POST": {
                     try {
+                        if (action == 'sync-property') {
+                            const update = await syncAllProperty(req, res);
+                        }
                         const housingAdd = await add_new_housingV3(req.body, req.body.ImageURL, res);
                     } catch (error) {
                         console.error('Outer Error:', error);
@@ -23,14 +27,23 @@ const handler = async (req, res) => {
                     break;
                 }
                 case "GET": {
-                    return res.status(500).json({ success: false, message: 'Internal Server Error' });
+                    const data = await fetchAllHousingDetailsV3(req, res);
+                    return res.json(
+                        { data: JSON.stringify(data) }
+                    )
                     break;
                 }
                 case "PUT": {
-                    const { id } = query;
-                   
+                    const { id, action } = query;
+                    // console.log('>>>>>>>>>>>>>>',action);
+                    // return true
+
                     try {
-                        const housingAdd = await updateHousingNewV3(id, req, res);
+                        if (action == 'update-image') {
+                            const updateImages = await addUpdateHousingImagesV3(id, req, res);
+                        } else {
+                            const housingAdd = await updateHousingNewV3(id, req, res);
+                        }
                     } catch (error) {
                         console.error('Outer Error:', error);
                         return res.status(500).json({ success: false, message: 'Internal Server Error: ' + error.message });

@@ -342,6 +342,8 @@ const CareyesHousing = () => {
             // First fetch (GET for DATATABLE)
             const housingRes = await fetch(HousingUrl);
             const housingData = await housingRes.json();
+            console.log(housingData);
+            
             setDATATABLE(housingData.data || []);
 
             // Second & Third fetch (POST for neighborhoods & types)

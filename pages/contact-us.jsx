@@ -6,9 +6,10 @@ import FrontendFooter from "@/shared/layout-components/frontelements/frontendfoo
 
 
 const ContactUs = () => {
-    return (
-        <>
-            <FrontendHeader />
+  const [backgroundImage, setIsMobile] = useState('https://eboxtickets.com/images/about-slider_bg.jpg');
+  return (
+    <>
+      <FrontendHeader backgroundImage={backgroundImage} />
             <section id="contact-us">
                 <div className="container">
                     <div className="section-heading">
