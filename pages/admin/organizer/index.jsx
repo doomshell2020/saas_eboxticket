@@ -118,6 +118,16 @@ export const COLUMNS = [
           ) : (
             "—"
           )}
+          <br />
+
+          {/* Subscription End Date */}
+          <strong>Last Used:</strong>{" "}
+          {subscription.last_used ? (
+            <Moment format="DD-MMM-YYYY hh:mm:ss A z">{subscription.last_used}</Moment>
+          ) : (
+            "—"
+          )}
+
         </div>
       );
     },
