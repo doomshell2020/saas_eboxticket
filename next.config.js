@@ -26,6 +26,7 @@ const nextConfig = {
     DB_USER: process.env.DB_USER,
     DB_PASSWORD: process.env.DB_PASSWORD,
     DB_NAME: process.env.DB_NAME,
+    HOST: process.env.HOST,
     LIVE_DB_NAME: process.env.LIVE_DB_NAME,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
     SITE_URL : process.env.SITE_URL,
