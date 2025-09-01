@@ -4,34 +4,26 @@ import { Op } from 'sequelize';
 export async function checkApiKey(req, res, next) {
     try {
         const apiKey = req.headers['x-api-key'] || req.query.api_key;
-        const origin = req.headers['origin'] || ''; // Origin header from browser requests
+        const origin = req.headers['origin'] || ''; // Origin header (browser requests)
 
         if (!apiKey) {
             return res.status(401).json({ success: false, message: 'API key is required' });
         }
 
-        // Find active API key that has been used before (last_used NOT null)
+        // 🔍 Find active key
         const keyRecord = await ApiSubscription.findOne({
             where: {
                 key_hash: apiKey,
                 status: 'active',
-                // last_used: {
-                //     [Op.ne]: null
-                // }
             },
-            // attributes: ['id', 'allowed_domains']
             include: [{ model: EventOrganiser, as: 'organiser' }],
         });
 
-        // console.log('>>>>>',keyRecord);
-        
-
-
         if (!keyRecord) {
-            return res.status(403).json({ success: false, message: 'Invalid, inactive, or unused API key' });
+            return res.status(403).json({ success: false, message: 'Invalid or inactive API key' });
         }
 
-        // Domain check (if allowed_domains is set)
+        // ✅ Domain check (if domains are restricted)
         if (keyRecord.allowed_domains) {
             const allowedDomains = keyRecord.allowed_domains
                 .split(',')
@@ -39,26 +31,49 @@ export async function checkApiKey(req, res, next) {
 
             let originHost = origin.toLowerCase();
 
-            // Strip protocol from origin (http:// or https://)
+            // Remove protocol
             if (originHost.startsWith('http://')) originHost = originHost.slice(7);
             else if (originHost.startsWith('https://')) originHost = originHost.slice(8);
 
-            // Remove trailing slash if any
+            // Remove trailing slash
             originHost = originHost.replace(/\/$/, '');
 
-            // Use 'null' string for empty origin (e.g. Postman)
-            const originForCheck = originHost || 'null';
+            // Strip port if present (e.g., localhost:3000 → localhost)
+            const [hostWithoutPort] = originHost.split(':');
 
-            if (!allowedDomains.includes(originForCheck)) {
-                return res.status(403).json({ success: false, message: 'Domain not allowed' });
+            // Handle empty origin (Postman, cURL, server-to-server calls)
+            const originForCheck = hostWithoutPort || 'null';
+
+            // 🔍 Debug logs
+            console.log('🔑 API Key Check');
+            console.log('Origin header:', origin);
+            console.log('Processed host:', originForCheck);
+            console.log('Allowed domains:', allowedDomains);
+
+            // Match exact OR allow wildcard (*.domain.com)
+            const isAllowed = allowedDomains.some(d => {
+                if (d === originForCheck) return true; // Exact match
+                if (d.startsWith('*.')) {
+                    const domain = d.slice(2); // remove *.
+                    return originForCheck.endsWith(domain);
+                }
+                return false;
+            });
+
+            if (!isAllowed) {
+                return res.status(403).json({
+                    success: false,
+                    message: `Domain not allowed`,
+                    got: originForCheck,
+                    allowed: allowedDomains,
+                });
             }
         }
-
 
         // Update last used timestamp
         await keyRecord.update({ last_used: new Date() });
 
-        // Attach organiser to request for further use
+        // Attach organiser to request
         req.organizer = keyRecord.organiser;
 
         next();
@@ -67,6 +82,7 @@ export async function checkApiKey(req, res, next) {
         return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
+
 
 
 
