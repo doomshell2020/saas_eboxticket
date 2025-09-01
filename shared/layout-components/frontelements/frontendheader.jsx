@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import CartModal from "@/pages/components/cart/index";
 
 const FrontendHeader = ({ backgroundImage, isStripeShowing = false }) => {
 
@@ -10,6 +11,18 @@ const FrontendHeader = ({ backgroundImage, isStripeShowing = false }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [username, setUsername] = useState("");
+  const [isActiveNow, setIsActiveNow] = useState(false);
+
+  // ✅ function to open modal
+  const handleOpenCart = () => {
+    setIsActiveNow(true);
+  };
+
+  // ✅ function to close modal
+  const handleCloseCart = () => {
+    setIsActiveNow(false);
+  };
+
 
   useEffect(() => {
     // ✅ Check both storages for logged-in user
@@ -70,8 +83,14 @@ const FrontendHeader = ({ backgroundImage, isStripeShowing = false }) => {
                 <Link href="/" className="navLink">Home</Link>
                 <Link href="/calender" className="navLink">Event Calendar</Link>
                 <Link href="/tickets/my-tickets" className="navLink">My Tickets</Link>
-                <Link href="/cart" className="navLink">Cart<span className="position-absolute top-0 left-100 translate-middle badge rounded-pill bg-danger">2<span className="visually-hidden">unread messages</span>
-                </span>
+                <Link
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleOpenCart();
+                  }}
+                  className="navLink">Cart<span className="position-absolute top-0 left-100 translate-middle badge rounded-pill bg-danger">2<span className="visually-hidden">unread messages</span>
+                  </span>
                 </Link>
                 <Link href="/contact-us" className="navLink">Contact Us</Link>
               </nav>
@@ -137,6 +156,9 @@ const FrontendHeader = ({ backgroundImage, isStripeShowing = false }) => {
           </div>
         </div>
       </div>
+
+      {/* ✅ Pass open state + close handler */}
+      {isActiveNow && <CartModal isActiveNow={isActiveNow} makeModalOff={handleCloseCart} /> }
 
     </>
   );

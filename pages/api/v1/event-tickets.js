@@ -65,7 +65,6 @@ const handler = async (req, res) => {
                 }
                 break;
             }
-
             case "PUT": {
                 try {
                     imageUpload.single("ticketImage")(req, res, async (err) => {
@@ -90,7 +89,6 @@ const handler = async (req, res) => {
                 }
                 break;
             }
-
             // case 'DELETE': {
             //     const deletionResult = await DeleteTicketAddon(req.body, res);
             //     res.json(deletionResult);

@@ -1347,9 +1347,9 @@ export async function fetchAllHousingDetailsV3(req, res) {
         let { offset = 0, limit = 50 } = req.query; // default 50 per batch
         const data = await Housing.findAll({
             include: [
+                { model: EventHousing },
                 { model: HousingImage },
-                {
-                    model: HousingBedrooms,
+                { model: HousingBedrooms,
                     separate: true,
                     order: [['id', 'DESC']],
                     include: [{ model: HousingBedType }]

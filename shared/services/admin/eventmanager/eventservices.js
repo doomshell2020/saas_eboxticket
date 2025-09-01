@@ -24,6 +24,8 @@ import {
   EventOrganiser
 } from "@/database/models";
 import { StatusCodes } from "http-status-codes";
+import moment from "moment-timezone";
+
 
 // Events View
 const Sequelize = require("sequelize");
@@ -4733,10 +4735,10 @@ export async function addTicketsAddons(
 }
 
 // Find Ticket and addons
+
 export async function findAllTicketsAndAddons({ eventId }, res) {
   try {
-    // Fetch data from EventTicketType table
-
+    // Fetch tickets
     const tickets = await EventTicketType.findAll({
       where: { eventid: eventId },
       attributes: [
@@ -4750,37 +4752,48 @@ export async function findAllTicketsAndAddons({ eventId }, res) {
         "sale_end_date",
         "status",
         "display_order",
-        "count"
+        "count",
       ],
       order: [["id", "DESC"]],
     });
 
+    // Fetch Event info with timezone + currency
     const EventInfo = await Event.findOne({
       where: { id: eventId },
-      attributes: ["id", "Name"],
+      attributes: ["id", "Name", "EventTimeZone"],
       include: {
         model: Currency,
         attributes: ["id", "Currency", "Currency_symbol"],
       },
-    })
-    let CurrencySymbol = EventInfo.Currency.dataValues.Currency_symbol;
-    // Standardize keys and add ticketType as 'ticket' for all ticket records
+    });
+
+    const CurrencySymbol = EventInfo?.Currency?.dataValues?.Currency_symbol || "";
+    const EventTimeZone = EventInfo?.EventTimeZone || "UTC";
+
+    // Helper: format DB date into event timezone (readable + safe)
+    const formatDateToTZ = (date) =>
+      date
+        ? moment.utc(date).tz(EventTimeZone).format("YYYY-MM-DD HH:mm:ss")
+        : null;
+
+    // Standardize tickets
     const formattedTickets = tickets.map((ticket) => ({
       id: ticket.id,
-      name: ticket.title, // Changed title to name
-      image: ticket.ticket_image, // Changed ticket_image to image
+      name: ticket.title,
+      image: ticket.ticket_image,
       count: ticket.count,
       price: ticket.price,
       description: ticket.description,
-      startDate: ticket.sale_start_date, // Changed sale_start_date to startDate
-      endDate: ticket.sale_end_date, // Changed sale_end_date to endDate
-      ticketType: "Ticket", // Added ticketType field
+      startDate: (ticket.sale_start_date),
+      endDate: (ticket.sale_end_date),
+      ticketType: "Ticket",
       status: ticket.status,
       ticketOrder: ticket.display_order,
       currency: CurrencySymbol,
+      EventTimeZone,
     }));
 
-    // Fetch data from Addons table
+    // Fetch addons
     const addons = await Addons.findAll({
       where: { event_id: eventId },
       attributes: [
@@ -4799,32 +4812,32 @@ export async function findAllTicketsAndAddons({ eventId }, res) {
         "addon_day",
         "count",
         "display_order",
-        "addon_type"
+        "addon_type",
       ],
       order: [["id", "DESC"]],
     });
 
-    // Standardize keys and add ticketType as 'addon' for all addon records
+    // Standardize addons
     const formattedAddons = addons.map((addon) => ({
       id: addon.id,
       name: addon.name,
-      image: addon.addon_image, // Changed addon_image to image
+      image: addon.addon_image,
       price: addon.price,
       description: addon.description,
-      startDate: addon.sale_start_date,
-      endDate: addon.sale_end_date,
+      startDate: (addon.sale_start_date),
+      endDate: (addon.sale_end_date),
       location: addon.addon_location,
-      // ticketType: "Addon", // Added ticketType field
-      ticketType: addon.addon_type == "Special" ? "Special" : "Addon",
+      ticketType: addon.addon_type === "Special" ? "Special" : "Addon",
       status: addon.status,
       useDate: addon.addon_day,
       time: addon.addon_time,
       count: addon.count,
       ticketOrder: addon.display_order,
       currency: CurrencySymbol,
+      EventTimeZone,
     }));
 
-    // Combine tickets and addons into a single array
+    // Merge
     const combinedData = [...formattedTickets, ...formattedAddons];
 
     return {
