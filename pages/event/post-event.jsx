@@ -19,7 +19,7 @@ const EventDetailsPage = ({ events }) => {
                                 </div>
                                 <ul className="list-inline text-right">
                                     <li className="list-inline-item">
-                                        <Link className="primery-button text-14" href="https://eboxtickets.com/event/myevent">
+                                        <Link className="primery-button text-14" href="/event/my-event">
                                             View Event
                                         </Link>
                                     </li>

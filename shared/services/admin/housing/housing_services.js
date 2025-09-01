@@ -1480,6 +1480,74 @@ export async function syncAllProperty(req, res) {
                 { returning: true, transaction }
             );
 
+            // // ✅ Upsert EventHousings
+            if (propertyData.EventHousings && propertyData.EventHousings.length) {
+                for (const eh of propertyData.EventHousings) {
+                    await EventHousing.upsert(
+                        {
+                            id: eh.id,
+                            EventID: eh.EventID,
+                            HousingID: eh.HousingID,
+                            Status: eh.Status,
+                            InternalNotes: eh.InternalNotes,
+                            NightlyPrice: eh.NightlyPrice,
+                            BaseNightlyPrice: eh.BaseNightlyPrice,
+                            totalAfterTaxes: eh.totalAfterTaxes,
+                            NightlyPayoutAmount: eh.NightlyPayoutAmount,
+                            AvailabilityStartDate: eh.AvailabilityStartDate,
+                            AvailabilityEndDate: eh.AvailabilityEndDate,
+                            ServiceFee: eh.ServiceFee,
+                            MexicanVAT: eh.MexicanVAT,
+                            AccommodationTax: eh.AccommodationTax,
+                            OndalindaFee: eh.OndalindaFee,
+                            TotalOndalindaFeeAmount: eh.TotalOndalindaFeeAmount,
+                            TotalStripeFeeAmount: eh.TotalStripeFeeAmount,
+                            stripe_fee: eh.stripe_fee,
+                            OwnerAmount: eh.OwnerAmount,
+                            ticket_stripe_fee_percentage: eh.ticket_stripe_fee_percentage,
+                            ticket_bank_fee_percentage: eh.ticket_bank_fee_percentage,
+                            ticket_processing_fee_percentage: eh.ticket_processing_fee_percentage,
+                            ServiceFeeAmount: eh.ServiceFeeAmount,
+                            MexicanVATAmount: eh.MexicanVATAmount,
+                            AccommodationTaxAmount: eh.AccommodationTaxAmount,
+                            OndalindaFeeAmount: eh.OndalindaFeeAmount,
+                            stripe_fee_amount: eh.stripe_fee_amount,
+                            ticket_bank_fee_amount: eh.ticket_bank_fee_amount,
+                            ticket_processing_fee_amount: eh.ticket_processing_fee_amount,
+                            ticket_stripe_fee_amount: eh.ticket_stripe_fee_amount,
+                            isBooked: eh.isBooked,
+                            isDateExtensionRequestedSent: eh.isDateExtensionRequestedSent,
+                            extensionCheckInDate: eh.extensionCheckInDate,
+                            extensionCheckOutDate: eh.extensionCheckOutDate,
+                            extensionRequestedBy: eh.extensionRequestedBy,
+                            extensionRequestedAt: eh.extensionRequestedAt,
+                            createdAt: eh.createdAt,
+                            updatedAt: eh.updatedAt
+                        },
+                        { transaction }
+                    );
+                }
+            }
+
+            // // ✅ Upsert Housing Beds
+            if (propertyData.Housings && propertyData.Housings.length) {
+                for (const h of propertyData.Housings) {
+                    await HousingBedrooms.upsert(
+                        {
+                            id: h.id,
+                            HousingID: h.HousingID,
+                            bedroom_number: h.bedroom_number,
+                            bed_number: h.bed_number,
+                            bed_type: h.bed_type,
+                            status: h.status,
+                            createdAt: h.createdAt,
+                            updatedAt: h.updatedAt
+                        },
+                        { transaction }
+                    );
+                }
+            }
+            
             results.push({
                 id: propertyData.id,
                 message: created ? "Inserted new property" : "Updated property"
@@ -1487,74 +1555,6 @@ export async function syncAllProperty(req, res) {
         }
 
         await transaction.commit();
-
-        // // ✅ Upsert EventHousings
-        // if (propertyData.EventHousings && propertyData.EventHousings.length) {
-        //     for (const eh of propertyData.EventHousings) {
-        //         await EventHousing.upsert(
-        //             {
-        //                 id: eh.id,
-        //                 EventID: eh.EventID,
-        //                 HousingID: eh.HousingID,
-        //                 Status: eh.Status,
-        //                 InternalNotes: eh.InternalNotes,
-        //                 NightlyPrice: eh.NightlyPrice,
-        //                 BaseNightlyPrice: eh.BaseNightlyPrice,
-        //                 totalAfterTaxes: eh.totalAfterTaxes,
-        //                 NightlyPayoutAmount: eh.NightlyPayoutAmount,
-        //                 AvailabilityStartDate: eh.AvailabilityStartDate,
-        //                 AvailabilityEndDate: eh.AvailabilityEndDate,
-        //                 ServiceFee: eh.ServiceFee,
-        //                 MexicanVAT: eh.MexicanVAT,
-        //                 AccommodationTax: eh.AccommodationTax,
-        //                 OndalindaFee: eh.OndalindaFee,
-        //                 TotalOndalindaFeeAmount: eh.TotalOndalindaFeeAmount,
-        //                 TotalStripeFeeAmount: eh.TotalStripeFeeAmount,
-        //                 stripe_fee: eh.stripe_fee,
-        //                 OwnerAmount: eh.OwnerAmount,
-        //                 ticket_stripe_fee_percentage: eh.ticket_stripe_fee_percentage,
-        //                 ticket_bank_fee_percentage: eh.ticket_bank_fee_percentage,
-        //                 ticket_processing_fee_percentage: eh.ticket_processing_fee_percentage,
-        //                 ServiceFeeAmount: eh.ServiceFeeAmount,
-        //                 MexicanVATAmount: eh.MexicanVATAmount,
-        //                 AccommodationTaxAmount: eh.AccommodationTaxAmount,
-        //                 OndalindaFeeAmount: eh.OndalindaFeeAmount,
-        //                 stripe_fee_amount: eh.stripe_fee_amount,
-        //                 ticket_bank_fee_amount: eh.ticket_bank_fee_amount,
-        //                 ticket_processing_fee_amount: eh.ticket_processing_fee_amount,
-        //                 ticket_stripe_fee_amount: eh.ticket_stripe_fee_amount,
-        //                 isBooked: eh.isBooked,
-        //                 isDateExtensionRequestedSent: eh.isDateExtensionRequestedSent,
-        //                 extensionCheckInDate: eh.extensionCheckInDate,
-        //                 extensionCheckOutDate: eh.extensionCheckOutDate,
-        //                 extensionRequestedBy: eh.extensionRequestedBy,
-        //                 extensionRequestedAt: eh.extensionRequestedAt,
-        //                 createdAt: eh.createdAt,
-        //                 updatedAt: eh.updatedAt
-        //             },
-        //             { transaction }
-        //         );
-        //     }
-        // }
-
-        // // ✅ Upsert Housing Beds
-        // if (propertyData.Housings && propertyData.Housings.length) {
-        //     for (const h of propertyData.Housings) {
-        //         await HousingBed.upsert(
-        //             {
-        //                 id: h.id,
-        //                 HousingID: h.HousingID,
-        //                 bedroom_number: h.bedroom_number,
-        //                 bed_number: h.bed_number,
-        //                 bed_type: h.bed_type,
-        //                 status: h.status,
-        //                 createdAt: h.createdAt,
-        //                 updatedAt: h.updatedAt
-        //             },
-        //             { transaction }
-        //         );
-        //     }
-        // }
 
         return res.send({
             success: true,
@@ -1605,9 +1605,6 @@ export async function View_HousingNew(req) {
     }
 }
 
-
-
-
 // View housing for id
 export async function view_HousingByIdNew({ housing_id }, res) {
     try {
@@ -1636,8 +1633,6 @@ export async function view_HousingByIdNew({ housing_id }, res) {
         return error;
     }
 }
-
-
 
 export async function updateHousingNew({ id, filename }, req) {
     const folder = req.body.folder || 'housing';
@@ -1759,7 +1754,6 @@ export async function updateHousingNew({ id, filename }, req) {
         };
     }
 }
-
 
 export async function updateHousingNewV3(id, req, res) {
     try {
@@ -1902,7 +1896,6 @@ export async function addUpdateHousingImagesV3(id, req, res) {
         };
     }
 }
-
 
 // VIEW HOUSING BED TYPES(11-03-2025)
 export async function View_HousingBedTypes(req) {

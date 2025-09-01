@@ -21,90 +21,314 @@ import Swal from "sweetalert2";
 
 const MyEventsPage = () => {
 
+    const [isOpen, setIsOpen] = useState(false);
+    const [isLeftRight, setIsLeftRight] = useState(false);
 
+
+
+    const [backgroundImage, setIsMobile] = useState('https://eboxtickets.com/images/about-slider_bg.jpg');
     return (
         <>
-            <FrontendHeader />
+            <FrontendHeader backgroundImage={backgroundImage} />
             {/* <FrontLeftSideBar /> */}
 
             <section id="myevent-deshbord">
                 <div className="d-flex">
-                    <div className="event-sidebar">
+
+                    <div className={`event-sidebar ${isLeftRight ? 'sideBarRightLeftClosed' : ''}`}>
                         <div className="side_menu_icon">
-                            <i className="bi bi-arrow-left-short"></i>
+                            <i className={`bi bi-arrow-${isLeftRight?'right':'left'}-short`} onClick={() => setIsLeftRight(!isLeftRight)}></i>
                         </div>
                         <ul className="listunstyl components2">
                             <li className="mb-3">
-                                <a className="text-white fw-bold"
-                                    href="https://eboxtickets.com/event/postevent"
+                                <Link className="text-white fw-bold"
+                                    href="/event/post-event"
                                     style={{ backgroundColor: "#ff9800" }}
                                 >
                                     <i className="bi bi-calendar2-event"></i>
                                     <span className="fw-bold"> Create Event </span>
-                                </a>
+                                </Link>
                             </li>
                         </ul>
 
                         <ul className="listunstyl components">
                             <li>
-                                <a href="https://eboxtickets.com/event/myevent">
+                                <Link href="/event/my-event">
                                     <i className="bi bi-speedometer2"></i>
                                     <span> Dashboard </span>
-                                </a>
+                                </Link>
                             </li>
 
                             <li className="menu_line"></li>
 
                             <li>
-                                <nav className="navbar navbar-expand-lg navbar-dark sidmenub w-100">
-                                    <div className="collapse navbar-collapse">
-                                        <ul className="navbar-nav">
-                                            <li className="nav-item dropdown">
-                                                <a
-                                                    className="nav-link dropdown-toggle"
-                                                    href="#"
-                                                    role="button"
-                                                    data-bs-toggle="dropdown"
-                                                >
-                                                    <span> Account </span>
-                                                </a>
-                                                <ul className="dropdown-menu dropdown-menu-dark p-0 w-100 border-0">
-                                                    <li>
-                                                        <a
-                                                            className="dropdown-item"
-                                                            href="https://eboxtickets.com/tickets/myticket"
-                                                        >
-                                                            <i className="bi bi-ticket-perforated"></i>
-                                                            <span> My Tickets </span>
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a
-                                                            className="dropdown-item"
-                                                            href="https://eboxtickets.com/users/viewprofile"
-                                                        >
-                                                            <i className="bi bi-person"></i>
-                                                            <span> Profile </span>
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a
-                                                            className="dropdown-item"
-                                                            href="https://eboxtickets.com/logins/frontlogout"
-                                                        >
-                                                            <i className="bi bi-box-arrow-right"></i>
-                                                            <span> Logout </span>
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </nav>
+                                <ul className="dropdown-box ps-0">
+                                    <li className="dropdown">
+                                        <button
+                                            className="dropdown-toggle w-100 bg-transparent border-0 shadow-none d-flex justify-content-between align-items-center"
+                                            role="button"
+                                            onClick={() => setIsOpen(!isOpen)}
+                                            data-bs-toggle="dropdown"
+                                        >
+                                            <span> Account </span>
+                                        </button>
+
+                                        {isOpen && (
+                                            <ul className="dropdown-munubox p-0 w-100 border-0">
+                                                <li>
+                                                    <Link
+                                                        className="dropdown-item"
+                                                        href="/event/my-ticket"
+                                                    >
+                                                        <i className="fas fa-ticket-alt"></i>
+                                                        <span> My Tickets </span>
+                                                    </Link>
+                                                </li>
+                                                <li>
+                                                    <Link
+                                                        className="dropdown-item"
+                                                        href="/"
+                                                    >
+                                                        <i className="bi bi-person"></i>
+                                                        <span> Profile </span>
+                                                    </Link>
+                                                </li>
+                                                <li>
+                                                    <Link
+                                                        className="dropdown-item"
+                                                        href="/"
+                                                    >
+                                                        <i className="bi bi-box-arrow-right"></i>
+                                                        <span> Logout </span>
+                                                    </Link>
+                                                </li>
+                                            </ul>
+                                        )}
+                                    </li>
+                                </ul>
                             </li>
                         </ul>
 
 
+                    </div>
+
+                    <div className="event-righcontent">
+                        <h4>My Events</h4>
+                        <hr
+                            style={{
+                                borderColor: "currentColor",
+                            }}
+                        />
+
+                        <div className="search_sec">
+                            <form className="d-flex align-items-center">
+                                <input
+                                    className="form-control me-2 text-14"
+                                    style={{ height: "34px" }}
+                                    type="text"
+                                    placeholder="Search My Events"
+                                    aria-label="Search"
+                                />
+                                <svg
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 17 18"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <g fill="#2874F1" fillRule="evenodd">
+                                        <path d="M11.618 9.897l4.225 4.212c.092.092.101.232.02.313l-1.465 1.46c-.081.081-.221.072-.314-.02l-4.216-4.203" />
+                                        <path d="M6.486 10.901c-2.42 0-4.381-1.956-4.381-4.368 0-2.413 1.961-4.369 4.381-4.369 2.42 0 4.381 1.956 4.381 4.369 0 2.413-1.961 4.368-4.381 4.368m0-10.835c-3.582 0-6.486 2.895-6.486 6.467 0 3.572 2.904 6.467 6.486 6.467 3.582 0 6.486-2.895 6.486-6.467 0-3.572-2.904-6.467-6.486-6.467" />
+                                    </g>
+                                </svg>
+                            </form>
+                        </div>
+
+                        <div className="desbord-content">
+                            <div className="my-ticket-box">
+                                <div className="event-list">
+                                    <div className="table-responsive">
+                                        <table className="table table-hover mb-0">
+                                            <thead className="table-dark table_bg">
+                                                <tr>
+                                                    <th style={{ width: "2%" }} scope="col">#</th>
+                                                    <th style={{ width: "14%" }} scope="col">Name</th>
+                                                    <th style={{ width: "17%" }} scope="col">Date and Time</th>
+                                                    <th style={{ width: "18%" }} scope="col">Ticket Sale</th>
+                                                    <th style={{ width: "8%" }} scope="col">Venue</th>
+                                                    <th style={{ width: "16%" }} scope="col">Ticket Types</th>
+                                                    <th style={{ width: "15%" }} scope="col">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <th scope="row">1</th>
+                                                    <td>
+                                                        <img
+                                                            src="https://eboxtickets.com/images/eventimages/17556690197ffc8e37093e6cdd9e9101be7ef52fbc.jpg"
+                                                            alt="Not Found"
+                                                        />
+                                                        <Link href="/">Jescie Wiggins</Link>
+                                                    </td>
+
+                                                    <td>
+                                                        <b>From</b> 21 Aug, 2025 05:00 AM
+                                                        <br />
+                                                        <b>To</b> 27 Aug, 2025 12:00 AM
+                                                    </td>
+                                                    <td>
+                                                        <b>From</b> 21 Aug, 2025 05:00 AM
+                                                        <br />
+                                                        <b>To</b> 25 Aug, 2025 05:00 AM
+                                                    </td>
+                                                    <td>Vel cum distinctio</td>
+
+                                                    <td className="ticket_types">
+                                                        <p>Tickets not created</p>
+                                                    </td>
+
+                                                    <td className="Con_center">
+                                                        <div className=" editIcos">
+                                                            <Link href="/" className="edit viewIcos">
+                                                                <i className="bi bi-eye-fill"></i> View
+                                                            </Link>
+
+                                                            <Link href="/" className="edit viewIcos">
+                                                                <i className="fas fa-edit"></i> Edit
+                                                            </Link>
+
+                                                            <Link href="/" className="edit deleteIcos">
+                                                                <button type="button" className="edit p-0 m-0">
+                                                                    <svg
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        width="18"
+                                                                        height="18"
+                                                                        fill="#fff"
+                                                                        className="bi bi-trash"
+                                                                        viewBox="0 0 16 16"
+                                                                    >
+                                                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"></path>
+                                                                        <path
+                                                                            fillRule="evenodd"
+                                                                            d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+                                                                        ></path>
+                                                                    </svg>{" "}
+                                                                    Delete
+                                                                </button>
+                                                            </Link>
+                                                        </div>
+
+                                                        <div className="d-flex">
+                                                            <Link className="action_btn enable_btn edit" href="/">
+                                                                <i className="bi bi-check-circle-fill"></i>
+                                                            </Link>
+
+                                                            <Link className="action_btn excel_btn edit" href="/">
+                                                                <img
+                                                                    className="del-icon"
+                                                                    style={{ width: "16px" }}
+                                                                    src="https://eboxtickets.com/images/export-icon.png"
+                                                                    alt=""
+                                                                />
+                                                            </Link>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <th scope="row">2</th>
+                                                    <td>
+                                                        <img
+                                                            src="https://eboxtickets.com/images/eventimages/175463464266310690c321246607cb210aa9f0c5af.jpg"
+                                                            alt="Not Found"
+                                                        />
+                                                        <Link href="/">Raksha Bandhan</Link>
+                                                    </td>
+
+                                                    <td>
+                                                        <b>From</b> 08 Aug, 2025 12:00 PM
+                                                        <br />
+                                                        <b>To</b> 30 Aug, 2025 05:00 AM
+                                                    </td>
+                                                    <td>
+                                                        <b>From</b> 08 Aug, 2025 12:00 PM
+                                                        <br />
+                                                        <b>To</b> 30 Aug, 2025 04:00 AM
+                                                    </td>
+                                                    <td>Jaipur</td>
+
+                                                    <td className="ticket_types">
+                                                        <p>Tickets not created</p>
+                                                    </td>
+
+                                                    <td className="Con_center">
+                                                        <div className=" editIcos">
+                                                            <Link href="/" className="edit viewIcos">
+                                                                <i className="bi bi-eye-fill"></i> View
+                                                            </Link>
+
+                                                            <Link href="/" className="edit viewIcos">
+                                                                <i className="fas fa-edit"></i> Edit
+                                                            </Link>
+
+                                                            <Link href="/" className="edit deleteIcos">
+                                                                <button type="button" className="edit p-0 m-0">
+                                                                    <svg
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        width="18"
+                                                                        height="18"
+                                                                        fill="#fff"
+                                                                        className="bi bi-trash"
+                                                                        viewBox="0 0 16 16"
+                                                                    >
+                                                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"></path>
+                                                                        <path
+                                                                            fillRule="evenodd"
+                                                                            d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+                                                                        ></path>
+                                                                    </svg>{" "}
+                                                                    Delete
+                                                                </button>
+                                                            </Link>
+                                                        </div>
+
+                                                        <div className="d-flex">
+                                                            <Link className="action_btn enable_btn edit" href="/">
+                                                                <i className="bi bi-check-circle-fill"></i>
+                                                            </Link>
+
+                                                            <Link className="action_btn excel_btn edit" href="/">
+                                                                <img
+                                                                    className="del-icon"
+                                                                    style={{ width: "16px" }}
+                                                                    src="https://eboxtickets.com/images/export-icon.png"
+                                                                    alt=""
+                                                                />
+                                                            </Link>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div className="paginator col-sm-12">
+                                        <ul className="pagination justify-content-center">
+                                            <li className="prev disabled">
+                                                <Link href="/"><i class="bi bi-chevron-left"></i> Previous</Link>
+                                            </li>
+                                            <li className="next disabled">
+                                                <Link href="/">Next <i class="bi bi-chevron-right"></i></Link>
+                                            </li>
+                                        </ul>
+                                        <div className="text-center">
+                                            <p className="paginate_p text-14">
+                                                Page 1 of 1, showing 2 record(s) out of 2 total
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

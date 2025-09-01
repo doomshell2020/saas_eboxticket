@@ -5,7 +5,6 @@ import FrontendHeader from "@/shared/layout-components/frontelements/frontendhea
 import FrontendFooter from "@/shared/layout-components/frontelements/frontendfooter";
 
 
-
 const Cart = () => {
     const [backgroundImage] = useState("https://eboxtickets.com/images/about-slider_bg.jpg");
 
@@ -16,7 +15,7 @@ const Cart = () => {
             <section id="cart">
                 <div className="container">
                     <div className="section-heading">
-                        <h2 className="text-start">Cart</h2>
+                        <h2 className="text-start">Cart </h2> 
                     </div>
                     <div className="cart-details mx-auto mb-0">
                         <div className="row">

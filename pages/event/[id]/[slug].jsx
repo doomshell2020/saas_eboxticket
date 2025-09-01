@@ -31,30 +31,30 @@ const EventDetailsPage = ({ events }) => {
                   <h5 className="mb-0">Share With Friends</h5>
                   <ul className="list-inline social_ul m-0">
                     <li className="list-inline-item">
-                      <a
+                      <Link
                         href="https://www.facebook.com/sharer.php?u=https://eboxtickets.com/event/South-Oropuche"
                         target="_blank"
                       >
                         <i className="fab fa-facebook-f"></i>
-                      </a>
+                      </Link>
                     </li>
 
                     <li className="list-inline-item">
-                      <a
+                      <Link
                         href="https://twitter.com/share?url=https://eboxtickets.com/event/South-Oropuche&amp;text=Souldierz Games Night"
                         target="_blank"
                       >
                         <i className="fab fa-twitter"></i>
-                      </a>
+                      </Link>
                     </li>
 
                     <li className="list-inline-item">
-                      <a
+                      <Link
                         href="mailto:?subject=Ebox Tickets: Souldierz Games Night&amp;body=Check out this event: https://eboxtickets.com/event/South-Oropuche&amp;title=Share by Email"
                         target="_blank"
                       >
                         <i className="fa fa-envelope"></i>
-                      </a>
+                      </Link>
                     </li>
                   </ul>
                 </div>
@@ -74,7 +74,7 @@ const EventDetailsPage = ({ events }) => {
                       <li className="flex-fill">
                         <div>
                           <h6>
-                            <i className="fa-solid fa-calendar-days"></i> Start Date
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fillRule="evenodd" d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5ZM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1Z"/><path d="M11 6h1v1h-1V6ZM3 8h2v2H3V8Zm3 0h2v2H6V8Zm3 0h2v2H9V8ZM3 11h2v2H3v-2Zm3 0h2v2H6v-2Zm3 0h2v2H9v-2Z"/></svg> Start Date
                           </h6>
                           <span>
                             Sun, 24th Aug 2025 | 06:00 PM
@@ -84,7 +84,7 @@ const EventDetailsPage = ({ events }) => {
                       <li className="flex-fill">
                         <div>
                           <h6>
-                            <i className="fa-solid fa-calendar-days"></i> End Date
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fillRule="evenodd" d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5ZM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1Z"/><path d="M11 6h1v1h-1V6ZM3 8h2v2H3V8Zm3 0h2v2H6V8Zm3 0h2v2H9V8ZM3 11h2v2H3v-2Zm3 0h2v2H6v-2Zm3 0h2v2H9v-2Z"/></svg> End Date
                           </h6>
                           <span>
                             Sun, 24th Aug 2025 | 09:00 PM
@@ -94,7 +94,7 @@ const EventDetailsPage = ({ events }) => {
                       <li className="flex-fill">
                         <div>
                           <h6>
-                            <i className="fa-solid fa-location-dot"></i> Location
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fillRule="evenodd" d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6"/></svg> Location
                           </h6>
                           <span>South Oropouche R.C. School</span>
                         </div>

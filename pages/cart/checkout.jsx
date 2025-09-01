@@ -16,7 +16,7 @@ const Cart = () => {
             <section id="cart">
                 <div className="container">
                     <div className="section-heading">
-                        <h2 className="text-start">checkout</h2>
+                        <h2 className="text-start">Checkout</h2>
                     </div>
                     <div className="cart-details mx-auto mb-0">
                         <div className="row">
@@ -90,19 +90,19 @@ const Cart = () => {
                                     </div>
                                     <hr />
                                     <div className="cart-inputbox">
-                                    <h6 className="text-uppercase text-black">
-                                    Card number
-                                    </h6>
-                                    
+                                        <h6 className="text-uppercase text-black">
+                                            Card number
+                                        </h6>
+
                                     </div>
-                                   
+
 
                                 </div>
                             </div>
 
                         </div>
                     </div>
-                    
+
                 </div>
             </section>
 
