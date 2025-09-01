@@ -1,13 +1,12 @@
-import { checkApiKey } from '@/middleware/checkApiKey';
 import { View_Events } from "@/shared/services/v3/events/event_service";
 
+import { checkApiKey } from '@/middleware/checkApiKey';
 
 const handler = async (req, res) => {
     return checkApiKey(req, res, async () => {
         try {
             const { method, query } = req;
             const { action } = query;
-
             switch (method) {
 
                 case "POST": {

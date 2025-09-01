@@ -27,6 +27,8 @@ import axios from "axios";
 import Swal from "sweetalert2"; // Import SweetAlert
 // import Moment from "react-moment";
 import moment from "moment-timezone";
+import Image from "next/image";
+import Checkout from '@/pages/components/cart/checkout';
 
 const LoadingComponent = ({ isActive }) => {
     return (
@@ -55,7 +57,7 @@ const LoadingComponent = ({ isActive }) => {
     );
 };
 
-export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, profile = {} }) {
+export default function Cart({ isActiveNow, makeModalOff, loginUserId = 10315, profile = {} }) {
 
     let navigate = useRouter();
     const [show, setShow] = useState(isActiveNow);
@@ -75,7 +77,7 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
     const [eventDetails, setEventDetails] = useState({});
     const [addonsDetailsArray, setAddonsDetailsArray] = useState([]);
     const [activeTicketType, setActiveTicketType] = useState([]);
-    // console.log('>>>>>>>>>>>',addonsDetailsArray);
+    // console.log('>>>>>>>>>>>',eventDetails);
 
     // Function to clear messages after 5 seconds
     const clearMessages = () => {
@@ -216,10 +218,16 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
     const fetchCartDetails = async () => {
         try {
             setIsLoading(true);
-            const response = await axios.get(`/api/v1/front/cart?userId=${userId}`);
+            const response = await axios.get(`/api/v3/front/cart?userId=${userId}`,
+                {
+                    headers: {
+                        "x-api-key": "28a27307756ad7d153cb2ea460f3559befd868f8ced421be2c744f1278f75f2a",
+                    }
+                }
+            );
             const { data } = response;
-            console.log('>>>>>>>',userId);
-            
+            // console.log('>>>>>>>',userId);
+
             if (data && data.data) {
                 setCart(data.data);
                 setIsLoading(false);
@@ -271,13 +279,22 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
             //     symbol,
             // });
 
-            const response = await axios.post("/api/v1/front/cart", {
-                userId: userId,
-                eventId,
-                ticketId: ticketId,
-                ticket_type: type,
-                symbol,
-            });
+            const response = await axios.post(
+                "/api/v3/front/cart",
+                {
+                    userId: userId,
+                    eventId,
+                    ticketId: ticketId,
+                    ticket_type: type,
+                    symbol,
+                },
+                {
+                    headers: {
+                        "x-api-key": "28a27307756ad7d153cb2ea460f3559befd868f8ced421be2c744f1278f75f2a",
+                    },
+                }
+            );
+
 
             if (!response.data.success) {
                 setErrorMessage(response.data.message || "Something went wrong");
@@ -319,12 +336,12 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
 
             if (result.isConfirmed) {
                 setIsLoading(true);
-                const response = await axios.get(
-                    "/api/v1/front/cart?action=delete_cart_item",
-                    {
-                        params: { cartId },
-                    }
-                );
+                const response = await axios.get("/api/v3/front/cart?action=delete_cart_item", {
+                    params: { cartId },
+                    headers: {
+                        "x-api-key": "28a27307756ad7d153cb2ea460f3559befd868f8ced421be2c744f1278f75f2a",
+                    },
+                });
 
                 if (!response.data.success) {
                     setErrorMessage(response.data.message || "Something went wrong");
@@ -379,13 +396,18 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
         }
 
         try {
-            const response = await axios.get("/api/v1/validate-coupon", {
+            const response = await axios.get("/api/v3/front/validate-coupon", {
                 params: {
                     couponCode: coupon,
                     action: "is_valid",
                     userId,
                     eventId,
                 },
+
+                headers: {
+                    "x-api-key": "28a27307756ad7d153cb2ea460f3559befd868f8ced421be2c744f1278f75f2a",
+                },
+
             });
             if (response.data.success) {
                 setCouponDetails(response.data.data);
@@ -551,7 +573,6 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
                 {eventDetails && eventDetails.Name ? (
                     <Modal.Body className="px-3 care-new-check">
                         <LoadingComponent isActive={isLoading} />
-
                         <form onSubmit={handleSubmit}>
                             <div className="checkout-innr">
                                 <Row className="gy-4">
@@ -582,8 +603,19 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
                                                         <Col md={4}>
                                                             <div className="evt-innr-dtl">
                                                                 <div className="monte-evntimgs">
-                                                                    <img
+                                                                    {/* <img
                                                                         src={`/assets/img/front-images/monte25-check-1img.jpg`}
+                                                                        className="firstDayEvent"
+                                                                    /> */}
+                                                                    <Image
+                                                                        src={
+                                                                            eventDetails?.ImageURL
+                                                                                ? `${process.env.NEXT_PUBLIC_S3_URL}/profiles/${eventDetails.ImageURL}`
+                                                                                : `${process.env.NEXT_PUBLIC_S3_URL}/profiles/dummy-user.png`
+                                                                        }
+                                                                        alt="Event"
+                                                                        width={100}
+                                                                        height={100}
                                                                         className="firstDayEvent"
                                                                     />
                                                                 </div>
@@ -608,7 +640,7 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
                                                             <div className="evt-innr-dtl">
                                                                 <div className="monte-evntimgs">
                                                                     <img
-                                                                        src={`/assets/img/front-images/monte25-check-2imgNew.jpg`}
+                                                                        src={`${process.env.NEXT_PUBLIC_S3_URL}/profiles/monte25-check-2imgNew.jpg`}
                                                                         className="firstDayEvent"
                                                                     />
                                                                 </div>
@@ -631,6 +663,7 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
 
                                                     </Row>
                                                 </div>
+
                                                 <Row className="align-items-center gy-3 marginTpMinus4">
                                                     {activeTicketType &&
                                                         activeTicketType
@@ -713,6 +746,7 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
                                                     }
 
                                                 </Row>
+
                                             </div>
 
                                             <div className="ck-event-dtl ck-adon-event">
@@ -728,6 +762,7 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
                                                     and themes are subject to change. Final program
                                                     will be announced closer to event date.
                                                 </p>
+
                                                 <Row className=" mt-3 gy-3">
                                                     {eventDetails &&
                                                         eventDetails.Addons &&
@@ -741,8 +776,8 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
                                                                     addonType.id
                                                                 )
                                                         ).map((addonType, index) => {
-                                                            
-                                                            const availableCount = addonType?.count || 0;                                                            
+
+                                                            const availableCount = addonType?.count || 0;
 
                                                             return (
                                                                 <>
@@ -755,7 +790,7 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
                                                                                 <img
                                                                                     src={
                                                                                         addonType.addon_image
-                                                                                            ? `/assets/img/front-images/${addonType.addon_image}`
+                                                                                            ? `${process.env.NEXT_PUBLIC_S3_URL}/profiles/${addonType.addon_image}`
                                                                                             : `/imagenot/no-image-icon-1.png`
                                                                                     }
                                                                                     className="MontenAddOnImg"
@@ -882,11 +917,12 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
                                             <div
                                                 className="checkot-rgt-bnr mont25rgt-bnt "
                                                 style={{
-                                                    background: `url(/uploads/profiles/${eventDetails && eventDetails.ImageURL
-                                                        ? eventDetails.ImageURL
+                                                    background: `url(${eventDetails && eventDetails.ImageURL
+                                                        ? `${process.env.NEXT_PUBLIC_S3_URL}/profiles/${eventDetails.ImageURL}`
                                                         : "no-image-1.png"
                                                         })`,
                                                 }}
+
                                             >
                                                 <h2
                                                     className=""
@@ -1172,7 +1208,7 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
                                                                     const totalAmount = Math.round(
                                                                         finalPriceAfterDiscount + taxes
                                                                     );
-                                                                    if (totalAmount === 0) {
+                                                                    if (totalAmount == 0) {
                                                                         e.preventDefault();
                                                                         handleFreeTicket();
                                                                     }
@@ -1180,7 +1216,7 @@ export default function Cart({ isActiveNow, makeModalOff, loginUserId=10315, pro
                                                             >
                                                                 {Math.round(
                                                                     finalPriceAfterDiscount + taxes
-                                                                ) === 0
+                                                                ) == 0
                                                                     ? "FREE TICKET"
                                                                     : "BUY TICKETS"}
                                                             </Button>
