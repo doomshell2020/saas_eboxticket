@@ -4,10 +4,10 @@ module.exports = {
         username: process.env.DB_USER || "root",
         password: process.env.DB_PASSWORD || null,
         database: process.env.DB_NAME || "database_development",
-        // host: "localhost",
+        host: "localhost",
         port: 3306,
         dialect: 'mysql',
-        host: "44.209.102.190",
+        // host: "44.209.102.190",
     },
     production: {
         username: process.env.DB_USER,
@@ -16,13 +16,13 @@ module.exports = {
         // host: "localhost",
         port: 3306,
         dialect: 'mysql',
-        host: "44.209.102.190",
+        // host: "44.209.102.190",
     },
     test: {
         username: "root",
         password: null,
         database: "database_test",
-        host: "127.0.0.1",
+        // host: "127.0.0.1",
         dialect: 'mysql',
     }
 };
