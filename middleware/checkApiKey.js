@@ -4,13 +4,14 @@ import { Op } from 'sequelize';
 export async function checkApiKey(req, res, next) {
     try {
         const apiKey = req.headers['x-api-key'] || req.query.api_key;
-        const origin = req.headers['origin'] || ''; // Origin header (browser requests)
+
+        // ✅ Use Origin OR Referer OR empty
+        const origin = req.headers['origin'] || req.headers['referer'] || '';
 
         if (!apiKey) {
             return res.status(401).json({ success: false, message: 'API key is required' });
         }
 
-        // 🔍 Find active key
         const keyRecord = await ApiSubscription.findOne({
             where: {
                 key_hash: apiKey,
@@ -23,7 +24,7 @@ export async function checkApiKey(req, res, next) {
             return res.status(403).json({ success: false, message: 'Invalid or inactive API key' });
         }
 
-        // ✅ Domain check (if domains are restricted)
+        // ✅ Domain check
         if (keyRecord.allowed_domains) {
             const allowedDomains = keyRecord.allowed_domains
                 .split(',')
@@ -31,30 +32,24 @@ export async function checkApiKey(req, res, next) {
 
             let originHost = origin.toLowerCase();
 
-            // Remove protocol
             if (originHost.startsWith('http://')) originHost = originHost.slice(7);
             else if (originHost.startsWith('https://')) originHost = originHost.slice(8);
 
-            // Remove trailing slash
             originHost = originHost.replace(/\/$/, '');
-
-            // Strip port if present (e.g., localhost:3000 → localhost)
             const [hostWithoutPort] = originHost.split(':');
 
-            // Handle empty origin (Postman, cURL, server-to-server calls)
+            // ⚡️ If origin empty → fallback to 'null'
             const originForCheck = hostWithoutPort || 'null';
 
-            // 🔍 Debug logs
             console.log('🔑 API Key Check');
-            console.log('Origin header:', origin);
+            console.log('Origin header:', origin || '(not provided)');
             console.log('Processed host:', originForCheck);
             console.log('Allowed domains:', allowedDomains);
 
-            // Match exact OR allow wildcard (*.domain.com)
             const isAllowed = allowedDomains.some(d => {
-                if (d === originForCheck) return true; // Exact match
+                if (d === originForCheck) return true;
                 if (d.startsWith('*.')) {
-                    const domain = d.slice(2); // remove *.
+                    const domain = d.slice(2);
                     return originForCheck.endsWith(domain);
                 }
                 return false;
@@ -70,10 +65,7 @@ export async function checkApiKey(req, res, next) {
             }
         }
 
-        // Update last used timestamp
         await keyRecord.update({ last_used: new Date() });
-
-        // Attach organiser to request
         req.organizer = keyRecord.organiser;
 
         next();
@@ -82,6 +74,7 @@ export async function checkApiKey(req, res, next) {
         return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
+
 
 
 
