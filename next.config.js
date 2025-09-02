@@ -2,15 +2,23 @@ const ENV = process.env.NODE_ENV;
 const isDev = ENV == 'development';
 const isPWAEnabled = false; // toggle this via .env
 
-console.log('===========Running in', ENV, 'Mode | PWA Enabled:', isPWAEnabled, ' | DB_NAME:', process.env.DB_NAME, '===================');
+console.log(
+  '===========Running in',
+  ENV,
+  'Mode | PWA Enabled:',
+  isPWAEnabled,
+  ' | DB_NAME:',
+  process.env.DB_NAME,
+  '==================='
+);
 
 const withPWA = isPWAEnabled
   ? require('next-pwa')({
-    dest: 'public',
-    register: true,
-    skipWaiting: true,
-    disable: false,
-  })
+      dest: 'public',
+      register: true,
+      skipWaiting: true,
+      disable: false,
+    })
   : (config) => config;
 
 const nextConfig = {
@@ -19,7 +27,7 @@ const nextConfig = {
   swcMinify: true,
   images: {
     unoptimized: true,
-    domains: ['ondalinda.s3.amazonaws.com']
+    domains: ['ondalinda.s3.amazonaws.com'],
   },
   env: {
     APP_ENV: process.env.NODE_ENV,
@@ -29,7 +37,7 @@ const nextConfig = {
     HOST: process.env.HOST,
     LIVE_DB_NAME: process.env.LIVE_DB_NAME,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-    SITE_URL : process.env.SITE_URL,
+    SITE_URL: process.env.SITE_URL,
     STRIPE_SECRET_KEY_DONATION: process.env.STRIPE_SECRET_KEY_DONATION,
     STRIPE_PUBLIC_KEY_DONATION: process.env.STRIPE_PUBLIC_KEY_DONATION,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
@@ -48,7 +56,22 @@ const nextConfig = {
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
     AWS_REGION: process.env.AWS_REGION,
     S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
-  }
+  },
+
+  // ✅ Add CORS headers here
+  async headers() {
+    return [
+      {
+        // Apply to all API routes
+        source: "/api/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" }, // Or set to specific domain: "https://ondalinda.com"
+          { key: "Access-Control-Allow-Methods", value: "GET,POST,PUT,DELETE,OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization, x-api-key" },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = withPWA(nextConfig);
