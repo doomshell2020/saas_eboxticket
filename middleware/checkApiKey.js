@@ -6,7 +6,7 @@ export async function checkApiKey(req, res, next) {
 
     // ✅ Use Origin → else Referer → else empty
     const origin = req.headers['origin'] || req.headers['referer'] || '';
-    console.log('>>>>>>>>>> Origin:', origin);
+    console.log('>>>>>>>>>> req.headers:', req.headers);
 
     if (!apiKey) {
       return res.status(401).json({ success: false, message: 'API key is required' });
@@ -33,7 +33,6 @@ export async function checkApiKey(req, res, next) {
         .map((d) => d.trim().toLowerCase())
         .filter((d) => d.length > 0);
 
-      console.log('>>>>>>>>>', allowedDomains);
       if (allowedDomains.length > 0) {
         let originHost = '';
 
