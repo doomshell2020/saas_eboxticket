@@ -18,7 +18,7 @@ export function middleware(request) {
   );
   response.headers.set(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-API-Key"
+    "Content-Type, Authorization, x-api-key"
   );
 
   // Preflight (OPTIONS request)

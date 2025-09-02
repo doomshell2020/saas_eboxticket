@@ -2,6 +2,12 @@ import { addToCart, getCartByUserId, deleteCartItem, addTicketForAccommodation }
 import { checkApiKey } from '@/middleware/checkApiKey';
 
 const handler = async (req, res) => {
+
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Or a specific origin like 'http://localhost:3000'
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization,x-api-key');
+
+
   return checkApiKey(req, res, async () => {
 
     const { method, query } = req;
