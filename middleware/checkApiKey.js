@@ -57,6 +57,7 @@ export async function checkApiKey(req, res, next) {
         console.log('🔑 API Key Check');
         console.log('Processed host:', originForCheck);
         console.log('Allowed domains:', allowedDomains);
+        console.log('originForCheck:', originHost);
 
         const isAllowed = allowedDomains.some((d) => {
           if (d == originForCheck) return true; // exact match
