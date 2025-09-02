@@ -1,5 +1,4 @@
 import { View_Events } from "@/shared/services/v3/events/event_service";
-
 import { checkApiKey } from '@/middleware/checkApiKey';
 
 const handler = async (req, res) => {
@@ -19,12 +18,10 @@ const handler = async (req, res) => {
                     }
                     break;
                 }
-
                 case "GET": {
                     const result = await View_Events(req, res);
                     return res.status(result.statusCode).json(result);
                 }
-
                 case "PUT": {
                     try {
                         console.error('Outer Error:', error);
