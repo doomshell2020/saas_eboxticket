@@ -11,10 +11,15 @@ export function middleware(request) {
   // -------------------
   const response = NextResponse.next();
 
-  // Allow from all origins (or replace * with specific domain)
   response.headers.set("Access-Control-Allow-Origin", "*");
-  response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  response.headers.set(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  response.headers.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-API-Key"
+  );
 
   // Preflight (OPTIONS request)
   if (request.method == "OPTIONS") {
