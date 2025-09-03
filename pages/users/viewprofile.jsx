@@ -35,81 +35,91 @@ const ProfilePage = () => {
   return (
     <>
       <FrontendHeader />
-      <div className={styles.pageWrapper}>
-        <section className={styles.profileSection}>
-          <div className={styles.container}>
-            <div className="heading">
-              <h1>Profile</h1>
-              <h2>My Profile</h2>
-              <p>Your profile information is displayed below.</p>
-            </div>
+      <section id="profile" className="mt-5 mb-5">
+        <div className="container">
+          <div className="section-heading">
+            <h1>Profile</h1>
+            <h2 className="mt-4">My Profile</h2>
+            <p className="mb-4 body-text text-center">Your profile information is displayed below.</p>
+          </div>
 
-            <div className={styles.profileContent}>
-              {/* Sidebar */}
-              <div className={styles.sidebar}>
-                <div className={styles.userProfile}>
-                  <div className={styles.userAvatar}>
-                    <img
-                      src="https://eboxtickets.com/images/Usersprofile/noimage.jpg"
-                      alt={user?.name || "User"}
+          <div className="profil_deaile mx-auto">
+            <div className="row">
+              <div className="col-md-3">
+                <div className="user-profile">
+                  <div className="user-avatar">
+                    <img className="mx-auto text-center"
+                      src="/assets/front-images/noimage.jpg"
+                      alt="Maxwell Admin"
                     />
                   </div>
-                  <h5 className={styles.userName}>
-                    {user?.name || "Guest User"}
-                  </h5>
-                  <Link href="/users/update-profile" className={styles.editLink}>
+                  <h5 className="user-name text-center text-16">Rupam Singh</h5>
+                  <a
+                    className="edit primery-button"href="https://eboxtickets.com/users/updateprofile"
+                  >
                     <i className="fas fa-edit"></i> Edit Profile
-                  </Link>
+                  </a>
                 </div>
               </div>
 
-              {/* Details */}
-              <div className={styles.details}>
-                <table className={styles.table}>
-                  <tbody>
-                    <tr>
-                      <td>Email</td>
-                      <td>{user?.email}</td>
-                    </tr>
-                    <tr>
-                      <td>Registered On</td>
-                      <td>Fri, 30th May 2025 04:47 AM</td>
-                    </tr>
-                    <tr>
-                      <td>First Name</td>
-                      <td>{user?.firstName || "-"}</td>
-                    </tr>
-                    <tr>
-                      <td>Last Name</td>
-                      <td>{user?.lastName || "-"}</td>
-                    </tr>
-                    <tr>
-                      <td>Date of Birth</td>
-                      <td>{user?.dob || "-"}</td>
-                    </tr>
-                    <tr>
-                      <td>Gender</td>
-                      <td>{user?.gender || "-"}</td>
-                    </tr>
-                    <tr>
-                      <td>Phone Number</td>
-                      <td>{user?.mobile || "-"}</td>
-                    </tr>
-                    <tr>
-                      <td>Email Related Events</td>
-                      <td>Yes</td>
-                    </tr>
-                    <tr>
-                      <td>Email Newsletter</td>
-                      <td>Yes</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="col-md-9">
+                <div className="profile-details">
+                  <table className="table">
+                    <tbody>
+                      <tr>
+                        <td>Email</td>
+                        <td>rupam@doomshell.com</td>
+                      </tr>
+                      <tr>
+                        <td>Registered On</td>
+                        <td>Fri, 30th May 2025 04:47 AM</td>
+                      </tr>
+                      <tr>
+                        <td>First Name</td>
+                        <td>Rupam</td>
+                      </tr>
+                      <tr>
+                        <td>Last Name</td>
+                        <td>Singh</td>
+                      </tr>
+                      <tr>
+                        <td>Date of Birth</td>
+                        <td>01-01-2000</td>
+                      </tr>
+                      <tr>
+                        <td>Gender</td>
+                        <td>Male</td>
+                      </tr>
+                      <tr>
+                        <td>Phone Number</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn verified_btn"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Verified"
+                          >
+                            <i className="bi bi-patch-check-fill"></i>
+                          </button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Email Related Events</td>
+                        <td>Yes</td>
+                      </tr>
+                      <tr>
+                        <td>Email Newsletter</td>
+                        <td>Yes</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
       <FrontendFooter />
     </>
   );
