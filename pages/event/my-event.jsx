@@ -26,7 +26,7 @@ const MyEventsPage = () => {
 
 
 
-    const [backgroundImage, setIsMobile] = useState('https://eboxtickets.com/images/about-slider_bg.jpg');
+    const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slider_bg.jpg');
     return (
         <>
             <FrontendHeader backgroundImage={backgroundImage} />
@@ -164,7 +164,7 @@ const MyEventsPage = () => {
                                                     <th scope="row">1</th>
                                                     <td>
                                                         <img
-                                                            src="https://eboxtickets.com/images/eventimages/17556690197ffc8e37093e6cdd9e9101be7ef52fbc.jpg"
+                                                            src="/assets/front-images/my-event-section.jpg"
                                                             alt="Not Found"
                                                         />
                                                         <Link href="/">Jescie Wiggins</Link>
@@ -226,7 +226,7 @@ const MyEventsPage = () => {
                                                                 <img
                                                                     className="del-icon"
                                                                     style={{ width: "16px" }}
-                                                                    src="https://eboxtickets.com/images/export-icon.png"
+                                                                    src="/assets/front-images/export-icon.png"
                                                                     alt=""
                                                                 />
                                                             </Link>
@@ -238,7 +238,7 @@ const MyEventsPage = () => {
                                                     <th scope="row">2</th>
                                                     <td>
                                                         <img
-                                                            src="https://eboxtickets.com/images/eventimages/175463464266310690c321246607cb210aa9f0c5af.jpg"
+                                                            src="/assets/front-images/my-event-section2.jpg"
                                                             alt="Not Found"
                                                         />
                                                         <Link href="/">Raksha Bandhan</Link>
@@ -300,7 +300,7 @@ const MyEventsPage = () => {
                                                                 <img
                                                                     className="del-icon"
                                                                     style={{ width: "16px" }}
-                                                                    src="https://eboxtickets.com/images/export-icon.png"
+                                                                    src="/assets/front-images/export-icon.png"
                                                                     alt=""
                                                                 />
                                                             </Link>

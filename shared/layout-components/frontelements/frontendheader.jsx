@@ -5,7 +5,7 @@ import CartModal from "@/pages/components/cart/index";
 
 const FrontendHeader = ({ backgroundImage, isStripeShowing = false }) => {
 
-  const [headerBackgroundImg, setHeaderBackgroundImg] = useState(backgroundImage ?? "/assets/img/slider_bg9.jpg");
+  const [headerBackgroundImg, setHeaderBackgroundImg] = useState(backgroundImage ?? "/assets/front-images/slider_bg9.jpg");
 
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -76,7 +76,7 @@ const FrontendHeader = ({ backgroundImage, isStripeShowing = false }) => {
         <div className="container">
           <div className="navflexbox">
             <Link href="/" className="logodiv">
-              <img src="/logo.png" alt="Logo" className="headerlogo" />
+              <img src="/assets/front-images/logo.png" alt="Logo" className="headerlogo" />
             </Link>
             <div className="menuflexbox">
               <nav className="menulistbox">

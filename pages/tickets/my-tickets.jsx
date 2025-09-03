@@ -6,7 +6,7 @@ import FrontendFooter from "@/shared/layout-components/frontelements/frontendfoo
 
 
 const MyTicket = () => {
-    const [backgroundImage, setIsMobile] = useState('https://eboxtickets.com/images/about-slider_bg.jpg');
+    const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slider_bg.jpg');
     return (
         <>
             <FrontendHeader backgroundImage={backgroundImage} />
@@ -28,7 +28,7 @@ const MyTicket = () => {
                                                     <div className="image_br image_br d-flex align-items-center w-100 overflow-hidden" style={{ height: "220px" }}>
                                                         <img
                                                             className="event_img w-100"
-                                                            src="https://eboxtickets.com/images/eventimages/17551892758c152ca3b25bacef67167ee4523329db.jpg"
+                                                            src="/assets/front-images/my-tacket-section.jpg"
                                                             alt="IMG"
                                                         />
                                                     </div>

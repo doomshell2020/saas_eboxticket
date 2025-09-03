@@ -25,7 +25,7 @@ const RegisterPage = () => {
     // Call your registration API here
   };
 
-  const [backgroundImage, setIsMobile] = useState('https://eboxtickets.com/images/about-slider_bg.jpg');
+  const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slider_bg.jpg');
   return (
     <>
       <FrontendHeader backgroundImage={backgroundImage} />
@@ -40,7 +40,7 @@ const RegisterPage = () => {
           <div className="form-content">
             <div className="row">
               <div className="col-md-6 col-sm-12 sig_img">
-                <img src="https://eboxtickets.com/images/sigin.png" alt="" />
+                <img src="/assets/front-images/sigin.png" alt="img" />
               </div>
 
               <div className="col-md-6 col-sm-12 sig_img">

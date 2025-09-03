@@ -89,7 +89,7 @@ const LoginPage = () => {
       setLoading(false);
     }
   };
-  const [backgroundImage, setIsMobile] = useState('https://eboxtickets.com/images/about-slider_bg.jpg');
+  const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slider_bg.jpg');
   return (
     <>
       <FrontendHeader backgroundImage={backgroundImage} />
@@ -104,7 +104,7 @@ const LoginPage = () => {
           <div className="form-content">
             <div className="row align-items-center">
               <div className="col-md-6 col-sm-12 sig_img">
-                <img src="https://eboxtickets.com/images/sigin.png" alt="Login Illustration" /></div>
+                <img src="/assets/front-images/sigin.png" alt="Login Illustration" /></div>
 
               <div className="col-md-6 col-sm-12 sig_img">
                 <div className="contact-form">

@@ -4,7 +4,7 @@ import FrontendFooter from "@/shared/layout-components/frontelements/frontendfoo
 import Link from "next/link";
 
 const EventDetailsPage = ({ events }) => {
-  const [backgroundImage, setIsMobile] = useState('https://eboxtickets.com/images/about-slider_bg.jpg');
+  const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slider_bg.jpg');
   return (
     <>
       <FrontendHeader backgroundImage={backgroundImage} />
@@ -16,14 +16,14 @@ const EventDetailsPage = ({ events }) => {
               <div className="ticker_img fadeInLeft position-sticky top-0">
                 <div className="ticker_imgmn">
                   <img
-                    src="https://eboxtickets.com/images/eventimages/1754935170691fc25ef906cdff43f13737b663b284.jpg"
+                    src="/assets/front-images/event-section-img.jpg"
                     alt="img"
                   />
                 </div>
 
                 <img
                   className="event_bg position-absolute"
-                  src="https://eboxtickets.com/images/detals-bg.png"
+                  src="/assets/front-images/detals-bg.png"
                   alt="img"
                 />
 

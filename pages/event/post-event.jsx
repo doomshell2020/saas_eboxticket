@@ -4,7 +4,7 @@ import FrontendFooter from "@/shared/layout-components/frontelements/frontendfoo
 import Link from "next/link";
 
 const EventDetailsPage = ({ events }) => {
-    const [backgroundImage, setIsMobile] = useState('https://eboxtickets.com/images/about-slider_bg.jpg');
+    const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slider_bg.jpg');
     return (
         <>
             <FrontendHeader backgroundImage={backgroundImage} />

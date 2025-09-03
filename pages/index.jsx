@@ -4,10 +4,9 @@ import FrontendFooter from "@/shared/layout-components/frontelements/frontendfoo
 import Link from "next/link";
 
 const Home = () => {
-  const [backgroundImage, setIsMobile] = useState('/assets/img/slider_bg9.jpg');
   return (
     <>
-      <FrontendHeader backgroundImage={backgroundImage} isStripeShowing={true} />
+      <FrontendHeader  isStripeShowing={true} />
       <section className="home-events" id="events">
         <div className="container">
           <div className="section-heading">
@@ -42,7 +41,7 @@ const Home = () => {
                   <div className="event-inner-content">
                     <div className="row align-items-center">
                       <div className="col-lg-2 col-md-3 col-sm-4 col-12 image_event  ">
-                        <img className="event_img" src="https://eboxtickets.com/images/eventimages/1754935170691fc25ef906cdff43f13737b663b284.jpg" alt="Event"></img>
+                        <img className="event_img" src="/assets/front-images/event-section-img.jpg" alt="Event"></img>
                       </div>
                       <div className="col-lg-8 col-md-6 col-sm-8 col-12 event-details">
                         <h3 className="event-title"> Souldierz Games Night</h3>
@@ -83,7 +82,7 @@ const Home = () => {
                   <div className="event-inner-content">
                     <div className="row align-items-center">
                       <div className="col-lg-2 col-md-3 col-sm-4 col-12 image_event  ">
-                        <img className="event_img" src="https://eboxtickets.com/images/eventimages/1754935170691fc25ef906cdff43f13737b663b284.jpg" alt="Event"></img>
+                        <img className="event_img" src="/assets/front-images/event-section-img.jpg" alt="Event"></img>
                       </div>
                       <div className="col-lg-8 col-md-6 col-sm-8 col-12 event-details">
                         <h3 className="event-title"> Souldierz Games Night</h3>
@@ -131,7 +130,7 @@ const Home = () => {
               <div className="card">
                 <div className="img_icon">
                   <img
-                    src="https://eboxtickets.com//images/ticket-scanning-(1).webp"
+                    src="/assets/front-images/ticket-scanning.png"
                     className="card-img-top scan_img"
                     alt="Ticket Scaning"
                     loading="lazy"
@@ -152,9 +151,9 @@ const Home = () => {
               <div className="card">
                 <div className="img_icon">
                   <img
-                    src="https://eboxtickets.com//images/ticket-scanning-(2).webp"
+                    src="/assets/front-images/ticket-reporting.png"
                     className="card-img-top scan_img"
-                    alt="Ticket Scaning"
+                    alt="Ticket Reporting"
                     loading="lazy"
                   />
                 </div>
@@ -172,9 +171,9 @@ const Home = () => {
               <div className="card">
                 <div className="img_icon">
                   <img
-                    src="https://eboxtickets.com//images/ticket-scanning-(3).webp"
+                    src="/assets/front-images/ticket-sales.png"
                     className="card-img-top scan_img"
-                    alt="Ticket Scaning"
+                    alt="Ticket Sales"
                     loading="lazy"
                   />
                 </div>
@@ -198,9 +197,9 @@ const Home = () => {
             <div className="col-md-6 col-sm-12 img_view">
               <div className="manage_img text-center">
                 <img
-                  src="https://eboxtickets.com//images/Manage_audience.webp"
+                  src="/assets/front-images/Manage_audience.png"
                   className="audi_img"
-                  alt="Manage Audiance"
+                  alt="Manage Audience"
                   loading="lazy"
                 />
               </div>
@@ -211,42 +210,42 @@ const Home = () => {
 
                 <ul className="list-inline facilities">
                   <li className="d-flex align-items-start">
-                    <img className="arrow-img" src="https://eboxtickets.com//images/arrow.webp" alt="" loading="lazy" />
+                    <img className="arrow-img" src="/assets/front-images/arrow.png" alt="" loading="lazy" />
                     <p>Multiple TTD/ USD Payment Options (Credit - Debit Card or Cash)</p>
                   </li>
 
                   <li className="d-flex align-items-start">
-                    <img className="arrow-img" src="https://eboxtickets.com//images/arrow.webp" alt="" loading="lazy" />
+                    <img className="arrow-img" src="/assets/front-images/arrow.png" alt="" loading="lazy" />
                     <p>Sell Tickets through Committees (Credit - Debit Card or Cash)</p>
                   </li>
 
                   <li className="d-flex align-items-start">
-                    <img className="arrow-img" src="https://eboxtickets.com//images/arrow.webp" alt="" loading="lazy" />
+                    <img className="arrow-img" src="/assets/front-images/arrow.png" alt="" loading="lazy" />
                     <p>Mobile App (iOS / Android)</p>
                   </li>
 
                   <li className="d-flex align-items-start">
-                    <img className="arrow-img" src="https://eboxtickets.com//images/arrow.webp" alt="" loading="lazy" />
+                    <img className="arrow-img" src="/assets/front-images/arrow.png" alt="" loading="lazy" />
                     <p>Real Time Analytics</p>
                   </li>
 
                   <li className="d-flex align-items-start">
-                    <img className="arrow-img" src="https://eboxtickets.com//images/arrow.webp" alt="" loading="lazy" />
+                    <img className="arrow-img" src="/assets/front-images/arrow.png" alt="" loading="lazy" />
                     <p>Faster Entry Times into Venues</p>
                   </li>
 
                   <li className="d-flex align-items-start">
-                    <img className="arrow-img" src="https://eboxtickets.com//images/arrow.webp" alt="" loading="lazy" />
+                    <img className="arrow-img" src="/assets/front-images/arrow.png" alt="" loading="lazy" />
                     <p>Secure CC Transactions (Multi Factor Authentication)</p>
                   </li>
 
                   <li className="d-flex align-items-start">
-                    <img className="arrow-img" src="https://eboxtickets.com//images/arrow.webp" alt="" loading="lazy" />
+                    <img className="arrow-img" src="/assets/front-images/arrow.png" alt="" loading="lazy" />
                     <p>Ticket Scanning Equipment & Staffing Resources (just ask)</p>
                   </li>
 
                   <li className="d-flex align-items-start">
-                    <img className="arrow-img" src="https://eboxtickets.com//images/arrow.webp" alt="" loading="lazy" />
+                    <img className="arrow-img" src="/assets/front-images/arrow.png" alt="" loading="lazy" />
                     <p>Easy & Intuitive process</p>
                   </li>
                 </ul>
@@ -273,10 +272,10 @@ const Home = () => {
 
                 <div className="down_icon">
                   <a href="https://play.google.com/store/apps/details?id=com.doomshell.eboxticket&amp;pli=1">
-                    <img src="https://eboxtickets.com/images/play_stor.webp" loading="lazy" alt="play store" />
+                    <img src="/assets/front-images/play_stor.png" loading="lazy" alt="play store" />
                   </a>
                   <a href="https://apps.apple.com/in/app/eboxtickets/id6443949094">
-                    <img src="https://eboxtickets.com/images/app_stor.webp" loading="lazy" alt="App Store" />
+                    <img src="/assets/front-images/app_stor.png" loading="lazy" alt="App Store" />
                   </a>
                 </div>
               </div>
@@ -284,7 +283,7 @@ const Home = () => {
 
             <div className="col-md-6 col-sm-12 img_view">
               <div className="manage_img text-center">
-                <img src="https://eboxtickets.com//images/Manage_audience2.webp" className="audi_img" alt="Manage Audiance" loading="lazy" />
+                <img src="/assets/front-images/Manage_audience2.png" className="audi_img" alt="Manage Audience" loading="lazy" />
               </div>
             </div>
 
@@ -299,9 +298,9 @@ const Home = () => {
             <div className="col-md-6 col-sm-12 img_view">
               <div className="manage_img text-center">
                 <img
-                  src="https://eboxtickets.com//images/Manage_audience3.webp"
+                  src="/assets/front-images/Manage_audience3.png"
                   className="audi_img"
-                  alt="Manage Audiance"
+                  alt="Manage Audience"
                   loading="lazy"
                 />
               </div>
@@ -366,7 +365,7 @@ const Home = () => {
 
             <div className="col-md-4 col-sm-5 col-12">
               <div className="container_img">
-                <img src="https://eboxtickets.com/images/Calculate_Fees_img.png" alt="Calculate Fees" />
+                <img src="/assets/front-images/Calculate_Fees_img.png" alt="Calculate Fees" />
               </div>
             </div>
           </div>
@@ -386,17 +385,17 @@ const Home = () => {
                 </p>
                 <div className="down_icon text-center">
                   <a href="https://play.google.com/store/apps/details?id=com.doomshell.eboxticket&amp;pli=1">
-                    <img src="https://eboxtickets.com/images/play_stor.png" alt="Play Store" />
+                    <img src="/assets/front-images/play_stor.png" alt="Play Store" />
                   </a>
                   <a href="https://apps.apple.com/in/app/eboxtickets/id6443949094">
-                    <img src="https://eboxtickets.com/images/app_stor.png" alt="App Store" />
+                    <img src="/assets/front-images/app_stor.png" alt="App Store" />
                   </a>
                 </div>
               </div>
             </div>
             <div className="col-sm-6">
               <div className="app_img">
-                <img src="https://eboxtickets.com/images/app-screen.png" alt="App Screenshot" />
+                <img src="/assets/front-images/app-screen.png" alt="App Screenshot" />
               </div>
             </div>
           </div>
