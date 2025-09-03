@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import FrontendHeader from "@/shared/layout-components/frontelements/frontendheader";
 import FrontendFooter from "@/shared/layout-components/frontelements/frontendfooter";
-import styles from "@/styles/ViewProfilePage.module.css";
+
 
 const ProfilePage = () => {
   const router = useRouter();
@@ -20,21 +20,11 @@ const ProfilePage = () => {
     }
   }, [router]);
 
-  if (!user) {
-    return (
-      <>
-        <FrontendHeader />
-        <div className={styles.loadingWrapper}>
-          <p>Loading profile...</p>
-        </div>
-        <FrontendFooter />
-      </>
-    );
-  }
 
+const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slider_bg.jpg');
   return (
     <>
-      <FrontendHeader />
+      <FrontendHeader backgroundImage={backgroundImage} />
       <section id="profile" className="mt-5 mb-5">
         <div className="container">
           <div className="section-heading">
@@ -46,29 +36,29 @@ const ProfilePage = () => {
           <div className="profil_deaile mx-auto">
             <div className="row">
               <div className="col-md-3">
-                <div className="user-profile">
-                  <div className="user-avatar">
+                <div className="user-profile text-center">
+                  <div className="user-avatar ">
                     <img className="mx-auto text-center"
                       src="/assets/front-images/noimage.jpg"
                       alt="Maxwell Admin"
                     />
                   </div>
-                  <h5 className="user-name text-center text-16">Rupam Singh</h5>
-                  <a
-                    className="edit primery-button"href="https://eboxtickets.com/users/updateprofile"
+                  <h5 className="user-name text-center text-16 my-3">Rupam Singh</h5>
+                  <Link
+                    className=" primery-button text-14 fw-normal "href="/"
                   >
                     <i className="fas fa-edit"></i> Edit Profile
-                  </a>
+                  </Link>
                 </div>
               </div>
 
               <div className="col-md-9">
-                <div className="profile-details">
-                  <table className="table">
+                <div className="profile-details p-4 mx-auto">
+                  <table className="table mb-0 border-0">
                     <tbody>
                       <tr>
-                        <td>Email</td>
-                        <td>rupam@doomshell.com</td>
+                        <td className="border-top-0">Email</td>
+                        <td className="border-top-0">rupam@doomshell.com</td>
                       </tr>
                       <tr>
                         <td>Registered On</td>
@@ -95,7 +85,7 @@ const ProfilePage = () => {
                         <td>
                           <button
                             type="button"
-                            className="btn verified_btn"
+                            className="btn verified_btn p-0"
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="Verified"
