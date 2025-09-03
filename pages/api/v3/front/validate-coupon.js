@@ -4,9 +4,7 @@ import { checkApiKey } from '@/middleware/checkApiKey';
 const handler = async (req, res) => {
   return checkApiKey(req, res, async () => {
     try {
-
       const { method, query } = req;
-
       switch (method) {
         // POST request to add an item to the cart
         case "POST": {
@@ -42,7 +40,6 @@ const handler = async (req, res) => {
           }
           break;
         }
-
         // GET request to retrieve the cart data for a user
         case "GET": {
           try {
@@ -75,7 +72,6 @@ const handler = async (req, res) => {
           }
           break;
         }
-
         // Handle other methods
         default:
           res.setHeader("Allow", ["POST", "GET", "PUT", "DELETE"]);
