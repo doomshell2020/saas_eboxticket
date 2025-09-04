@@ -1,4 +1,5 @@
 import { addToCart, getCartByUserId, deleteCartItem, addTicketForAccommodation } from "@/shared/services/front/cart/cartservices";
+import { createPaymentIndentation } from "@/shared/services/v3/front/create_payment_intent";
 import { checkApiKey } from '@/middleware/checkApiKey';
 
 const handler = async (req, res) => {
@@ -12,6 +13,10 @@ const handler = async (req, res) => {
         case "POST": {
           try {
             const { userId, ticketId, ticket_type, symbol, eventId, action, noOfTick } = req.body;
+
+            if (action == 'create_payment_intent') {
+              const response = await createPaymentIndentation(req, res);
+            }
 
             if (action == "accommodation") {
               // 2. Add new item to cart with noOfTick

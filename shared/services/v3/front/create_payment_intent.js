@@ -9,10 +9,6 @@ import { Op } from "sequelize";
 
 export async function createPaymentIndentation(req, res) {
 
-    console.log('>>>>>>>>>>>>>>',req.body);
-    return false;
-    
-
     const { userId, eventId, amount, totalTax, currency, name, email, couponDetails, clientSecret, paymentIntent, adminFees, order_items_serialize, breakdown } = req.body;
 
     try {
@@ -89,8 +85,8 @@ export async function createPaymentIndentation(req, res) {
             email: userEmail,
             totalticket: totalTicket,
             totaladdon: totalAddon,
-            clientsecret: clientSecret,
             paymentstatus: "Pending",
+            clientsecret: clientSecret,
             payment_intent: paymentIntent,
             discountType: discount_type,
             couponCode: code,
@@ -113,12 +109,19 @@ export async function createPaymentIndentation(req, res) {
 
         });
 
+        return res
+            .status(200)
+            .json({
+                success: true,
+                status: 200,
+                message: "Payment indent has been created successfully.",
+            });
 
-        return {
-            success: true,
-            status: 200,
-            message: "Payment indent has been created successfully.",
-        };
+        // return {
+        //     success: true,
+        //     status: 200,
+        //     message: "Payment indent has been created successfully.",
+        // };
     } catch (error) {
         console.error("Error :", error.message);
         throw new Error(error.message);
