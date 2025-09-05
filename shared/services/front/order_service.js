@@ -317,7 +317,7 @@ export async function createOrderV2(req, res) {
       //   is_buy_addons_ids.push(cartItem.ticketId);     // new functionality 08-04-2025
       // }
 
-      if (cartItem.ticketType === "ticket" && cartItem.ticketId) {
+      if (cartItem.ticketType == "ticket" && cartItem.ticketId) {
         const ticketPrice = cartItem.price || 0;
         const ticketCount = cartItem.noTickets || 0;
 

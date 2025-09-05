@@ -8,13 +8,13 @@ export function middleware(request) {
 
 
   // 🌐 Log every incoming request
-  console.log("➡️ Incoming Request:", {
-    method: request.method,
-    url: request.url,
-    pathname,
-    adminToken: adminToken ? "present" : "missing",
-    userToken: userToken ? "present" : "missing"
-  });
+  // console.log("➡️ Incoming Request:", {
+  //   method: request.method,
+  //   url: request.url,
+  //   pathname,
+  //   adminToken: adminToken ? "present" : "missing",
+  //   userToken: userToken ? "present" : "missing"
+  // });
 
   // ✅ Allow user login page without redirect
   if (pathname == '/login') {

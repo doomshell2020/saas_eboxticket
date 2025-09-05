@@ -22,7 +22,7 @@ const RequestDemo = () => {
                                             <li className="position-relative text-16"><i className="far fa-clock"></i> 1:30 pm</li>
                                         </ul>
                                     </div>
-                                    <img src="https://eboxtickets.com/images/meetingTeamImg.svg" class="contactImg" alt="Meeting"></img>
+                                    <img src="https://eboxtickets.com/images/meetingTeamImg.svg" className="contactImg" alt="Meeting"></img>
                                 </div>
                             </div>
                             <div className="col-md-8">

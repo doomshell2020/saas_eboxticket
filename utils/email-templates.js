@@ -233,13 +233,3 @@ module.exports = {
     AddGuestInAccommodationTemplate
 
 };
-
-
-
-
-
-
-
-
-
-
