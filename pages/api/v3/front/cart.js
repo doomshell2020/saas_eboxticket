@@ -47,14 +47,14 @@ const handler = async (req, res) => {
             // Return the updated cart data
             const updatedCart = await getCartByUserId(userId);
 
-            res.status(200).json({
+            return res.status(200).json({
               success: true,
               message: cartResponse.message, // Use the dynamic message
               data: updatedCart,
             });
           } catch (error) {
             console.error("Error adding item to cart:", error.message);
-            res.status(500).json({ success: false, message: error.message });
+            return res.status(500).json({ success: false, message: error.message });
           }
           break;
         }
@@ -104,7 +104,7 @@ const handler = async (req, res) => {
             }
 
             // Return the cart data
-            res.status(200).json({
+            return res.status(200).json({
               success: true,
               message: "Cart data retrieved successfully",
               data: cartData,
