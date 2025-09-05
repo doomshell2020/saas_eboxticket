@@ -1,6 +1,7 @@
 import { addToCart, getCartByUserId, deleteCartItem, addTicketForAccommodation } from "@/shared/services/front/cart/cartservices";
 import { createPaymentIndentation } from "@/shared/services/v3/front/create_payment_intent";
 import { checkApiKey } from '@/middleware/checkApiKey';
+import { findPropertyDetailsForCart } from "@/shared/services/front/bookaccommodation/bookaccommodationservices"
 
 const handler = async (req, res) => {
   return checkApiKey(req, res, async () => {
@@ -61,7 +62,23 @@ const handler = async (req, res) => {
         // GET request to retrieve the cart data for a user
         case "GET": {
           try {
-            const { action, cartId, userId } = query;
+            const { action, cartId, userId, key } = query;
+
+            if (key == 'info') {
+              const { property_id, EventID } = query;
+              const propertyDetails = await findPropertyDetailsForCart({ property_id, EventID });
+              // console.log('>>>>>>>>>>', propertyDetails.data);
+              if (propertyDetails.data) {
+                res.json(propertyDetails);
+              } else {
+                res.json({
+                  success: false,
+                  message: "Property not found or invalid property id"
+                });
+              }
+
+              break;
+            }
 
             if (action == "delete_cart_item") {
               if (!cartId) {
