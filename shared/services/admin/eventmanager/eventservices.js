@@ -1881,6 +1881,7 @@ export async function getTotalOrders({
   transfer,
   paymentOption
 }, res) {
+
   try {
     const orderConditions = {
       [Op.or]: [
@@ -1942,9 +1943,6 @@ export async function getTotalOrders({
       };
     }
 
-    // console.log('orderConditions',orderConditions);    
-
-    // Event name -> ID
     let eventId = null;
     if (eventName?.trim()) {
       const event = await Event.findOne({
@@ -2043,11 +2041,12 @@ export async function getTotalOrders({
       ],
       order: [["id", "DESC"]],
     });
+
     return res.json({
       statusCode: 200,
       success: true,
       message: "Orders fetched successfully!!!",
-      data: orders,
+      data: orders
     });
 
   } catch (error) {

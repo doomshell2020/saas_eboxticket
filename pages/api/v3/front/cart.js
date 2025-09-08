@@ -1,5 +1,7 @@
 import { addToCart, getCartByUserId, deleteCartItem, addTicketForAccommodation } from "@/shared/services/front/cart/cartservices";
+import { createPaymentIndentation } from "@/shared/services/v3/front/create_payment_intent";
 import { checkApiKey } from '@/middleware/checkApiKey';
+import { findPropertyDetailsForCart } from "@/shared/services/front/bookaccommodation/bookaccommodationservices"
 
 const handler = async (req, res) => {
   return checkApiKey(req, res, async () => {
@@ -12,6 +14,10 @@ const handler = async (req, res) => {
         case "POST": {
           try {
             const { userId, ticketId, ticket_type, symbol, eventId, action, noOfTick } = req.body;
+
+            if (action == 'create_payment_intent') {
+              const response = await createPaymentIndentation(req, res);
+            }
 
             if (action == "accommodation") {
               // 2. Add new item to cart with noOfTick
@@ -42,21 +48,37 @@ const handler = async (req, res) => {
             // Return the updated cart data
             const updatedCart = await getCartByUserId(userId);
 
-            res.status(200).json({
+            return res.status(200).json({
               success: true,
               message: cartResponse.message, // Use the dynamic message
               data: updatedCart,
             });
           } catch (error) {
             console.error("Error adding item to cart:", error.message);
-            res.status(500).json({ success: false, message: error.message });
+            return res.status(500).json({ success: false, message: error.message });
           }
           break;
         }
         // GET request to retrieve the cart data for a user
         case "GET": {
           try {
-            const { action, cartId, userId } = query;
+            const { action, cartId, userId, key } = query;
+
+            if (key == 'info') {
+              const { property_id, EventID } = query;
+              const propertyDetails = await findPropertyDetailsForCart({ property_id, EventID });
+              // console.log('>>>>>>>>>>', propertyDetails.data);
+              if (propertyDetails.data) {
+                res.json(propertyDetails);
+              } else {
+                res.json({
+                  success: false,
+                  message: "Property not found or invalid property id"
+                });
+              }
+
+              break;
+            }
 
             if (action == "delete_cart_item") {
               if (!cartId) {
@@ -99,7 +121,7 @@ const handler = async (req, res) => {
             }
 
             // Return the cart data
-            res.status(200).json({
+            return res.status(200).json({
               success: true,
               message: "Cart data retrieved successfully",
               data: cartData,

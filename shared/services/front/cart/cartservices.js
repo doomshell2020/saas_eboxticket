@@ -7,7 +7,7 @@ import {
   AddonBook,
   Event,
   Currency,
-} from "../../../../database/models";
+} from "@/database/models";
 import { Op } from "sequelize";
 import moment from "moment-timezone";
 

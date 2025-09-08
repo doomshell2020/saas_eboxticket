@@ -6,6 +6,16 @@ export function middleware(request) {
   const adminToken = request.cookies.get('authToken')?.value;
   const userToken = request.cookies.get('userAuthToken')?.value;
 
+
+  // 🌐 Log every incoming request
+  // console.log("➡️ Incoming Request:", {
+  //   method: request.method,
+  //   url: request.url,
+  //   pathname,
+  //   adminToken: adminToken ? "present" : "missing",
+  //   userToken: userToken ? "present" : "missing"
+  // });
+
   // ✅ Allow user login page without redirect
   if (pathname == '/login') {
     return NextResponse.next();
