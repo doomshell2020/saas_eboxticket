@@ -1,4 +1,4 @@
-import { AddGuestInAccommodation } from "../../../../shared/services/front/userOrderService";
+import { AddGuestInAccommodation } from "@/shared/services/front/userOrderService";
 
 const handler = async (req, res) => {
     try {

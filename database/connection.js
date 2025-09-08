@@ -16,6 +16,8 @@ try {
       sequelize = new Sequelize(config.test);
       break;
     case "development":
+      sequelize = new Sequelize(config.development);
+      break;
     default:
       sequelize = new Sequelize(config.development);
       break;
@@ -26,7 +28,7 @@ try {
   console.log("✅ Database connection has been established successfully.");
 } catch (error) {
   console.error("❌ Unable to connect to the database:", error.message);
-//   process.exit(1); // Exit the app if DB connection fails
+  //   process.exit(1); // Exit the app if DB connection fails
 }
 
 const connection = sequelize;

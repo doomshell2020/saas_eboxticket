@@ -68,9 +68,9 @@ function MyApp({ Component, pageProps }) {
           options={{ showSpinner: false }} // ✅ Disable spinner here
         />
         <Layout>
-          <SSRProvider>
+          {/* <SSRProvider> */}
             <Component {...pageProps} />
-          </SSRProvider>
+          {/* </SSRProvider> */}
         </Layout>
         <Toaster position="buttom-right" />
       </Provider>

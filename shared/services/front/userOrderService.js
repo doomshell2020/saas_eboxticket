@@ -568,10 +568,10 @@ export async function viewTickets(userId) {
         };
 
     } catch (error) {
-        console.error('Error fetching tickets:', error);
+        console.log('Error fetching tickets:', error.message);
         return {
             success: false,
-            message: 'An error occurred while fetching tickets.'
+            message: 'An error occurred while fetching tickets :' + error.message
         };
     }
 }
@@ -676,7 +676,7 @@ export async function getTotalOrders({ userId }, res) {
                 ],
                 ticket_status: { [Op.is]: null },
             },
-            attributes: ['id', 'OriginalTrxnIdentifier', 'total_amount', 'totalAccommodationAmount', 'total_due_amount', 'total_tax_amount', 'order_context', 'couponCode', 'discountAmount', 'paymentOption', 'createdAt', 'totalTicketAmount', 'totalTicketTax', 'totalAddonAmount', 'totalAddonTax','adminfee'],
+            attributes: ['id', 'OriginalTrxnIdentifier', 'total_amount', 'totalAccommodationAmount', 'total_due_amount', 'total_tax_amount', 'order_context', 'couponCode', 'discountAmount', 'paymentOption', 'createdAt', 'totalTicketAmount', 'totalTicketTax', 'totalAddonAmount', 'totalAddonTax', 'adminfee'],
             include: [
                 {
                     model: User,
