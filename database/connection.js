@@ -1,20 +1,35 @@
 import Sequelize from "sequelize";
-import config from "./config/config"
-
-// console.log('>>>>>>>>', process.env.DB_NAME,process.env.NODE_ENV);
+import config from "./config/config.js"; // ✅ ensure .js if using ES modules
 
 let sequelize;
-if (process.env.NODE_ENV == "production") {
-    sequelize = new Sequelize(config.production);
-} else if (process.env.NODE_ENV === "staging") {
-    sequelize = new Sequelize(config.staging);
-} else if (process.env.NODE_ENV === "test") {
-    sequelize = new Sequelize(config.test);
-} else {
-    sequelize = new Sequelize(config.development);
+
+try {
+  // Choose config based on NODE_ENV
+  switch (process.env.NODE_ENV) {
+    case "production":
+      sequelize = new Sequelize(config.production);
+      break;
+    case "staging":
+      sequelize = new Sequelize(config.staging);
+      break;
+    case "test":
+      sequelize = new Sequelize(config.test);
+      break;
+    case "development":
+    default:
+      sequelize = new Sequelize(config.development);
+      break;
+  }
+
+  // ✅ Test database connection
+  await sequelize.authenticate();
+  console.log("✅ Database connection has been established successfully.");
+} catch (error) {
+  console.error("❌ Unable to connect to the database:", error.message);
+//   process.exit(1); // Exit the app if DB connection fails
 }
 
 const connection = sequelize;
-export { sequelize }; // Named export
 
+export { sequelize }; // Named export
 export default connection;
