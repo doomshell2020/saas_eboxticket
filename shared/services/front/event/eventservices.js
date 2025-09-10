@@ -478,7 +478,6 @@ export async function viewAllEvents(req, res) {
     }
 }
 
-
 // view latest new events
 export async function viewLatestNewEvents(req, res) {
     try {
@@ -510,5 +509,39 @@ export async function viewLatestNewEvents(req, res) {
     }
 }
 
+export async function getActiveEventList(req, res) {
+    try {
+        const current_date = new Date();
 
+        const data = await Event.findAll({
+            where: {
+                EndDate: {
+                    [Op.gte]: current_date,
+                },
+            },
+            order: [["EndDate", "ASC"]],
+        });
 
+        if (data && data.length > 0) {
+            return res.status(200).json({
+                success: true,
+                message: "Active events fetched successfully.",
+                data,
+            });
+        } else {
+            return res.status(200).json({
+                success: false,
+                message: "No active events found.",
+                data: [],
+            });
+        }
+    } catch (error) {
+        console.error("Error fetching active events:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Something went wrong while fetching active events.",
+            error: error.message,
+        });
+    }
+}

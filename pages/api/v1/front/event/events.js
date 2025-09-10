@@ -1,4 +1,6 @@
-import { View_Upcommingevents, View_Pastevents, Add_Interest, Fetch_Invitation, userExistInEvent, viewActiveEvents, viewAllEvents, viewLatestNewEvents, fetchTotalTicket } from "../../../../../shared/services/front/event/eventservices";
+import { View_Upcommingevents, getActiveEventList, View_Pastevents, Add_Interest, Fetch_Invitation, userExistInEvent, viewActiveEvents, viewAllEvents, viewLatestNewEvents, fetchTotalTicket } from "@/shared/services/front/event/eventservices";
+import { View_Events } from "@/shared/services/v3/events/event_service";
+
 
 import { Event, Currency } from "@/database/models";
 
@@ -27,6 +29,14 @@ const handler = async (req, res) => {
             case "GET": {
                 const { UserID, key, Userid, loginUserId } = query;
 
+                if (key == "activeEvents") {
+                    const activeEventsFetch = await getActiveEventList(req, res);
+                }
+                if (key == 'front_event_details') {
+                    const response = await View_Events(req, res);
+                    return res.json(response);
+                    break;
+                }
                 if (key == 'event_details') {
                     const eventDetails = await Event.findOne({
                         where: { ID: query.eventId },

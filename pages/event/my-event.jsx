@@ -1,9 +1,8 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import FrontendHeader from "@/shared/layout-components/frontelements/frontendheader";
 import FrontendFooter from "@/shared/layout-components/frontelements/frontendfooter";
 import FrontLeftSideBar from "@/shared/layout-components/frontelements/front-left-side-bar";
 import Link from "next/link";
-import axios from "axios";
 import {
     CForm,
     CCol,
@@ -18,15 +17,35 @@ import {
 import { Breadcrumb, Card, Col, Form, InputGroup, Row } from "react-bootstrap";
 import moment from "moment-timezone";
 import Swal from "sweetalert2";
+import { useTable, usePagination, useGlobalFilter } from "react-table";
+import axios from "axios";
+import { format } from "date-fns"; // helps format dates
 
-const MyEventsPage = () => {
 
+
+export default function OrganizerEvents({ userId }) {
+    const [data, setData] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
     const [isLeftRight, setIsLeftRight] = useState(false);
-
-
-
     const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slider_bg.jpg');
+    // console.log('>>>>>>>>>', data);
+
+    useEffect(() => {
+        // Fetch events by organizer
+        const fetchEvents = async () => {
+            try {
+                const res = await axios.get(`/api/v3/front/events?userId=6`);
+                if (res.data.success) {
+                    setData(res.data.data || []);
+                }
+            } catch (error) {
+                console.error("Error fetching events:", error);
+            }
+        };
+        fetchEvents();
+    }, [userId]);
+
+
     return (
         <>
             <FrontendHeader backgroundImage={backgroundImage} />
@@ -37,8 +56,9 @@ const MyEventsPage = () => {
 
                     <div className={`event-sidebar ${isLeftRight ? 'sideBarRightLeftClosed' : ''}`}>
                         <div className="side_menu_icon">
-                            <i className={`bi bi-arrow-${isLeftRight?'right':'left'}-short`} onClick={() => setIsLeftRight(!isLeftRight)}></i>
+                            <i className={`bi bi-arrow-${isLeftRight ? 'right' : 'left'}-short`} onClick={() => setIsLeftRight(!isLeftRight)}></i>
                         </div>
+
                         <ul className="listunstyl components2">
                             <li className="mb-3">
                                 <Link className="text-white fw-bold"
@@ -109,7 +129,6 @@ const MyEventsPage = () => {
                             </li>
                         </ul>
 
-
                     </div>
 
                     <div className="event-righcontent">
@@ -143,6 +162,7 @@ const MyEventsPage = () => {
                             </form>
                         </div>
 
+
                         <div className="desbord-content">
                             <div className="my-ticket-box">
                                 <div className="event-list">
@@ -152,89 +172,121 @@ const MyEventsPage = () => {
                                                 <tr>
                                                     <th style={{ width: "2%" }} scope="col">#</th>
                                                     <th style={{ width: "14%" }} scope="col">Name</th>
-                                                    <th style={{ width: "17%" }} scope="col">Date and Time</th>
-                                                    <th style={{ width: "18%" }} scope="col">Ticket Sale</th>
+                                                    {/* <th style={{ width: "17%" }} scope="col">Date and Time</th> */}
                                                     <th style={{ width: "8%" }} scope="col">Venue</th>
+                                                    <th style={{ width: "18%" }} scope="col">Ticket Sale</th>
                                                     <th style={{ width: "16%" }} scope="col">Ticket Types</th>
                                                     <th style={{ width: "15%" }} scope="col">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr>
-                                                    <th scope="row">1</th>
-                                                    <td>
-                                                        <img
-                                                            src="/assets/front-images/my-event-section.jpg"
-                                                            alt="Not Found"
-                                                        />
-                                                        <Link href="/">Jescie Wiggins</Link>
-                                                    </td>
+                                                {data && data.map((event, index) => {
+                                                    const startDate = new Date(event.StartDate);
+                                                    const endDate = new Date(event.EndDate);
+                                                    const ticketTypes = Array.isArray(event?.EventTicketTypes) ? event.EventTicketTypes : [];
+                                                    const currencySymbol = event?.Currency?.Currency_symbol || ""
 
-                                                    <td>
-                                                        <b>From</b> 21 Aug, 2025 05:00 AM
-                                                        <br />
-                                                        <b>To</b> 27 Aug, 2025 12:00 AM
-                                                    </td>
-                                                    <td>
-                                                        <b>From</b> 21 Aug, 2025 05:00 AM
-                                                        <br />
-                                                        <b>To</b> 25 Aug, 2025 05:00 AM
-                                                    </td>
-                                                    <td>Vel cum distinctio</td>
-
-                                                    <td className="ticket_types">
-                                                        <p>Tickets not created</p>
-                                                    </td>
-
-                                                    <td className="Con_center">
-                                                        <div className=" editIcos">
-                                                            <Link href="/" className="edit viewIcos">
-                                                                <i className="bi bi-eye-fill"></i> View
-                                                            </Link>
-
-                                                            <Link href="/" className="edit viewIcos">
-                                                                <i className="fas fa-edit"></i> Edit
-                                                            </Link>
-
-                                                            <Link href="/" className="edit deleteIcos">
-                                                                <button type="button" className="edit p-0 m-0">
-                                                                    <svg
-                                                                        xmlns="http://www.w3.org/2000/svg"
-                                                                        width="18"
-                                                                        height="18"
-                                                                        fill="#fff"
-                                                                        className="bi bi-trash"
-                                                                        viewBox="0 0 16 16"
-                                                                    >
-                                                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"></path>
-                                                                        <path
-                                                                            fillRule="evenodd"
-                                                                            d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
-                                                                        ></path>
-                                                                    </svg>{" "}
-                                                                    Delete
-                                                                </button>
-                                                            </Link>
-                                                        </div>
-
-                                                        <div className="d-flex">
-                                                            <Link className="action_btn enable_btn edit" href="/">
-                                                                <i className="bi bi-check-circle-fill"></i>
-                                                            </Link>
-
-                                                            <Link className="action_btn excel_btn edit" href="/">
+                                                    return (
+                                                        <tr>
+                                                            <th scope="row">{index + 1}</th>
+                                                            <td>
                                                                 <img
-                                                                    className="del-icon"
-                                                                    style={{ width: "16px" }}
-                                                                    src="/assets/front-images/export-icon.png"
-                                                                    alt=""
+                                                                    src={`${process.env.NEXT_PUBLIC_S3_URL_NEW}/profiles/${event.ImageURL}`}
+                                                                    alt="Not Found"
                                                                 />
-                                                            </Link>
-                                                        </div>
-                                                    </td>
-                                                </tr>
+                                                                <Link href="/">{event.Name}</Link>
+                                                            </td>
+                                                            <td>{event.Venue}</td>
+                                                            <td>
+                                                                <b>From</b> {format(startDate, "EEE, dd MMM yyyy")}
+                                                                <br />
+                                                                <b>To</b> {format(endDate, "EEE, dd MMM yyyy")}
+                                                            </td>
 
-                                                <tr>
+                                                            <td className="ticket_types">
+                                                                {ticketTypes && ticketTypes.length > 0 ? (
+                                                                    ticketTypes.map((ticketType) => (
+                                                                        <div key={ticketType.id} className="mb-3 p-2 border rounded bg-light">
+                                                                            <p className="mb-1 fw-bold">
+                                                                                {ticketType.title} –{" "}
+                                                                                <span className="text-primary">
+                                                                                    {currencySymbol || ""}{ticketType.price}
+                                                                                </span>
+                                                                            </p>
+                                                                            <div className="text-muted" style={{ fontSize: "0.9rem" }}>
+                                                                                <div>
+                                                                                    <b>Sale From:</b>{" "}
+                                                                                    {ticketType.sale_start_date
+                                                                                        ? format(new Date(ticketType.sale_start_date), "dd MMM yyyy")
+                                                                                        : "N/A"}
+                                                                                </div>
+                                                                                <div>
+                                                                                    <b>To:</b>{" "}
+                                                                                    {ticketType.sale_end_date
+                                                                                        ? format(new Date(ticketType.sale_end_date), "dd MMM yyyy")
+                                                                                        : "N/A"}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))
+                                                                ) : (
+                                                                    <p>Tickets not created</p>
+                                                                )}
+                                                            </td>
+
+                                                            <td className="Con_center">
+                                                                <div className=" editIcos">
+                                                                    <Link href="/" className="edit viewIcos">
+                                                                        <i className="bi bi-eye-fill"></i> View
+                                                                    </Link>
+
+                                                                    <Link href="/" className="edit viewIcos">
+                                                                        <i className="fas fa-edit"></i> Edit
+                                                                    </Link>
+
+                                                                    <Link href="/" className="edit deleteIcos">
+                                                                        <button type="button" className="edit p-0 m-0">
+                                                                            <svg
+                                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                                width="18"
+                                                                                height="18"
+                                                                                fill="#fff"
+                                                                                className="bi bi-trash"
+                                                                                viewBox="0 0 16 16"
+                                                                            >
+                                                                                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"></path>
+                                                                                <path
+                                                                                    fillRule="evenodd"
+                                                                                    d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+                                                                                ></path>
+                                                                            </svg>{" "}
+                                                                            Delete
+                                                                        </button>
+                                                                    </Link>
+                                                                </div>
+
+                                                                <div className="d-flex">
+                                                                    <Link className="action_btn enable_btn edit" href="/">
+                                                                        <i className="bi bi-check-circle-fill"></i>
+                                                                    </Link>
+
+                                                                    <Link className="action_btn excel_btn edit" href="/">
+                                                                        <img
+                                                                            className="del-icon"
+                                                                            style={{ width: "16px" }}
+                                                                            src="/assets/front-images/export-icon.png"
+                                                                            alt=""
+                                                                        />
+                                                                    </Link>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )
+                                                }
+                                                )}
+
+
+                                                {/* <tr>
                                                     <th scope="row">2</th>
                                                     <td>
                                                         <img
@@ -306,7 +358,8 @@ const MyEventsPage = () => {
                                                             </Link>
                                                         </div>
                                                     </td>
-                                                </tr>
+                                                </tr> */}
+
                                             </tbody>
                                         </table>
                                     </div>
@@ -314,10 +367,10 @@ const MyEventsPage = () => {
                                     <div className="paginator col-sm-12">
                                         <ul className="pagination justify-content-center">
                                             <li className="prev disabled">
-                                                <Link href="/"><i class="bi bi-chevron-left"></i> Previous</Link>
+                                                <Link href="/"><i className="bi bi-chevron-left"></i> Previous</Link>
                                             </li>
                                             <li className="next disabled">
-                                                <Link href="/">Next <i class="bi bi-chevron-right"></i></Link>
+                                                <Link href="/">Next <i className="bi bi-chevron-right"></i></Link>
                                             </li>
                                         </ul>
                                         <div className="text-center">
@@ -338,5 +391,3 @@ const MyEventsPage = () => {
         </>
     )
 }
-
-export default MyEventsPage

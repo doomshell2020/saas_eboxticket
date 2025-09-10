@@ -45,6 +45,62 @@ export async function View_Events(req) {
   };
 }
 
+export async function getEventListByOrganizer(req, res) {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+        data: [],
+      });
+    }
+
+    const events = await Event.findAll({
+      where: { organiser_id: userId },
+      include: [
+        {
+          model: EventTicketType,
+          // required: true,
+        }, {
+          model: Addons,
+          // required: true,
+        },
+        {
+          model: Currency,
+          // required: true,
+        }
+      ],
+      order: [["id", "DESC"]],
+    });
+
+    if (!events || events.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No events found for this organizer",
+        data: [],
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Events retrieved successfully",
+      data: events,
+    });
+  } catch (error) {
+    console.error("Error fetching events by organizer:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching events",
+      error: error.message,
+      data: [],
+    });
+  }
+}
+
+
 // Currency View
 export async function getAllCurrency(req, res) {
   try {

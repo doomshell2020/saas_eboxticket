@@ -1,13 +1,189 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import FrontendHeader from "@/shared/layout-components/frontelements/frontendheader";
 import FrontendFooter from "@/shared/layout-components/frontelements/frontendfooter";
 import Link from "next/link";
+import Image from "next/image";
+import { format } from "date-fns"; // helps format dates
 
-const Home = () => {
+
+// SSR function
+export async function getServerSideProps() {
+  try {
+    const res = await fetch("http://localhost:3000/api/v1/front/event/events?key=activeEvents");
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch events");
+    }
+
+    const { data } = await res.json();
+    // console.log('>>>>>>>',data);  
+
+    return {
+      props: {
+        events: data || [],
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching events:", error.message);
+    return {
+      props: {
+        events: [],
+      },
+    };
+  }
+}
+
+const Home = ({ events }) => {
+
+  const [searchTerm, setSearchTerm] = useState("");
+  // Debounced input handler
+  const handleSearch = (e) => {
+    const value = e.target.value;
+    clearTimeout(window.searchDebounce);
+    window.searchDebounce = setTimeout(() => {
+      setSearchTerm(value);
+    }, 300);
+  };
+
+  // Filtered events (memoized for optimization)
+  const filteredEvents = useMemo(() => {
+    if (!searchTerm.trim()) return events;
+
+    return events.filter((event) => {
+      const search = searchTerm.toLowerCase();
+      return (
+        event.Name?.toLowerCase().includes(search) ||
+        event.Description?.toLowerCase().includes(search) ||
+        event.Location?.toLowerCase().includes(search)
+      );
+    });
+  }, [searchTerm, events]);
+
+  // Group filtered events by month
+  const groupedEvents = useMemo(() => {
+    return filteredEvents.reduce((acc, event) => {
+      const month = format(new Date(event.StartDate), "MMM"); // e.g., "Sep"
+      if (!acc[month]) acc[month] = [];
+      acc[month].push(event);
+      return acc;
+    }, {});
+  }, [filteredEvents]);
+
   return (
     <>
-      <FrontendHeader  isStripeShowing={true} />
+      <FrontendHeader isStripeShowing={true} />
+
       <section className="home-events" id="events">
+        <div className="container">
+          {/* Section Heading */}
+          <div className="section-heading">
+            <h1>Events</h1>
+            <h2>Upcoming Events</h2>
+          </div>
+
+          {/* Search Box */}
+          <div className="search-container">
+            <form action={'#'}>
+              <input
+                className="form-control"
+                type="search"
+                placeholder="Search Events"
+                aria-label="Search"
+                onChange={handleSearch}
+              />
+            </form>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 17 18"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g fill="#2874F1" fillRule="evenodd">
+                <path d="m11.618 9.897l4.225 4.212c.092.092.101.232.02.313l-1.465 1.46c-.081.081-.221.072-.314-.02l-4.216-4.203"></path>
+                <path d="m6.486 10.901c-2.42 0-4.381-1.956-4.381-4.368 0-2.413 1.961-4.369 4.381-4.369 2.42 0 4.381 1.956 4.381 4.369 0 2.413-1.961 4.368-4.381 4.368m0-10.835c-3.582 0-6.486 2.895-6.486 6.467 0 3.572 2.904 6.467 6.486 6.467 3.582 0 6.486-2.895 6.486-6.467 0-3.572-2.904-6.467-6.486-6.467"></path>
+              </g>
+            </svg>
+          </div>
+
+          {/* Dynamic Events */}
+          <div className="up-events">
+            {Object.keys(groupedEvents).map((month) => (
+              <div key={month}>
+                {/* Month heading */}
+                <div className="month">
+                  <h4>{month}</h4>
+                </div>
+
+                {groupedEvents[month].map((event) => {
+                  const startDate = new Date(event.StartDate);
+                  const endDate = new Date(event.EndDate);
+
+                  return (
+                    <div className="event-list-box" key={event.id}>
+                      <div className="event-coverbox">
+                        <Link
+                          href={`/event/${event.id}/${event.Name.replace(/\s+/g, "-").toLowerCase()}`}
+                        >
+                          <div className="event-inner-content">
+                            <div className="row align-items-center">
+                              {/* Image */}
+                              <div className="col-lg-2 col-md-3 col-sm-4 col-12 image_event">
+                                <img
+                                  className="event_img"
+                                  src={`${process.env.NEXT_PUBLIC_S3_URL_NEW}/profiles/${event.ImageURL}`}
+                                  alt={event.EventName}
+                                />
+                              </div>
+
+                              {/* Details */}
+                              <div className="col-lg-8 col-md-6 col-sm-8 col-12 event-details">
+                                <h3 className="event-title">{event.EventName}</h3>
+                                <p className="time">
+                                  <i className="fa-solid fa-calendar-days"></i>
+                                  <strong> Start Date</strong> <span>:</span>{" "}
+                                  {/* {format(startDate, "EEE, dd MMM yyyy | hh:mm a")} */}
+                                  {format(startDate, "EEE, dd MMM yyyy")}
+                                </p>
+                                <p className="time">
+                                  <i className="fa-solid fa-calendar-days"></i>
+                                  <strong> End Date</strong> <span>:</span>{" "}
+                                  {/* {format(endDate, "EEE, dd MMM yyyy | hh:mm a")} */}
+                                  {format(endDate, "EEE, dd MMM yyyy")}
+                                </p>
+                                <span className="d-block">Hosted By Organiser #{event.organiser_id}</span>
+                                <span className="d-block">@ {event.Venue}</span>
+                              </div>
+
+                              {/* Date Box */}
+                              <div className="col-lg-2 col-md-3 d-block event-timing">
+                                <div className="event-date">
+                                  <h2>
+                                    {format(startDate, "dd")}
+                                    <span>{format(startDate, "MMM")}</span>
+                                  </h2>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+
+          {/* View All Button */}
+          <div className="view-button d-flex justify-content-center">
+            <Link href="#" className="primery-button">
+              View All
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* <section className="home-events" id="events">
         <div className="container">
           <div className="section-heading">
             <h1>
@@ -31,6 +207,7 @@ const Home = () => {
               </g>
             </svg>
           </div>
+
           <div className="up-events">
             <div className="month">
               <h4>Aug</h4>
@@ -115,11 +292,13 @@ const Home = () => {
               </div>
             </div>
           </div>
+
           <div className="view-button d-flex justify-content-center">
             <Link href="#" className="primery-button">View All</Link>
           </div>
         </div>
-      </section>
+      </section> */}
+
       {/* scan section home page */}
       <section id="scan_section">
         <div className="container">
@@ -190,6 +369,7 @@ const Home = () => {
           </div>
         </div>
       </section>
+
       {/*  */}
       <section id="manage_Audience" className="bg_color1">
         <div className="container">
