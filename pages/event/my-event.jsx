@@ -53,7 +53,6 @@ export default function OrganizerEvents({ userId }) {
 
             <section id="myevent-deshbord">
                 <div className="d-flex">
-
                     <div className={`event-sidebar ${isLeftRight ? 'sideBarRightLeftClosed' : ''}`}>
                         <div className="side_menu_icon">
                             <i className={`bi bi-arrow-${isLeftRight ? 'right' : 'left'}-short`} onClick={() => setIsLeftRight(!isLeftRight)}></i>
@@ -240,9 +239,9 @@ export default function OrganizerEvents({ userId }) {
                                                                         <i className="bi bi-eye-fill"></i> View
                                                                     </Link>
 
-                                                                    <Link href="/" className="edit viewIcos">
-                                                                        <i className="fas fa-edit"></i> Edit
-                                                                    </Link>
+                                                            <Link href="/event/edit-event" className="edit viewIcos">
+                                                                <i className="fas fa-edit"></i> Edit
+                                                            </Link>
 
                                                                     <Link href="/" className="edit deleteIcos">
                                                                         <button type="button" className="edit p-0 m-0">
@@ -318,7 +317,7 @@ export default function OrganizerEvents({ userId }) {
                                                                 <i className="bi bi-eye-fill"></i> View
                                                             </Link>
 
-                                                            <Link href="/" className="edit viewIcos">
+                                                            <Link href="/event/edit-event" className="edit viewIcos">
                                                                 <i className="fas fa-edit"></i> Edit
                                                             </Link>
 
