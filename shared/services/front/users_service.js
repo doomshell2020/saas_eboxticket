@@ -206,6 +206,72 @@ export const User_Registration = async (payload) => {
     }
 };
 
+
+export const UserLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // ✅ 1. Input validation
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and Password are required",
+            });
+        }
+
+        // ✅ 2. Find user by email
+        const user = await User.findOne({ where: { Email:email } });
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password",
+            });
+        }
+
+        // ✅ 3. Compare hashed password
+        const isPasswordValid = await bcrypt.compare(password, user.Password);
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password",
+            });
+        }
+
+        // ✅ 4. Generate JWT token
+        const token = jwt.sign(
+            {
+                id: user.id,
+                email: user.Email,
+                firstName: user.FirstName,
+                lastName: user.LastName,
+            },
+            process.env.JWT_SECRET || "default_secret", // use strong secret in .env
+            { expiresIn: "7d" } // token valid for 7 days
+        );
+
+        // ✅ 5. Return response
+        return res.json({
+            success: true,
+            message: "Login successful",
+            token,
+            user: {
+                id: user.id,
+                FirstName: user.FirstName,
+                LastName: user.LastName,
+                Email: user.Email,
+                PhoneNumber: user.PhoneNumber,
+            },
+        });
+    } catch (error) {
+        console.error("UserLogin error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Login failed. Error: " + error.message,
+        });
+    }
+};
+
 export const updateUserProfile = async (userId, updatedData) => {
     try {
         const user = await User.findOne({ where: { id: userId } });
