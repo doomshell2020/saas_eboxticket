@@ -9,7 +9,7 @@ import { format } from "date-fns"; // helps format dates
 // SSR function
 export async function getServerSideProps() {
   try {
-    const res = await fetch("http://localhost:3000/api/v1/front/event/events?key=activeEvents");
+    const res = await fetch(`${process.env.SITE_URL}api/v1/front/event/events?key=activeEvents`);
 
     if (!res.ok) {
       throw new Error("Failed to fetch events");
