@@ -34,7 +34,6 @@ const MyEventsPage = () => {
 
             <section id="myevent-deshbord">
                 <div className="d-flex">
-
                     <div className={`event-sidebar ${isLeftRight ? 'sideBarRightLeftClosed' : ''}`}>
                         <div className="side_menu_icon">
                             <i className={`bi bi-arrow-${isLeftRight?'right':'left'}-short`} onClick={() => setIsLeftRight(!isLeftRight)}></i>
@@ -192,7 +191,7 @@ const MyEventsPage = () => {
                                                                 <i className="bi bi-eye-fill"></i> View
                                                             </Link>
 
-                                                            <Link href="/" className="edit viewIcos">
+                                                            <Link href="/event/edit-event" className="edit viewIcos">
                                                                 <i className="fas fa-edit"></i> Edit
                                                             </Link>
 
@@ -266,7 +265,7 @@ const MyEventsPage = () => {
                                                                 <i className="bi bi-eye-fill"></i> View
                                                             </Link>
 
-                                                            <Link href="/" className="edit viewIcos">
+                                                            <Link href="/event/edit-event" className="edit viewIcos">
                                                                 <i className="fas fa-edit"></i> Edit
                                                             </Link>
 
