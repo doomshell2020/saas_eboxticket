@@ -7,7 +7,7 @@ import { format } from "date-fns";
 export async function getServerSideProps({ params }) {
   const { id, slug } = params;
   try {
-    const res = await fetch(`http://localhost:3000/api/v1/front/event/events/?key=front_event_details&id=${id}`);
+    const res = await fetch(`${process.env.SITE_URL}api/v1/front/event/events/?key=front_event_details&id=${id}`);
     if (!res.ok) throw new Error("Failed to fetch event details");
     const { data } = await res.json();
     return {
