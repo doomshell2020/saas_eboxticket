@@ -22,11 +22,11 @@ import {
   updateEventStatus //update event status
 } from "@/shared/services/admin/eventmanager/eventservices";
 import fs from "fs";
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// export const config = {
+//   api: {
+//     bodyParser: false,
+//   },
+// };
 
 import { imageUpload } from "@/utils/fileUpload";
 import { uploadToS3 } from '@/utils/s3Uploader';
