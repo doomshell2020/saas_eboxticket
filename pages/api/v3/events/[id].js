@@ -7,7 +7,6 @@ const handler = async (req, res) => {
             const { method, query } = req;
             const { action } = query;
             switch (method) {
-
                 case "POST": {
                     try {
                         console.error('Outer Error:', error);
