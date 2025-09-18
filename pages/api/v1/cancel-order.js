@@ -3,7 +3,7 @@ import { cancelOrder } from "@/shared/services/front/order_service";
 
 // API handler
 export default async function handler(req, res) {
-  if (req.method === "POST") {
+  if (req.method == "POST") {
     const {
       action,
       paymentIntentId,
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     );
 
     try {
-      if (action === "refund" && paymentIntentId) {
+      if (action == "refund" && paymentIntentId) {
         // Retrieve the payment intent
         const paymentIntent = await stripe.paymentIntents.retrieve(
           paymentIntentId
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
         // Check if the payment intent has succeeded
         if (
-          paymentIntent.status === "succeeded" &&
+          paymentIntent.status == "succeeded" &&
           paymentIntent.latest_charge
         ) {
           const chargeId = paymentIntent.latest_charge;
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
             "requested_by_customer",
           ];
           const reasonToUse =
-            refund_reason === "other"
+            refund_reason == "other"
               ? refund_details || "Other reason not provided"
               : validReasons.includes(refund_reason)
               ? refund_reason

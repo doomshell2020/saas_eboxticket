@@ -61,8 +61,7 @@ const handler = async (req, res) => {
             } else if (req.body.key == "transferAddon") {
               const addonTransfer = await transferOneAddon(req.body, res);
               res.json(addonTransfer);
-            }
-            else if (req.body.key == "ticketExport") {
+            } else if (req.body.key == "ticketExport") {
               const ticketScanned = await ticketExport(req.body, res);
               res.json(ticketScanned);
             } else if (req.body.key == "myTickets") {
@@ -86,8 +85,7 @@ const handler = async (req, res) => {
             } else if (req.body.key == "remaining_amount_email") {
               const remaining_amount = await SendRemainingAmountEmail(req.body, res);
               res.json(remaining_amount);
-            }
-            else if (req.body.key == "transferTicketCheck") {
+            } else if (req.body.key == "transferTicketCheck") {
               const ticketTransferCheck = await transferTicketCheck(
                 req.body,
                 res
