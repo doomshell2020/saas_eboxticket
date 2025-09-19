@@ -1,17 +1,17 @@
 import {
     search_Housing, View_Housing, add_Hosuing, deleteHousing, releaseHousing, view_HousingByid, updateHousing,
     deleteHousingImage, view_HouseDetail, addOrUpdateHousing, view_HousingImage, getHousingByStatus,
-    addUpdateHousing, getAssignedHousing, searchEventHousing, getAvailableHousingDateRange, approvedHousingRequest, isBookingRequest,getEventHousingDetails
+    addUpdateHousing, getAssignedHousing, searchEventHousing, getAvailableHousingDateRange, approvedHousingRequest, isBookingRequest, getEventHousingDetails
 } from "@/shared/services/admin/housing/housingservices";
 import { isBooked, isAccommodationBooked } from "@/shared/services/front/housing/housingservices";
 
 import { housingImageUpload } from "@/utils/fileUpload";
 import fs from 'fs';
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
+// export const config = {
+//     api: {
+//         bodyParser: false,
+//     },
+// };
 
 const handler = async (req, res) => {
     try {
@@ -21,50 +21,38 @@ const handler = async (req, res) => {
 
             case "POST": {
                 try {
-                    housingImageUpload.single('ImageURL')(req, res, async (err) => {
-                        if (err) {
-                            console.error('Error uploading image:', err);
-                            return res.status(400).json({ message: 'Error uploading image', error: err.message });
-                        }
+                    const { key } = req.body;
 
-                        if (req.body.key == "date-extend") {
-                            const isSubmit = await isBookingRequest(req, res);
-                            res.json(isSubmit);
+                    const handlers = {
+                        "date-extend": () => isBookingRequest(req, res),
+                        "searchHousing": () => search_Housing(req.body, res),
+                        "search_event_housing": () => searchEventHousing(req.body, res),
+                        "eligibleHousing": () => addUpdateHousing(req, res),
+                        "getAssignedHousing": () => getAssignedHousing(req, res),
+                        "approved_housing_request": () => approvedHousingRequest(req, res),
+                    };
 
-                        } else if (req.body.key == "searchHousing") {
-                            var searchData = await search_Housing(req.body, res);
-                            res.json(searchData);
-                        } else if (req.body.key == 'search_event_housing') {
-                            var eventHousing = await searchEventHousing(req.body, res);
-                            res.json(eventHousing);
-                        } else if (req.body.key == 'eligibleHousing') {
-                            var insertData = await addUpdateHousing(req, res);
-                            res.json(insertData);
-                        } else if (req.body.key == 'getAssignedHousing') {
-                            let housingList = await getAssignedHousing(req, res);
-                            res.json(housingList);
-                        } else if (req.body.key == 'approved_housing_request') {
-                            let approved_housing = await approvedHousingRequest(req, res);
-                            res.json(approved_housing);
-                        } else {
-                            if (req.file) {
-                                const { filename } = req.file;
-                                const event_add = await add_Hosuing(req.body, filename, res);
-                                res.status(200).json(event_add);
-                            } else {
-                                if (req.body.key == 'add_update_housing') {
-                                    const result = await addOrUpdateHousing(req.body);
-                                    res.json(result);
-                                } else {
-                                    const event_add = await add_Hosuing(req.body, '', res);
-                                    res.status(200).json(event_add);
-                                }
-                            }
-                        }
-                    });
+                    if (handlers[key]) {
+                        const result = await handlers[key]();
+                        return res.json(result);
+                    }
+
+                    let filename = "";
+                    if (req.file) {
+                        filename = req.file.filename;
+                    }
+
+                    if (key == "add_update_housing") {
+                        const result = await addOrUpdateHousing(req.body);
+                        return res.json(result);
+                    }
+
+                    const event_add = await add_Hosuing(req.body, filename, res);
+                    return res.status(200).json(event_add);
+
                 } catch (error) {
-                    console.error('Error processing request:', error);
-                    res.status(500).json({ error: 'Internal Server Error' });
+                    console.error("Error processing request:", error);
+                    res.status(500).json({ error: "Internal Server Error" });
                 }
                 break;
             }
