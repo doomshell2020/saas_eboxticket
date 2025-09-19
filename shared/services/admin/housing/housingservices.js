@@ -68,6 +68,9 @@ export async function addUpdateHousing(req, res) {
             Url = `${SITE_URL}/accommodations/book-accommodation/?UserID=${userId}&ArrivalDate=${arrivalDate}&DepartureDate=${departureDate}&EventID=${eventId}&housing_id=${selectedHousingIds}&required_tickets=${required_tickets}`;
         }
 
+        console.log('>>>>>>>>', Url);
+
+
         if (existingInvitation) {
             // If it exists, update the record with the data from req.body
             await existingInvitation.update({
@@ -81,6 +84,8 @@ export async function addUpdateHousing(req, res) {
                 // New Keys added for expire link for property 
                 expiresAt: linkExpirationDate,
                 expire_status: 'active',
+                required_tickets: required_tickets,
+
             });
             // Update Event Housing After the Assigned the property Assigned for admin
             await EventHousing.update({ isBooked: 'P' }, {
@@ -90,10 +95,6 @@ export async function addUpdateHousing(req, res) {
                 { accommodation_status: "Property Offered" },
                 { where: { EventID: eventId, UserID: userId } }
             );
-
-            // console.log('>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>', required_tickets);
-            // console.log('>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<URL>>>>>>>>>>>>>>>>>>>>>', Url);
-            // return false
 
             // console.log('existingInvitation', existingInvitation);
             const findTemplate = await Emailtemplet.findOne({ where: { eventId: 111, templateId: 31 } });
@@ -128,7 +129,8 @@ export async function addUpdateHousing(req, res) {
                 DateExpired: expirationDate,
                 HousingOption: Status,
                 InternalNotes: internalNotes,
-                EligibleHousingIDs: (Status == 1) ? HomeOwnerHousingId : selectedHousingIds
+                EligibleHousingIDs: (Status == 1) ? HomeOwnerHousingId : selectedHousingIds,
+                required_tickets: required_tickets,
             });
 
             return res.status(StatusCodes.CREATED).json({
@@ -148,11 +150,82 @@ export async function addUpdateHousing(req, res) {
     }
 }
 
+
 // releaseHousing api rupam singh  14-05-2025 
+// export async function releaseHousing(req, res) {
+//     try {
+//         const { invitationId, propertyId } = req.query;
+
+//         if (!invitationId || !propertyId) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "Missing invitationId or propertyId.",
+//             });
+//         }
+
+//         const invitationData = await InvitationEvent.findOne({
+//             where: { ID: invitationId },
+//         });
+
+//         if (!invitationData) {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: "Invitation not found.",
+//             });
+//         }
+//         let housingIds = invitationData.EligibleHousingIDs
+//             ? invitationData.EligibleHousingIDs.split(",").map(id => id.trim())
+//             : [];
+//         if (!housingIds.includes(propertyId)) {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: "Property ID not found in EligibleHousingIDs.",
+//             });
+//         }
+//         // Remove the specific propertyId
+//         housingIds = housingIds.filter(id => id !== propertyId);
+//         const updatedEligibleHousingIDs = housingIds.length ? housingIds.join(",") : null;   // added new 23-05-2025
+//         // Update the InvitationEvent record
+//         await InvitationEvent.update(
+//             // { EligibleHousingIDs: housingIds.join(",") }, // comment 23-05-2025
+//             {
+//                 EligibleHousingIDs: updatedEligibleHousingIDs,
+//                 ...(updatedEligibleHousingIDs === null && { accommodation_status: "Preference Submitted" })
+//             },    //added new
+//             { where: { ID: invitationId } }
+//         );
+//         // Update EventHousing to set isBooked = "N"
+//         await EventHousing.update(
+//             { isBooked: "N" },
+//             {
+//                 where: {
+//                     EventID: invitationData.EventID,
+//                     HousingID: propertyId,
+//                     isBooked: "P",
+//                 },
+//             }
+//         );
+//         return res.status(200).json({
+//             success: true,
+//             message: "Housing released successfully.",
+//         });
+
+//     } catch (error) {
+//         console.error("Error on release housing:", error);
+//         return res.status(500).json({
+//             success: false,
+//             message: "Failed to release housing.",
+//             error: error.message,
+//         });
+//     }
+// }
+
+
 export async function releaseHousing(req, res) {
     try {
         const { invitationId, propertyId } = req.query;
 
+        // ✅ Basic validation
         if (!invitationId || !propertyId) {
             return res.status(400).json({
                 success: false,
@@ -160,10 +233,8 @@ export async function releaseHousing(req, res) {
             });
         }
 
-        const invitationData = await InvitationEvent.findOne({
-            where: { ID: invitationId },
-        });
-
+        // ✅ Fetch invitation data
+        const invitationData = await InvitationEvent.findOne({ where: { ID: invitationId } });
         if (!invitationData) {
             return res.status(404).json({
                 success: false,
@@ -171,6 +242,7 @@ export async function releaseHousing(req, res) {
             });
         }
 
+        // ✅ Extract housing IDs from EligibleHousingIDs
         let housingIds = invitationData.EligibleHousingIDs
             ? invitationData.EligibleHousingIDs.split(",").map(id => id.trim())
             : [];
@@ -182,22 +254,22 @@ export async function releaseHousing(req, res) {
             });
         }
 
-        // Remove the specific propertyId
+        // ✅ Remove the released propertyId
         housingIds = housingIds.filter(id => id !== propertyId);
-        const updatedEligibleHousingIDs = housingIds.length ? housingIds.join(",") : null;   // added new 23-05-2025
+        const updatedEligibleHousingIDs = housingIds.length ? housingIds.join(",") : null;
 
+        // ✅ Fetch Housing data for accommodation type check
+        const housingData = await EventHousing.findOne({
+            where: { EventID: invitationData.EventID, HousingID: propertyId },
+        });
 
-        // Update the InvitationEvent record
-        await InvitationEvent.update(
-            // { EligibleHousingIDs: housingIds.join(",") }, // comment 23-05-2025
-            {
-                EligibleHousingIDs: updatedEligibleHousingIDs,
-                ...(updatedEligibleHousingIDs === null && { accommodation_status: "Preference Submitted" })
-            },    //added new
-            { where: { ID: invitationId } }
-        );
+        // ✅ Build update payload using helper
+        const updatePayload = buildInvitationUpdatePayload(updatedEligibleHousingIDs, housingData, invitationData);
 
-        // Update EventHousing to set isBooked = "N"
+        // ✅ Update InvitationEvent record
+        await InvitationEvent.update(updatePayload, { where: { ID: invitationId } });
+
+        // ✅ Release property in EventHousing
         await EventHousing.update(
             { isBooked: "N" },
             {
@@ -224,7 +296,36 @@ export async function releaseHousing(req, res) {
     }
 }
 
+/**
+ * 🔹 Helper to build update payload for InvitationEvent
+ */
+function buildInvitationUpdatePayload(updatedEligibleHousingIDs, housingData, invitationData) {
+    const payload = { EligibleHousingIDs: updatedEligibleHousingIDs };
+    if (updatedEligibleHousingIDs === null) {
+        if (invitationData?.AccommodationType == "4+ bedrooms") {
+            payload.accommodation_status = "Preference Submitted";
+            payload.required_tickets = null;
+            payload.ArrivalDate = null;
+            payload.DepartureDate = null;
+        } else {
+            payload.accommodation_status = null;
+            payload.required_tickets = null;
+            payload.ArrivalDate = null;
+            payload.DepartureDate = null;
+        }
+    }
+
+    return payload;
+}
+
+
+
+
+
 // get Housing Based on the 
+
+
+
 export async function getHousingByStatus({ HousingByStatus, eventId, userId }, res) {
     try {
 
@@ -532,7 +633,9 @@ export async function View_Housing(req) {
                 model: HousingBedrooms, separate: true, order: [['id', 'ASC']], include: [{ model: HousingBedType }] // Nested include
             }, { model: HousingNeighborhood, attributes: ["name"] }, { model: HousingTypes, attributes: ["name"] },
             {
-                model: AccommodationBooking, attributes: ['user_id', 'event_id', 'first_name', 'last_name', 'email', 'payment_status', 'check_in_date', 'check_out_date'],
+                model: AccommodationBooking, 
+                // where :{is_accommodation_cancel:"N"}, // not cancel accommodations
+                attributes: ['user_id', 'event_id', 'first_name', 'last_name', 'email', 'payment_status', 'check_in_date', 'check_out_date','is_accommodation_cancel'],
                 include: [{ model: MyOrders, attributes: ['total_amount', 'user_id', 'event_id'], include: [{ model: BookTicket, attributes: ['order_id', 'event_id', 'ticket_buy'] }] }, { model: User, attributes: ['PhoneNumber', 'id'] }]
             }
             ],
@@ -643,18 +746,14 @@ export async function add_Hosuing({
 export async function addOrUpdateHousing(data) {
     try {
         const { EventID, HousingID, Status, isBookedByMember } = data;
-
-
         const isValidDate = (date) => {
             return date && !isNaN(new Date(date).getTime());
         };
-
         const parseOrNull = (value) => {
             return value !== undefined && value !== null && value !== '' && !isNaN(value)
                 ? parseFloat(value)
                 : null;
         };
-
         let updateData;
         if (isBookedByMember == true || isBookedByMember == 'true') {
             updateData = {
@@ -702,14 +801,19 @@ export async function addOrUpdateHousing(data) {
                 ticket_processing_fee_percentage: parseOrNull(data.ProcessingFeePercentage)
             };
         }
-
         // console.log('>>>>>>>>>>>>>>>>', updateData);
         const housing = await EventHousing.findOne({
             where: { EventID, HousingID }
         });
 
+
         if (housing) {
             await housing.update(updateData);
+            // remove offered property after the change status
+            if (Status != 2) {
+                await removeBookedPropertyFromInvitations(EventID, HousingID);
+            }
+
             return {
                 statusCode: 200,
                 success: true,
@@ -717,12 +821,19 @@ export async function addOrUpdateHousing(data) {
             };
         } else {
             await EventHousing.create(updateData);
+            // remove offered property after the change status
+            if (Status != 2) {
+                await removeBookedPropertyFromInvitations(EventID, HousingID);
+            }
+
             return {
                 statusCode: 200,
                 success: true,
                 message: 'Housing added successfully'
             };
         }
+
+
     } catch (error) {
         console.error('Error adding/updating housing:', error);
         return {
@@ -733,6 +844,57 @@ export async function addOrUpdateHousing(data) {
         };
     }
 }
+
+// helper function for remove offered property after the change status - kamal
+async function removeBookedPropertyFromInvitations(eventId, propertyId) {
+    console.log("----------remove offered property after the change status--------------------")
+    const bookedPropertyId = String(propertyId);
+    // Find all invitations that still have this property
+    const invitations = await InvitationEvent.findAll({
+        where: {
+            EventID: eventId,
+            EligibleHousingIDs: {
+                [Op.like]: `%${bookedPropertyId}%`,
+            },
+        },
+    });
+
+    for (const inv of invitations) {
+        let housingIds = inv.EligibleHousingIDs
+            ? inv.EligibleHousingIDs.split(",").map(id => id.trim())
+            : [];
+        // Remove status change property 
+        housingIds = housingIds.filter(id => id !== bookedPropertyId);
+        const updatedEligibleHousingIDs = housingIds.length ? housingIds.join(",") : null;
+        // Base update payload
+        let updatePayload = { EligibleHousingIDs: updatedEligibleHousingIDs };
+        // ✅ Extra logic when EligibleHousingIDs becomes null
+        if (!updatedEligibleHousingIDs) {
+            if (inv.AccommodationType == "4+ bedrooms") {
+                updatePayload.accommodation_status = "Preference Submitted";
+            } else {
+                updatePayload.accommodation_status = null;
+            }
+            updatePayload.required_tickets = null;
+            updatePayload.ArrivalDate = null;
+            updatePayload.DepartureDate = null;
+        }
+        // Update InvitationEvent
+        await InvitationEvent.update(updatePayload, { where: { id: inv.id } });
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // housing deleted
@@ -877,11 +1039,14 @@ export async function search_Housing({ Name, Neighborhood, Type, NumBedrooms, Ma
         if (Name) {
             newObject.Name = { [Op.like]: `%${Name}%` }
         } if (Neighborhood) {
-            newObject.Neighborhood = { [Op.like]: `%${Neighborhood}%` }
+            // newObject.Neighborhood = { [Op.like]: `%${Neighborhood}%` }
+            newObject.Neighborhood = Neighborhood;
         } if (Type) {
-            newObject.Type = { [Op.like]: `%${Type}%` }
+            // newObject.Type = { [Op.like]: `%${Type}%` }
+            newObject.Type = Type; // exact match
         } if (NumBedrooms) {
-            newObject.NumBedrooms = { [Op.like]: `%${NumBedrooms}%` }
+            // newObject.NumBedrooms = { [Op.like]: `%${NumBedrooms}%` }
+            newObject.NumBedrooms = NumBedrooms; // exact match
         } if (ManagerName) {
             newObject.ManagerName = { [Op.like]: `%${ManagerName}%` }
         } if (ManagerEmail) {
@@ -1064,19 +1229,31 @@ export async function deleteHousingImage({ imageId }, res) {
 }
 
 // View Housing by housename
-export async function view_HouseDetail({ housename }, req) {
+export async function view_HouseDetail({ housename, housing_info_id }, req) {
     try {
-        if (!housename) {
+        if (!housename && !housing_info_id) {
             return {
                 statusCode: 400,
                 success: false,
-                message: 'Housename is required',
+                message: 'Either housename or id is required',
             };
         }
+
+        let whereClause = {};
+
+        if (housename && housing_info_id) {
+            // both provided → match both
+            whereClause = { Name: housename, id: housing_info_id };
+        } else if (housename) {
+            // only housename provided
+            whereClause = { Name: housename };
+        } else if (housing_info_id) {
+            // only id provided
+            whereClause = { id: housing_info_id };
+        }
+
         const data = await Housing.findOne({
-            where: {
-                Name: housename,
-            },
+            where: whereClause,
             include: [{ model: EventHousing, attributes: ["NightlyPrice", "BaseNightlyPrice", 'AvailabilityEndDate', 'AvailabilityStartDate', 'EventID', 'OwnerAmount', 'TotalStripeFeeAmount', 'TotalOndalindaFeeAmount'] }, {
                 model: HousingImage, separate: true, // Required to apply limit
                 limit: 4,       // Only get up to 4 images
@@ -1165,62 +1342,127 @@ export async function viewHousingId({ HousingID }, res) {
     }
 }
 
+// new functionality updated (kamal-21-08-2025)
+
 export async function getAssignedHousing(req, res) {
     try {
+        const housingIds = JSON.parse(req.body.housingIds);
+        const eventId = req.body.eventId;
 
-        const housingIds = JSON.parse(req.body.housingIds); // Parse the housingIds from FormData
-
+        if (!eventId) {
+            return res.status(400).json({ error: "eventId is required" });
+        }
         if (!housingIds || !Array.isArray(housingIds) || housingIds.length === 0) {
-            return res.status(400).json({ error: 'Invalid housingIds' });
+            return res.status(400).json({ error: "Invalid housingIds" });
         }
 
-        const housingOptions = {
-            attributes: ['ID', 'Name', 'Neighborhood', 'ManagerName', 'MaxOccupancy', 'NumBedrooms'],
+        const data = await Housing.findAll({
+            attributes: [
+                "ID",
+                "Name",
+                "Neighborhood",
+                "ManagerName",
+                "MaxOccupancy",
+                "NumBedrooms"
+            ],
             order: [["createdAt", "DESC"]],
             where: {
-                ID: {
-                    [Op.in]: housingIds
+                ID: { [Op.in]: housingIds }
+            },
+            include: [
+                {
+                    model: EventHousing,
+                    attributes: ["HousingID", "isBooked", "EventID"],
+                    required: true, // 🔑 ensures EventHousings[] is not empty
+                    where: {
+                        EventID: eventId,
+                        isBooked: { [Op.ne]: "Y" }, // include N, P, exclude Y
+                        // Status:{ [Op.ne]: 2 }
+                        Status: 2
+                    }
+                },
+                {
+                    model: HousingNeighborhood,
+                    attributes: ["name"]
                 }
-            }
-        };
-
-
-        let data = await Housing.findAll({
-            ...housingOptions,
-            include: [{ model: HousingNeighborhood, attributes: ["name"] }]
-
-            // include: [{
-            //     model: EventHousing,
-            //     attributes: ['NightlyPrice']
-            // }]
+            ]
         });
 
-        // console.log('>>>>>>>>>', data);   
-
-        if (data.length === 0) {
+        if (!data || data.length === 0) {
             return {
                 statusCode: 404,
                 success: false,
-                message: 'No housing details found for the given ids',
+                message: "No housing details found (all booked or not matching IDs)"
             };
         }
 
         return {
             statusCode: 200,
             success: true,
-            message: 'View Housing detail Successfully!',
-            data: data
+            message: "View Housing detail Successfully!",
+            data
         };
     } catch (error) {
-        console.error('Error fetching housing data:', error);
+        console.error("Error fetching housing data:", error);
         return {
             statusCode: 500,
             success: false,
-            message: 'Failed to fetch housing data',
-            error: error.message,
+            message: "Failed to fetch housing data",
+            error: error.message
         };
     }
 }
+
+
+// export async function getAssignedHousing(req, res) {
+//     try {
+
+//         const housingIds = JSON.parse(req.body.housingIds); // Parse the housingIds from FormData
+//         if (!housingIds || !Array.isArray(housingIds) || housingIds.length === 0) {
+//             return res.status(400).json({ error: 'Invalid housingIds' });
+//         }
+
+//         const housingOptions = {
+//             attributes: ['ID', 'Name', 'Neighborhood', 'ManagerName', 'MaxOccupancy', 'NumBedrooms'],
+//             order: [["createdAt", "DESC"]],
+//             where: {
+//                 ID: {
+//                     [Op.in]: housingIds
+//                 }
+//             }
+//         };
+
+//         let data = await Housing.findAll({
+//             ...housingOptions,
+//             include: [{ model: HousingNeighborhood, attributes: ["name"] }]
+//         });
+
+//         // console.log('>>>>>>>>>', data);   
+
+//         if (data.length === 0) {
+//             return {
+//                 statusCode: 404,
+//                 success: false,
+//                 message: 'No housing details found for the given ids',
+//             };
+//         }
+
+//         return {
+//             statusCode: 200,
+//             success: true,
+//             message: 'View Housing detail Successfully!',
+//             data: data
+//         };
+//     } catch (error) {
+//         console.error('Error fetching housing data:', error);
+//         return {
+//             statusCode: 500,
+//             success: false,
+//             message: 'Failed to fetch housing data',
+//             error: error.message,
+//         };
+//     }
+// }
 
 
 
@@ -1341,44 +1583,6 @@ export async function View_HousingNew(req) {
 }
 
 
-// ServerA
-export async function fetchAllHousingDetailsV3(req, res) {
-    try {
-        let { offset = 0, limit = 50 } = req.query; // default 50 per batch
-        const data = await Housing.findAll({
-            include: [
-                { model: EventHousing },
-                { model: HousingImage },
-                { model: HousingBedrooms,
-                    separate: true,
-                    order: [['id', 'DESC']],
-                    include: [{ model: HousingBedType }]
-                },
-                { model: HousingNeighborhood, attributes: ["name"] },
-                { model: HousingTypes, attributes: ["name"] }
-            ],
-            offset: parseInt(offset),
-            limit: parseInt(limit),
-            order: [['id', 'DESC']],
-        });
-        // console.log('>>>>>>>>>>>>',data);      
-        // return {
-        //     data,
-        //     nextOffset: parseInt(offset) + parseInt(limit)
-        // }
-        return res.send({
-            message: "Batch fetched successfully",
-            status: true,
-            data,
-            nextOffset: parseInt(offset) + parseInt(limit)
-        });
-    } catch (error) {
-        return res.send({
-            message: error.message,
-            status: false,
-        });
-    }
-}
 
 
 // View housing for id
@@ -1523,30 +1727,73 @@ export async function View_HousingBedTypes(req) {
 }
 
 // VIEW HOUSING Neighborhood(11-03-2025)
+
 export async function View_HousingNeighborhood(req) {
     try {
         const data = await HousingNeighborhood.findAll({
+            attributes: [
+                "id",
+                "name",
+                "status",
+                "location",
+                [Sequelize.fn("COUNT", Sequelize.col("Housings.id")), "propertyCount"]
+            ],
+            include: [
+                {
+                    model: Housing,
+                    as: "Housings", // must match the hasMany alias
+                    attributes: [],
+                    foreignKey: 'Neighborhood'
+                }
+            ],
+            group: ["HousingNeighborhood.id"],
             order: [["id", "ASC"]],
-            attributes: ["id", "name", "status", "location"]
         });
+
         return {
             statusCode: 200,
             success: true,
-            message: 'View Housing Neighborhood Successfully!',
+            message: "View Housing Neighborhood Successfully!",
             data: data,
         };
     } catch (error) {
-        console.error('Error fetching housing data:', error);
+        console.error("Error fetching housing data:", error);
         return {
             statusCode: 500,
             success: false,
-            message: 'Failed to fetch housing data',
+            message: "Failed to fetch housing data",
             error: error.message,
         };
     }
 }
 
+// export async function View_HousingNeighborhood(req) {
+//     try {
+//         const data = await HousingNeighborhood.findAll({
+//             order: [["id", "ASC"]],
+//             attributes: ["id", "name", "status", "location"]
+//         });
+//         return {
+//             statusCode: 200,
+//             success: true,
+//             message: 'View Housing Neighborhood Successfully!',
+//             data: data,
+//         };
+//     } catch (error) {
+//         console.error('Error fetching housing data:', error);
+//         return {
+//             statusCode: 500,
+//             success: false,
+//             message: 'Failed to fetch housing data',
+//             error: error.message,
+//         };
+//     }
+// }
+
 // view housing types
+
+
+
 export async function View_HousingTypes(req) {
     try {
         const data = await HousingTypes.findAll({
@@ -1787,7 +2034,7 @@ export async function getEventHousingDetails(eventHousingId) {
 // Approved housing requested for cuixmala and las alamandas
 export async function approvedHousingRequest(req, res) {
     try {
-        const { eventId, userId } = req.body;
+        const { eventId, userId,accommodation_status } = req.body;
         // Validate input
         if (!eventId || !userId) {
             return {
@@ -1798,7 +2045,7 @@ export async function approvedHousingRequest(req, res) {
         // Update accommodation status
         const updatedRows = await InvitationEvent.update(
             // { accommodation_status: "Booked" },
-            { is_booking_status: "Y" },
+            { is_booking_status: "Y" ,accommodation_status: accommodation_status},
             { where: { EventID: eventId, UserID: userId } }
         );
         if (updatedRows === 0) {
@@ -1818,6 +2065,54 @@ export async function approvedHousingRequest(req, res) {
             message: "Failed to approve housing request: " + error.message,
             error: error.message,
         };
+    }
+}
+
+// Delete Preference Submitted request
+export async function deletedPreferenceRequest(req, res) {
+    try {
+        const { eventId, userId } = req.body;
+
+        // Validate input
+        if (!eventId || !userId) {
+            return res.status(400).json({
+                success: false,
+                message: "eventId and userId are required.",
+            });
+        }
+
+        // Update accommodation status
+        const [updatedRows] = await InvitationEvent.update(
+            {
+                AccommodationType: null,
+                ArrivalDate: null,
+                DepartureDate: null,
+                // accommodation_status: "Booked",
+                accommodation_status: null,
+                is_preference_submitted: "N"
+            },
+            { where: { EventID: eventId, UserID: userId } }
+        );
+
+        if (updatedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No matching record found to update.",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Preference request deleted successfully.",
+        });
+
+    } catch (error) {
+        console.error("Error updating housing data:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to delete preference request",
+            error: error.message,
+        });
     }
 }
 
@@ -2068,8 +2363,206 @@ export async function searchEventHousingNew(query) {
 }
 
 
+// book out side property Api
+// export async function bookOutsideProperty(req, res) {
+//     try {
+//         const {
+//             EventID,
+//             HousingID,
+//             outside_user_id,
+//             outside_first_name,
+//             outside_last_name,
+//             outside_email,
+//             outside_booking_date,
+//             outside_arrival_date,
+//             outside_departure_date,
+//             outside_remark
+//         } = req.body;
 
 
+//         // Validate input
+//         if (!EventID || !HousingID) {
+//             return {
+//                 success: false,
+//                 message: "EventID and HousingID are required.",
+//             };
+//         }
+//         // Update EventHousing record
+//         const [updatedRows] = await EventHousing.update(
+//             {
+//                 isBooked: "Y",
+//                 outside_user_id,
+//                 outside_first_name,
+//                 outside_last_name,
+//                 outside_email,
+//                 outside_booking_date,
+//                 Status: 8,
+//                 outside_arrival_date,
+//                 outside_departure_date,
+//                 outside_remark
+//             },
+//             {
+//                 where: { EventID: EventID, HousingID: HousingID },
+//             }
+//         );
+//         if (updatedRows === 0) {
+//             return {
+//                 success: false,
+//                 message: "No matching record found to update.",
+//             };
+//         }
+//         return {
+//             success: true,
+//             message: "Outside property booked successfully.",
+//         };
+//     } catch (error) {
+//         console.error("Error updating housing data:", error);
+//         return {
+//             success: false,
+//             message: "Failed to book outside property: " + error.message,
+//             error: error.message,
+//         };
+//     }
+// }
+
+export async function bookOutsideProperty(req, res) {
+    try {
+        const {
+            EventID,
+            HousingID,
+            outside_user_id,
+            outside_first_name,
+            outside_last_name,
+            outside_email,
+            outside_booking_date,
+            outside_arrival_date,
+            outside_departure_date,
+            outside_remark
+        } = req.body;
+
+        // Validate input
+        if (!EventID) {
+            return {
+                success: false,
+                message: "EventID is required.",
+            };
+        }
+
+        let result;
+
+        if (!HousingID) {
+            // CREATE new EventHousing record if HousingID not provided
+            result = await EventHousing.create({
+                EventID,
+                isBooked: "Y",
+                outside_user_id,
+                outside_first_name,
+                outside_last_name,
+                outside_email,
+                outside_booking_date,
+                Status: 8,
+                outside_arrival_date,
+                outside_departure_date,
+                outside_remark
+            });
+
+            return {
+                success: true,
+                message: "Outside property created and booked successfully.",
+                data: result
+            };
+        } else {
+            // UPDATE existing EventHousing record
+            const [updatedRows] = await EventHousing.update(
+                {
+                    isBooked: "Y",
+                    outside_user_id,
+                    outside_first_name,
+                    outside_last_name,
+                    outside_email,
+                    outside_booking_date,
+                    Status: 8,
+                    outside_arrival_date,
+                    outside_departure_date,
+                    outside_remark
+                },
+                {
+                    where: { EventID: EventID, HousingID: HousingID },
+                }
+            );
+
+            if (updatedRows == 0) {
+                // If no matching record found, CREATE new one with HousingID
+                result = await EventHousing.create({
+                    EventID,
+                    HousingID, // keep provided HousingID
+                    isBooked: "Y",
+                    outside_user_id,
+                    outside_first_name,
+                    outside_last_name,
+                    outside_email,
+                    outside_booking_date,
+                    Status: 8,
+                    outside_arrival_date,
+                    outside_departure_date,
+                    outside_remark
+                });
+
+                return {
+                    success: true,
+                    message: "Outside property booked successfully",
+                    data: result
+                };
+            }
+
+            return {
+                success: true,
+                message: "Outside property booked successfully (updated existing record).",
+            };
+        }
+    } catch (error) {
+        console.error("Error updating/creating housing data:", error);
+        return {
+            success: false,
+            message: "Failed to book outside property: " + error.message,
+            error: error.message,
+        };
+    }
+}
 
 
-
+// update book out side property Api
+export async function updateOutsideProperty(req, res) {
+    try {
+        const { EventID, HousingID, ...updateData } = req.body;
+        console.log("req.body------------------", req.body)
+        // Validate input
+        if (!EventID || !HousingID) {
+            return {
+                success: false,
+                message: "EventID and HousingID are required.",
+            };
+        }
+        // Update EventHousing record dynamically with req.body data
+        const [updatedRows] = await EventHousing.update(updateData, {
+            where: { EventID: EventID, HousingID: HousingID },
+        });
+        if (updatedRows === 0) {
+            return {
+                success: false,
+                message: "No matching record found to update.",
+            };
+        }
+        return {
+            success: true,
+            message: "Property details updated successfully.",
+        };
+    } catch (error) {
+        console.error("Error updating housing data:", error);
+        return {
+            success: false,
+            message: "Failed to update property: " + error.message,
+            error: error.message,
+        };
+    }
+}
