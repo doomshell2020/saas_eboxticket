@@ -320,6 +320,45 @@ function buildInvitationUpdatePayload(updatedEligibleHousingIDs, housingData, in
 
 
 
+export async function fetchAllHousingDetailsV3(req, res) {
+    try {
+        let { offset = 0, limit = 50 } = req.query; // default 50 per batch
+        const data = await Housing.findAll({
+            include: [
+                { model: EventHousing },
+                { model: HousingImage },
+                {
+                    model: HousingBedrooms,
+                    separate: true,
+                    order: [['id', 'DESC']],
+                    include: [{ model: HousingBedType }]
+                },
+                { model: HousingNeighborhood, attributes: ["name"] },
+                { model: HousingTypes, attributes: ["name"] }
+            ],
+            offset: parseInt(offset),
+            limit: parseInt(limit),
+            order: [['id', 'DESC']],
+        });
+        // console.log('>>>>>>>>>>>>',data);      
+        // return {
+        //     data,
+        //     nextOffset: parseInt(offset) + parseInt(limit)
+        // }
+        return res.send({
+            message: "Batch fetched successfully",
+            status: true,
+            data,
+            nextOffset: parseInt(offset) + parseInt(limit)
+        });
+    } catch (error) {
+        return res.send({
+            message: error.message,
+            status: false,
+        });
+    }
+}
+
 
 
 // get Housing Based on the 
@@ -633,9 +672,9 @@ export async function View_Housing(req) {
                 model: HousingBedrooms, separate: true, order: [['id', 'ASC']], include: [{ model: HousingBedType }] // Nested include
             }, { model: HousingNeighborhood, attributes: ["name"] }, { model: HousingTypes, attributes: ["name"] },
             {
-                model: AccommodationBooking, 
+                model: AccommodationBooking,
                 // where :{is_accommodation_cancel:"N"}, // not cancel accommodations
-                attributes: ['user_id', 'event_id', 'first_name', 'last_name', 'email', 'payment_status', 'check_in_date', 'check_out_date','is_accommodation_cancel'],
+                attributes: ['user_id', 'event_id', 'first_name', 'last_name', 'email', 'payment_status', 'check_in_date', 'check_out_date', 'is_accommodation_cancel'],
                 include: [{ model: MyOrders, attributes: ['total_amount', 'user_id', 'event_id'], include: [{ model: BookTicket, attributes: ['order_id', 'event_id', 'ticket_buy'] }] }, { model: User, attributes: ['PhoneNumber', 'id'] }]
             }
             ],
@@ -2034,7 +2073,7 @@ export async function getEventHousingDetails(eventHousingId) {
 // Approved housing requested for cuixmala and las alamandas
 export async function approvedHousingRequest(req, res) {
     try {
-        const { eventId, userId,accommodation_status } = req.body;
+        const { eventId, userId, accommodation_status } = req.body;
         // Validate input
         if (!eventId || !userId) {
             return {
@@ -2045,7 +2084,7 @@ export async function approvedHousingRequest(req, res) {
         // Update accommodation status
         const updatedRows = await InvitationEvent.update(
             // { accommodation_status: "Booked" },
-            { is_booking_status: "Y" ,accommodation_status: accommodation_status},
+            { is_booking_status: "Y", accommodation_status: accommodation_status },
             { where: { EventID: eventId, UserID: userId } }
         );
         if (updatedRows === 0) {
