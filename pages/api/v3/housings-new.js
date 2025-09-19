@@ -21,49 +21,50 @@ const handler = async (req, res) => {
 
                 case "POST": {
                     try {
-                        housingImageUpload.single('ImageURL')(req, res, async (err) => {
-                            if (err) {
-                                console.error('Error uploading image:', err);
-                                return res.status(400).json({ message: 'Error uploading image', error: err.message });
-                            }
-                            if (req.body.key == "searchHousing") {
-                                var searchData = await search_Housing(req.body, res);
-                                res.json(searchData);
-                            } else if (req.body.key == 'eligibleHousing') {
-                                var insertData = await addUpdateHousing(req, res);
-                                res.json(insertData);
-                            } else if (req.body.key == 'getAssignedHousing') {
-                                let housingList = await getAssignedHousing(req, res);
-                                res.json(housingList);
-                            } else if (req.body.key == 'getHousingBedTypes') {
-                                let bedList = await View_HousingBedTypes(req, res);
-                                res.json(bedList);
-                            } else if (req.body.key == 'getHousingNeighborhood') {
-                                let neighborhoodList = await View_HousingNeighborhood(req, res);
-                                res.json(neighborhoodList);
-                            } else if (req.body.key == 'get_housingTypes') {
-                                let housingTypeList = await View_HousingTypes(req, res);
-                                res.json(housingTypeList);
-                            } else if (req.body.key == 'amenities') {
-                                let AmenitiesList = await View_HousingAmenities(req, res);
-                                res.json(AmenitiesList);
-                            }
-                            else {
-                                if (req.file) {
-                                    const { filename } = req.file;
-                                    const housing_add = await add_HosuingNew(req.body, filename, res);
-                                    res.status(200).json(housing_add);
-                                } else {
-                                    if (req.body.key == 'add_update_housing') {
-                                        const result = await addOrUpdateHousing(req.body);
-                                        res.json(result);
-                                    } else {
-                                        const housing_add = await add_HosuingNew(req.body, '', res);
-                                        res.status(200).json(housing_add);
-                                    }
-                                }
-                            }
-                        });
+                        const key = req.body.key;
+
+                        if (key === "searchHousing") {
+                            const searchData = await search_Housing(req.body, res);
+                            return res.json(searchData);
+                        }
+
+                        if (key === "eligibleHousing") {
+                            const insertData = await addUpdateHousing(req, res);
+                            return res.json(insertData);
+                        }
+
+                        if (key === "getAssignedHousing") {
+                            const housingList = await getAssignedHousing(req, res);
+                            return res.json(housingList);
+                        }
+
+                        if (key === "getHousingBedTypes") {
+                            const bedList = await View_HousingBedTypes(req, res);
+                            return res.json(bedList);
+                        }
+
+                        if (key === "getHousingNeighborhood") {
+                            const neighborhoodList = await View_HousingNeighborhood(req, res);
+                            return res.json(neighborhoodList);
+                        }
+
+                        if (key === "get_housingTypes") {
+                            const housingTypeList = await View_HousingTypes(req, res);
+                            return res.json(housingTypeList);
+                        }
+
+                        if (key === "amenities") {
+                            const AmenitiesList = await View_HousingAmenities(req, res);
+                            return res.json(AmenitiesList);
+                        }
+
+                        if (key === "add_update_housing") {
+                            const result = await addOrUpdateHousing(req.body);
+                            return res.json(result);
+                        }
+
+                        const housing_add = await add_HosuingNew(req.body, req.body.ImageURL || '', res);
+                        return res.status(200).json(housing_add);
                     } catch (error) {
                         console.error('Error processing request:', error);
                         res.status(500).json({ error: 'Internal Server Error' });
