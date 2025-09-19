@@ -4,12 +4,7 @@ import {
     addUpdateHousing, getAssignedHousing, View_HousingAmenities, GetHousingNeighborhood, searchEventHousingNew
 } from "@/shared/services/admin/housing/housingservices"
 import { housingImageUpload } from "@/utils/fileUpload";
-import fs from 'fs';
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
+
 import { checkApiKey } from '@/middleware/checkApiKey';
 
 const handler = async (req, res) => {
@@ -73,8 +68,7 @@ const handler = async (req, res) => {
                 }
                 case "GET": {
                     const { housing_id, HousingID, housename, HousingByStatus, eventId, key } = query
-                    // console.log('HousingByStatus', HousingByStatus);
-                    // return
+
                     if (housing_id) {
                         const vierStaff = await view_HousingByIdNew({ housing_id }, res);
                         res.status(200).json(vierStaff);
