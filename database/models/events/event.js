@@ -19,7 +19,7 @@ const initEvent = (sequelize, Types) => {
       },
       event_menu_name: {
         type: Types.STRING,
-        allowNull: false, // This allows ShortName to accept null values
+        allowNull: true, // This allows ShortName to accept null values
       },
       EventName: {
         type: Types.STRING,
@@ -100,14 +100,6 @@ const initEvent = (sequelize, Types) => {
         allowNull: false, // Required field
       },
       EndDate: {
-        type: Types.DATE,
-        allowNull: false, // Required field
-      },
-      SaleStartDate: {
-        type: Types.DATE,
-        allowNull: false, // Required field
-      },
-      SaleEndDate: {
         type: Types.DATE,
         allowNull: false, // Required field
       },
@@ -201,30 +193,6 @@ const initEvent = (sequelize, Types) => {
         type: DataTypes.DATE,
         allowNull: true,
       },
-      organiser_id: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-      },
-      slug: {
-        type: DataTypes.STRING,
-        allowNull: true
-      },
-      shareUrl: {
-        type: DataTypes.STRING,
-        allowNull: true
-      },
-      approvalDays: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-      },
-      isFree: {
-        type: DataTypes.INTEGER,
-        defaultValue: "N", // Default value is 'Y'
-      },
-      ticketLimit: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-      }
     },
     {
       sequelize,

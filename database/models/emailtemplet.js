@@ -14,6 +14,7 @@ const initEmailTemplate = (sequelize, Types) => {
             eventId: Types.STRING,
             templateId: Types.STRING,
             DisplayPriority: Types.INTEGER,
+            instruction:Types.TEXT,
             status: {
                 type: Types.STRING,
                 defaultValue: 'Y',

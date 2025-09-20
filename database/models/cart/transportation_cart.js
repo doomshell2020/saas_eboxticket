@@ -5,10 +5,10 @@ import EventTicketType from "../tickets/event_ticket_type"
 import Addons from "../tickets/addons"
 import Event from "../events/event"
 
-const initCart = (sequelize, Types) => {
-  class CartModel extends Model {}
+const initTransportationCart = (sequelize, Types) => {
+  class TransportationCartModel extends Model {}
 
-  CartModel.init(
+  TransportationCartModel.init(
     {
       user_id: {
         type: Types.STRING,
@@ -44,18 +44,18 @@ const initCart = (sequelize, Types) => {
     },
     {
       sequelize,
-      modelName: "Cart",
-      tableName: "cart",
+      modelName: "TransportationCart",
+      tableName: "transportation_cart",
       timestamps: true,
     }
   );
 
     // Associations with EventTicketType and Addons
-    CartModel.belongsTo(EventTicketType, { foreignKey: "ticket_id" });
-    CartModel.belongsTo(Addons, { foreignKey: "addons_id" });
-    CartModel.belongsTo(Event, { foreignKey: "event_id" });
+    TransportationCartModel.belongsTo(EventTicketType, { foreignKey: "ticket_id" });
+    TransportationCartModel.belongsTo(Addons, { foreignKey: "addons_id" });
+    TransportationCartModel.belongsTo(Event, { foreignKey: "event_id" });
 
-  return CartModel;
+  return TransportationCartModel;
 };
 
-export default initCart(connection, DataTypes);
+export default initTransportationCart(connection, DataTypes);

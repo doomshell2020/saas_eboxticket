@@ -24,6 +24,7 @@ const initInvitation = (sequelize, Types) => {
             // New Keys added for expire link for property 
             expiresAt: Types.DATE,
             expire_status: { type: Types.STRING, defaultValue: 'active', },
+            required_tickets: Types.STRING,
             Status: {
                 type: Types.STRING,
                 defaultValue: '1',

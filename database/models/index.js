@@ -180,9 +180,6 @@ export { CountryLocation }
 // order guest model
 export { OrderGuest };
 
-
-
-
 // new relationship logic(31-05-2025-kamal)
 // Orders.belongsTo(AccommodationBooking, {
 //     foreignKey: "accommodation_bookings_info_id",
@@ -196,4 +193,4 @@ Orders.belongsTo(AccommodationBookingInfo, {
 
 User.hasMany(MyOrders, { foreignKey: 'user_id' });
 MyOrders.belongsTo(User, { foreignKey: 'user_id' });
-
+HousingNeighborhood.hasMany(Housing, { foreignKey: 'Neighborhood', as: 'Housings' });

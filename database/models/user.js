@@ -94,8 +94,6 @@ const initUser = (sequelize, Types) => {
             test_email: DataTypes.STRING,
             donation_fees: DataTypes.FLOAT,
             // member_status: Types.INTEGER,
-            IsVerified: Types.INTEGER,
-            VerificationToken: Types.STRING,
             member_status: {
                 type: Types.STRING,
                 defaultValue: '0',
@@ -107,10 +105,6 @@ const initUser = (sequelize, Types) => {
             is_suspend: {
                 type: Types.STRING,
                 defaultValue: 'Y',
-            },
-            organiser_id: {
-                type: DataTypes.INTEGER,
-                allowNull: true,
             },
         }, {
         sequelize,

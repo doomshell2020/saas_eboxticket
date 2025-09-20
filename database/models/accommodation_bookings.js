@@ -101,6 +101,15 @@ const initAccommodationBooking = (sequelize, Types) => {
                 type: Types.DATE,
                 defaultValue: Types.NOW,
             },
+             is_accommodation_cancel: {
+                type: Types.ENUM('Y', 'N'),
+                allowNull: false,
+                defaultValue: 'N',
+            },
+            cancel_date: {
+                 type: Types.DATE,
+                allowNull: true,
+            },
         },
         {
             sequelize,

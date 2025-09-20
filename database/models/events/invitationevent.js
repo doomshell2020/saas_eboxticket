@@ -32,6 +32,7 @@ const initEventInvitation = (sequelize, Types) => {
             expire_status: { type: Types.STRING, defaultValue: 'active', },
             // new keys added Accommodations status
             accommodation_status: Types.STRING,
+            required_tickets: Types.STRING,
             Status: {
                 type: Types.STRING,
                 defaultValue: '1',

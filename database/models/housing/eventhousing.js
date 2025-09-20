@@ -79,6 +79,34 @@ const initEventHousing = (sequelize, DataTypes) => {
                 type: DataTypes.STRING,
                 allowNull: true,
             },
+             outside_user_id: {
+                type: DataTypes.STRING,
+                allowNull: true,
+            },
+             outside_first_name: {
+                type: DataTypes.STRING,
+                allowNull: true,
+            },
+             outside_last_name: {
+                type: DataTypes.STRING,
+                allowNull: true,
+            },
+             outside_email: {
+                type: DataTypes.STRING,
+                allowNull: true,
+            },
+            outside_arrival_date: {
+                type: DataTypes.DATE,
+                allowNull: true,
+            },
+            outside_departure_date: {
+                type: DataTypes.DATE,
+                allowNull: true,
+            },
+            outside_remark: {
+                type: DataTypes.TEXT,
+                allowNull: true,
+            },
             ticket_stripe_fee_percentage: {
                 type: DataTypes.DECIMAL(5, 2),
                 allowNull: true,
