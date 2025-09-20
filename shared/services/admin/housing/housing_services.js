@@ -1328,6 +1328,248 @@ export async function add_new_housing(data, filename = '', res, folder = 'housin
     }
 }
 
+
+export async function add_new_housingV3(data, filename = '', res) {
+    try {
+        const {
+            Name,
+            Neighborhood,
+            Type,
+            MaxOccupancy,
+            NumBedrooms,
+            Pool,
+            ManagerName,
+            ManagerEmail,
+            Description,
+            location,
+            ManagerMobile,
+            OwnerName,
+            OwnerEmail,
+            OwnerMobile,
+            amenities,
+            google_map,
+            bedrooms,
+            admin_notes,
+            bookingStatus,
+            booking_notes,
+            terms_and_conditions
+        } = data;
+
+        const amenitiesString = Array.isArray(amenities) ? amenities.join(', ') : amenities;
+
+        const housingData = await Housing.create({
+            Name,
+            Neighborhood,
+            Type,
+            MaxOccupancy,
+            NumBedrooms,
+            Pool,
+            ImageURL: filename,
+            ManagerName,
+            ManagerEmail,
+            Description,
+            location,
+            ManagerMobile,
+            OwnerName,
+            OwnerEmail,
+            OwnerMobile,
+            amenities: amenitiesString,
+            google_map,
+            admin_notes,
+            bookingStatus,
+            booking_notes,
+            terms_and_conditions
+        });
+
+        const housingId = housingData.id;
+
+        let parsedBedrooms = [];
+        if (bedrooms) {
+            try {
+                parsedBedrooms = typeof bedrooms == 'string' ? JSON.parse(bedrooms) : bedrooms;
+            } catch (err) {
+                console.warn('Invalid JSON in bedrooms field:', err.message);
+            }
+        }
+
+        for (const bedroom of parsedBedrooms) {
+            const { bedroom_number, beds } = bedroom;
+            for (const bed of beds) {
+                const { bed_number, bed_type } = bed;
+                await HousingBedrooms.create({
+                    HousingID: housingId,
+                    bedroom_number,
+                    bed_number,
+                    bed_type,
+                });
+            }
+        }
+
+        // return {
+        //     statusCode: StatusCodes.OK,
+        //     success: true,
+        //     message: "Housing added successfully!",
+        // };
+
+        res.status(200)
+            .json({
+                success: true,
+                message: "Housing added successfully!",
+            });
+        return
+
+    } catch (error) {
+        console.error("Error in add_new_housing:", error);
+
+        res.status(200)
+            .json({
+                success: false,
+                message: "Failed to add housing",
+            });
+        return
+
+        // return {
+        //     statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+        //     success: false,
+        //     message: "Failed to add housing",
+        //     error: error.message,
+        // };
+    }
+}
+
+export async function syncAllProperty(req, res) {
+    const allData = req.body.data;
+    const transaction = await sequelize.transaction();
+    try {
+        let results = [];
+
+        for (const propertyData of allData) {
+            // ✅ Upsert main Housing
+            const [property, created] = await Housing.upsert(
+                {
+                    id: propertyData.id,
+                    Name: propertyData.Name,
+                    Neighborhood: propertyData.Neighborhood,
+                    Type: propertyData.Type,
+                    MaxOccupancy: propertyData.MaxOccupancy,
+                    NumBedrooms: propertyData.NumBedrooms,
+                    Pool: propertyData.Pool,
+                    Distance: propertyData.Distance,
+                    ImageURL: propertyData.ImageURL,
+                    WebsiteURL: propertyData.WebsiteURL,
+                    ManagerName: propertyData.ManagerName,
+                    ManagerEmail: propertyData.ManagerEmail,
+                    ManagerMobile: propertyData.ManagerMobile,
+                    Description: propertyData.Description,
+                    OwnerID: propertyData.OwnerID,
+                    location: propertyData.location,
+                    OwnerName: propertyData.OwnerName,
+                    OwnerEmail: propertyData.OwnerEmail,
+                    OwnerMobile: propertyData.OwnerMobile,
+                    amenities: propertyData.amenities,
+                    admin_notes: propertyData.admin_notes,
+                    google_map: propertyData.google_map,
+                    booking_notes: propertyData.booking_notes,
+                    terms_and_conditions: propertyData.terms_and_conditions,
+                    Status: propertyData.Status,
+                    bookingStatus: propertyData.bookingStatus,
+                    createdAt: propertyData.createdAt,
+                    updatedAt: propertyData.updatedAt
+                },
+                { returning: true, transaction }
+            );
+
+            // // ✅ Upsert EventHousings
+            if (propertyData.EventHousings && propertyData.EventHousings.length) {
+                for (const eh of propertyData.EventHousings) {
+                    await EventHousing.upsert(
+                        {
+                            id: eh.id,
+                            EventID: eh.EventID,
+                            HousingID: eh.HousingID,
+                            Status: eh.Status,
+                            InternalNotes: eh.InternalNotes,
+                            NightlyPrice: eh.NightlyPrice,
+                            BaseNightlyPrice: eh.BaseNightlyPrice,
+                            totalAfterTaxes: eh.totalAfterTaxes,
+                            NightlyPayoutAmount: eh.NightlyPayoutAmount,
+                            AvailabilityStartDate: eh.AvailabilityStartDate,
+                            AvailabilityEndDate: eh.AvailabilityEndDate,
+                            ServiceFee: eh.ServiceFee,
+                            MexicanVAT: eh.MexicanVAT,
+                            AccommodationTax: eh.AccommodationTax,
+                            OndalindaFee: eh.OndalindaFee,
+                            TotalOndalindaFeeAmount: eh.TotalOndalindaFeeAmount,
+                            TotalStripeFeeAmount: eh.TotalStripeFeeAmount,
+                            stripe_fee: eh.stripe_fee,
+                            OwnerAmount: eh.OwnerAmount,
+                            ticket_stripe_fee_percentage: eh.ticket_stripe_fee_percentage,
+                            ticket_bank_fee_percentage: eh.ticket_bank_fee_percentage,
+                            ticket_processing_fee_percentage: eh.ticket_processing_fee_percentage,
+                            ServiceFeeAmount: eh.ServiceFeeAmount,
+                            MexicanVATAmount: eh.MexicanVATAmount,
+                            AccommodationTaxAmount: eh.AccommodationTaxAmount,
+                            OndalindaFeeAmount: eh.OndalindaFeeAmount,
+                            stripe_fee_amount: eh.stripe_fee_amount,
+                            ticket_bank_fee_amount: eh.ticket_bank_fee_amount,
+                            ticket_processing_fee_amount: eh.ticket_processing_fee_amount,
+                            ticket_stripe_fee_amount: eh.ticket_stripe_fee_amount,
+                            isBooked: eh.isBooked,
+                            isDateExtensionRequestedSent: eh.isDateExtensionRequestedSent,
+                            extensionCheckInDate: eh.extensionCheckInDate,
+                            extensionCheckOutDate: eh.extensionCheckOutDate,
+                            extensionRequestedBy: eh.extensionRequestedBy,
+                            extensionRequestedAt: eh.extensionRequestedAt,
+                            createdAt: eh.createdAt,
+                            updatedAt: eh.updatedAt
+                        },
+                        { transaction }
+                    );
+                }
+            }
+
+            // // ✅ Upsert Housing Beds
+            if (propertyData.Housings && propertyData.Housings.length) {
+                for (const h of propertyData.Housings) {
+                    await HousingBedrooms.upsert(
+                        {
+                            id: h.id,
+                            HousingID: h.HousingID,
+                            bedroom_number: h.bedroom_number,
+                            bed_number: h.bed_number,
+                            bed_type: h.bed_type,
+                            status: h.status,
+                            createdAt: h.createdAt,
+                            updatedAt: h.updatedAt
+                        },
+                        { transaction }
+                    );
+                }
+            }
+
+            results.push({
+                id: propertyData.id,
+                message: created ? "Inserted new property" : "Updated property"
+            });
+        }
+
+        await transaction.commit();
+
+        return res.send({
+            success: true,
+            message: "Properties synced successfully",
+            results
+        });
+    } catch (error) {
+        await transaction.rollback();
+        console.error("Sync error:", error);
+        return res.send({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
 // view all housing - new (07-03-2025 kamal) 
 export async function View_HousingNew(req) {
     try {
