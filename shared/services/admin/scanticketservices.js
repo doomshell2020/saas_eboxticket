@@ -290,6 +290,12 @@ export async function scanTicket(
 
 export async function scanTicketV3(req, res) {
   const { user_id, order_id, ticketdetail_id, tickettype, scannerId } = req.body;
+  console.log('>>>>>>>>>', req.body);
+
+  return res.json({
+    success: false,
+    message: req.body,
+  });
 
   try {
 
@@ -308,7 +314,6 @@ export async function scanTicketV3(req, res) {
       optionsdate
     ).format(nowdate);
 
-    // console.log('>>>>>>>>>',req.body);    
 
     // Check if the user is suspended
     const userCheck = await User.findOne({
