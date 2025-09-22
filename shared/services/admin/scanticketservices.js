@@ -335,8 +335,6 @@ export async function scanTicketV3(req, res) {
       });
     }
 
-
-
     const membershipTypeData = await MembershipType.findAll({
       attributes: ["id", "title", "sub_title"],
     });
@@ -368,10 +366,7 @@ export async function scanTicketV3(req, res) {
       "PRESS/DJS": "#FF6F61",
     };
 
-    let tick_details,
-      ticketusedemail,
-      ticketname,
-      ticketBackground,
+    let tick_details, ticketusedemail, ticketname,   ticketBackground,
       response = {};
 
     if (["CORE", "COMP", "STAFF", "PRESS/DJS"].includes(tickettype)) {
