@@ -20,8 +20,10 @@ const handler = async (req, res) => {
       const { method, query } = req;
       switch (method) {
         case "POST": {
+
+          console.log('>>>>>>>>>>>>>>>>>>>>>>>', req.body);
+
           if (req.body.key == "dashboardData") {
-            // console.log("req.body", req.body)
             const dashboard_data = await getTicketsSoldPerDayByEventId(req.body);
             res.json(dashboard_data);
             break;
