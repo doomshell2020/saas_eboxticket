@@ -7,7 +7,8 @@ import {
   AddonBook,
   Event,
   Currency,
-} from "@/database/models";
+  TransportationCart,
+} from "../../../../database/models";
 import { Op } from "sequelize";
 import moment from "moment-timezone";
 
@@ -1311,3 +1312,132 @@ export async function getCartByUserIdTest(userId, event_id) {
   }
 }
 
+
+
+
+
+// New Functionality add to cart for only transportation-cart - (25-08-2025)
+export async function addToCarTransportationPass({
+  userId,
+  eventId,
+  ticketId,
+  ticket_type,
+  symbol,
+}) {
+  try {
+    // ✅ Only addons are allowed
+    if (ticket_type !== "addon") {
+      return { action: "failed", message: "Only addons are allowed in cart" };
+    }
+    // ✅ Count purchased tickets (own tickets, not transferred away)
+    const totalOwnTickets = await BookTicket.count({
+      where: {
+        cust_id: userId,
+        transfer_user_id: null,
+        event_id: eventId,
+      },
+    });
+    // ✅ Count tickets transferred TO this user
+    const totalTransferredTickets = await BookTicket.count({
+      where: {
+        transfer_user_id: userId,
+        event_id: eventId,
+      },
+    });
+    // ✅ Total tickets user currently holds (own + transferred)
+    const totalTickets = totalOwnTickets + totalTransferredTickets;
+    // console.log('>>>>>>>>>>>>>>',totalTickets);
+    if (totalTickets <= 0) {
+      return {
+        action: "failed",
+        success: false,
+        message: "You must have at least 1 ticket to purchased transportation pass",
+      };
+    }
+    // ✅ Check existing addon in cart
+    const whereCondition = {
+      user_id: userId,
+      event_id: eventId,
+      ticket_type: "addon",
+      addons_id: ticketId,
+    };
+    const existCart = await TransportationCart.findOne({ where: whereCondition });
+    // 🔽 Decrease addon
+    if (symbol === "-") {
+      if (existCart) {
+        const newCount = existCart.no_tickets - 1;
+
+        if (newCount <= 0) {
+          await existCart.destroy();
+          return { action: "delete", message: "Addon removed from cart" };
+        } else {
+          await existCart.update({ no_tickets: newCount });
+          return {
+            action: "decreased",
+            message: "Addon quantity decreased in cart",
+          };
+        }
+      } else {
+        return { action: "none", message: "Addon not found in cart" };
+      }
+    }
+
+    // 🔼 Increase addon
+    if (symbol === "+") {
+      if (existCart) {
+        await existCart.update({
+          no_tickets: existCart.no_tickets + 1,
+        });
+        return { action: "added", message: "Addon quantity increased in cart" };
+      } else {
+        await TransportationCart.create({
+          user_id: userId,
+          event_id: eventId,
+          ticket_type: "addon",
+          addons_id: ticketId,
+          no_tickets: 1,
+        });
+        return { action: "added", message: "Addon added to cart successfully" };
+      }
+    }
+
+    return { action: "none", message: "No action performed" };
+  } catch (error) {
+    console.error("Error adding to cart:", error.message);
+    throw new Error("Error adding to cart");
+  }
+}
+
+
+// new Api get cart only for addons transportation - pass
+export async function getCartByUserIdTransportationPass(userId) {
+  try {
+    const cartData = await TransportationCart.findAll({
+      where: {
+        user_id: userId,
+      },
+      include: [
+        {
+          model: Event,
+          attributes: ["Name", "ImageURL", "StartDate", "EndDate"], // Fields from Addons
+          required: false, // Ensure the join still works if no addon is present
+          include: [
+            {
+              model: Currency,
+              attributes: ["Currency", "Currency_symbol"],
+            },
+          ],
+        },
+        {
+          model: Addons,
+          attributes: ["name", "price", "count"],
+          required: true,
+        },
+      ],
+    });
+    return cartData;
+  } catch (error) {
+    console.error("Error fetching cart data:", error);
+    throw new Error("Failed to retrieve cart data");
+  }
+}
