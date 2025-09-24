@@ -1,6 +1,6 @@
 // pages/api/create-payment-intent.
 import Stripe from "stripe";
-import { createPaymentIndentation } from "@/shared/services/v3/front/create_payment_intent";
+import { createPaymentIndentation,createNewPaymentIndentation } from "@/shared/services/v3/front/create_payment_intent";
 import { checkApiKey } from '@/middleware/checkApiKey';
 
 // const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -12,7 +12,7 @@ const handler = async (req, res) => {
 
       if (method == "POST") {
         try {
-          const response = await createPaymentIndentation(req, res);
+          const response = await createNewPaymentIndentation(req, res);
         } catch (error) {
           res.status(500).json({ success: false,error: error.message });
         }
