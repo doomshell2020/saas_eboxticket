@@ -393,6 +393,7 @@ export async function createOrderV2(req, res) {
       where: { id: orderId },
       attributes: [
         "id",
+        "OriginalTrxnIdentifier",
         "RRN",
         "total_amount",
         "total_tax_amount",
