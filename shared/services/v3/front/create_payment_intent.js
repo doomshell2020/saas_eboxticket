@@ -149,6 +149,7 @@ export async function createNewPaymentIndentation(req, res) {
     propertyDetailsObj,
   } = req.body;
 
+
   try {
     const user = await User.findOne({ where: { id: userId } });
     if (!user) {
@@ -224,8 +225,8 @@ export async function createNewPaymentIndentation(req, res) {
     let totalAddon = 0;
 
     cartData.forEach(({ ticket_type, no_tickets }) => {
-      if (ticket_type === "ticket") totalTicket += no_tickets || 0;
-      else if (ticket_type === "addon") totalAddon += no_tickets || 0;
+      if (ticket_type == "ticket") totalTicket += no_tickets || 0;
+      else if (ticket_type == "addon") totalAddon += no_tickets || 0;
     });
 
     // --- Create Payment record ---

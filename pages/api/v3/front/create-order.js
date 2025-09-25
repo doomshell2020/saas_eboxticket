@@ -25,6 +25,9 @@ export default async function handler(req, res) {
       // Extract necessary fields from the request body
       const { key, paymentIntentId, eventId, userId, propertyDetailsObj, totalTax, finalPrice, selectedPaymentOption, paymentBreakDown, isExtension } = req.body;
 
+      // return req.body;
+      // return res.json(req.body);
+
       let parsedPropertyDetails = null;
       parsedPropertyDetails = typeof propertyDetailsObj == 'string'
         ? JSON.parse(propertyDetailsObj)

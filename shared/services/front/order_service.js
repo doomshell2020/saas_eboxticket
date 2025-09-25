@@ -43,9 +43,6 @@ import {
 import fs from "fs";
 import path from "path";
 import util from "util";
-// import { generateToken } from "../../../utils/tokenGenerator";
-// import { sendOrderEmail } from "../../../utils/email-templates";
-// import { sendEmails } from "../../../utils/email";
 import moment from "moment";
 import { get } from "lodash";
 let encryptionKey = process.env.DATA_ENCODE_SECRET_KEY;
@@ -208,6 +205,7 @@ export async function createOrderV2(req, res) {
     // Update paymentInfo status to succeeded
     const paymentData = await Payment.findOne({
       where: { payment_intent: paymentIntentId },
+      attributes: { exclude: ["order_items", "fee_details_json"] }, // exclude these fields
     });
 
     if (paymentData) {
@@ -232,24 +230,6 @@ export async function createOrderV2(req, res) {
       clientsecret = null
     } = paymentData || {};
 
-    // Define the lookup condition once
-    const invitationWhereClause = { UserID: userId, EventID: eventId };
-    let invitation = await InvitationEvent.findOne({ where: invitationWhereClause });
-    if (invitation) {
-      // Update both fields in one query
-      await InvitationEvent.update(
-        { Status: 2 },
-        { where: { id: invitation.id } }
-      );
-    } else {
-      // Create a new invitation
-      invitation = await InvitationEvent.create({
-        UserID: userId,
-        EventID: eventId,
-        Status: 2
-      });
-    }
-
     const userInfo = await User.findOne({
       where: { id: userId },
       attributes: ["PhoneNumber", "LastName", "FirstName", "Email", "ID"],
@@ -262,10 +242,10 @@ export async function createOrderV2(req, res) {
 
     // Calculate totals from cartData
     for (const cartItem of cartData) {
-      if (cartItem.ticketType === "ticket") {
+      if (cartItem.ticketType == "ticket") {
         totalTicketCount += cartItem.noTickets;
         totalActualAmount += cartItem.price * cartItem.noTickets;
-      } else if (cartItem.ticketType === "addon") {
+      } else if (cartItem.ticketType == "addon") {
         totalAddonCount += cartItem.noTickets;
         totalActualAmount += cartItem.price * cartItem.noTickets;
       }
@@ -313,9 +293,6 @@ export async function createOrderV2(req, res) {
     const cartItemIdsToDelete = []; // Collect IDs for bulk delete
 
     for (const cartItem of cartData) {
-      // if (cartItem.ticketType === "addon") {          // new functionality 08-04-2025
-      //   is_buy_addons_ids.push(cartItem.ticketId);     // new functionality 08-04-2025
-      // }
 
       if (cartItem.ticketType == "ticket" && cartItem.ticketId) {
         const ticketPrice = cartItem.price || 0;
@@ -356,7 +333,7 @@ export async function createOrderV2(req, res) {
 
           cartItemIdsToDelete.push(cartItem.cartId); // Collect cart item ID for deletion
         }
-      } else if (cartItem.ticketType === "addon" && cartItem.ticketId) {
+      } else if (cartItem.ticketType == "addon" && cartItem.ticketId) {
         const addonPrice = cartItem.price || 0;
         const addonCount = cartItem.noTickets || 0;
 
@@ -411,19 +388,61 @@ export async function createOrderV2(req, res) {
       actualamount: totalActualAmount,
     };
 
-    const isEmailSend = sendOrderEmailToUserV2(userInfo, orderObject, cartData, userId);
+
+    const totalOrders = await MyOrders.findAll({
+      where: { id: orderId },
+      attributes: [
+        "id",
+        "RRN",
+        "total_amount",
+        "total_tax_amount",
+        "discountAmount",
+        "discountType",
+        "couponCode",
+        "is_free",
+        "adminfee",
+        "createdAt",
+        "totalAddonAmount",
+        "totalAddonTax",
+        "totalTicketAmount",
+        "totalTicketTax",
+        "totalAccommodationAmount",
+        "totalAccommodationTax",
+      ],
+      include: [
+        { model: User, attributes: ["ID", "FirstName", "LastName", "Email"] },
+        {
+          model: BookTicket,
+          attributes: ["id", "event_ticket_id", "amount"],
+          include: [
+            { model: EventTicketType, attributes: ["id", "title"] },
+            { model: TicketDetail, attributes: ["id", "ticket_num", "qrcode"] },
+          ],
+          required: false,
+        },
+        {
+          model: AddonBook,
+          include: [{ model: Addons, attributes: ["id", "name"] }],
+          attributes: ["id", "price", "addon_qrcode"],
+          required: false,
+        },
+
+      ],
+      order: [["id", "DESC"]],
+    });
+
     return {
       success: true,
       status: 200,
-      data: orderId,
       message: "Payment details updated successfully.",
+      data: { totalOrders, paymentData },
     };
   } catch (error) {
     console.error("Error createOrderV2 Function Order:", error);
     return {
       success: false,
-      status: 404,
       message: `Error createOrderV2 Function Order: ${error.message}`,
+      status: 404,
     };
   }
 }
@@ -440,14 +459,10 @@ export async function createOrderForAccommodation(req, res) {
     adminFees,
     donationFees,
     propertyDetailsObj,
-    // paymentBreakDown,
     totalTax,
     finalPrice,
     selectedPaymentOption
   } = req.body;
-
-  // console.log('>>>>>>>>>>>>>',req.body);
-  // return false
 
 
   const parsedPropertyDetails = typeof propertyDetailsObj == 'string'
@@ -464,7 +479,10 @@ export async function createOrderForAccommodation(req, res) {
     const adminFee = adminFees ?? 0;
     const donationFee = donationFees ?? 0;
     // Update paymentInfo status to succeeded
-    let paymentData = await Payment.findOne({ where: { payment_intent: req.body.paymentIntentId } });
+    let paymentData = await Payment.findOne({
+      where: { payment_intent: req.body.paymentIntentId },
+      attributes: { exclude: ["order_items", "fee_details_json"] }, // exclude these fields
+    });
 
     if (paymentData) {
       await paymentData.update({ paymentstatus: "succeeded" });
@@ -483,8 +501,6 @@ export async function createOrderForAccommodation(req, res) {
         } else if (cartItem.ticketType == "addon") {
           totalAddonCount += cartItem.noTickets || 0;
         }
-        // Optional: Add actual amount calculation if needed
-        // totalActualAmount += (cartItem.price || 0) * (cartItem.noTickets || 0);
       }
     }
 
@@ -530,74 +546,6 @@ export async function createOrderForAccommodation(req, res) {
     const halfAccommodation = (totalAccommodationAmount && totalAccommodationTax)
       ? (totalAccommodationAmount / 2)
       : 0;
-
-    // Handle invitation event status and expiration update
-    const invitationWhereClause = { UserID: userId, EventID: eventId };
-    // Try to find an existing invitation
-    let invitation = await InvitationEvent.findOne({ where: invitationWhereClause });
-
-    if (invitation) {
-
-      if (invitation.EligibleHousingIDs) {
-        const extractIds = invitation.EligibleHousingIDs
-          .split(',')
-          .map(id => parseInt(id.trim(), 10))
-          .filter(id => !isNaN(id));
-        // release all property accept those booked 
-        const [updatedRows] = await EventHousing.update(
-          { isBooked: 'N' },
-          {
-            where: {
-              EventID: eventId,
-              HousingID: {
-                [Op.in]: extractIds
-              }
-            }
-          }
-        );
-      }
-      // Update both fields in one query
-      const updatedStatus = totalTicketCount > 0 ? 2 : 1;
-      await InvitationEvent.update(
-        {
-          // Status: updatedStatus,
-          Status: 2,
-          expire_status: 'purchased',
-          accommodation_status: "Booked",
-          EligibleHousingIDs: null,
-        },
-        {
-          where: { id: invitation.id }
-        }
-      );
-
-    } else {
-      // Determine status based on totalTicketCount
-      const updatedStatus = totalTicketCount > 0 ? 2 : 1;
-      // Create a new invitation
-      invitation = await InvitationEvent.create({
-        UserID: userId,
-        EventID: eventId,
-        Status: updatedStatus,
-        accommodation_status: "Booked",
-        expire_status: 'purchased',
-        EligibleHousingIDs: null,
-      });
-
-    }
-
-    // Update housing booking status if property ID is available
-    if (parsedPropertyDetails?.propertyId) {
-      await EventHousing.update(
-        { isBooked: "Y" },
-        {
-          where: {
-            EventID: eventId,
-            HousingID: parsedPropertyDetails.propertyId
-          }
-        }
-      );
-    }
 
     const userInfo = await User.findOne({
       where: { id: userId },
@@ -723,7 +671,7 @@ export async function createOrderForAccommodation(req, res) {
     if (cartData) {
       for (const cartItem of cartData) {
 
-        if (cartItem.ticketType === "ticket" && cartItem.ticketId) {
+        if (cartItem.ticketType == "ticket" && cartItem.ticketId) {
           const ticketPrice = cartItem.price || 0;
           const ticketCount = cartItem.noTickets || 0;
 
@@ -802,7 +750,6 @@ export async function createOrderForAccommodation(req, res) {
       });
     }
 
-    // Send email to the user after order creation
     const orderObject = {
       order_id: orderId,
       user_id: userId,
@@ -837,14 +784,64 @@ export async function createOrderForAccommodation(req, res) {
       accommodationPerDaysPropertyOwnerAmount
     };
 
-    const isEmailSend = sendOrderEmailWithAccommodation(userInfo, orderObject, cartData, parsedPropertyDetails, userId);
+    const totalOrders = await MyOrders.findAll({
+      where: { id: orderId },
+      attributes: [
+        "id",
+        "RRN",
+        "total_amount",
+        "total_tax_amount",
+        "discountAmount",
+        "discountType",
+        "couponCode",
+        "is_free",
+        "adminfee",
+        "createdAt",
+        "totalAddonAmount",
+        "totalAddonTax",
+        "totalTicketAmount",
+        "totalTicketTax",
+        "totalAccommodationAmount",
+        "totalAccommodationTax",
+      ],
+      include: [
+        { model: User, attributes: ["ID", "FirstName", "LastName", "Email"] },
+        {
+          model: BookTicket,
+          attributes: ["id", "event_ticket_id", "amount"],
+          include: [
+            { model: EventTicketType, attributes: ["id", "title"] },
+            { model: TicketDetail, attributes: ["id", "ticket_num", "qrcode"] },
+          ],
+          required: false,
+        },
+        {
+          model: AddonBook,
+          include: [{ model: Addons, attributes: ["id", "name"] }],
+          attributes: ["id", "price", "addon_qrcode"],
+          required: false,
+        },
+        {
+          model: BookAccommodationInfo,
+          include: [{
+            model: Housing,
+            attributes: ['Name', 'Neighborhood'],
+            include: { model: HousingNeighborhood, attributes: ['name'] }
+          }],
+          attributes: ["id", "accommodation_id", 'created_at', "check_in_date", "check_out_date", "guests_count", "no_of_bedrooms", "total_night_stay", "total_amount", "payment_status", "qr_code_image"],
+          required: false,
+        },
+      ],
+      order: [["id", "DESC"]],
+    });
 
     return {
       success: true,
       status: 200,
-      data: orderId,
       message: "Payment details updated successfully.",
+      data: { totalOrders, paymentData },
     };
+
   } catch (error) {
     console.error("Error Order Creating createOrderForAccommodation :", error);
 
