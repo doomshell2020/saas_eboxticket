@@ -389,7 +389,7 @@ export async function createOrderV2(req, res) {
     };
 
 
-    const totalOrders = await MyOrders.findAll({
+    const totalOrders = await MyOrders.findOne({
       where: { id: orderId },
       attributes: [
         "id",
@@ -415,14 +415,22 @@ export async function createOrderV2(req, res) {
           model: BookTicket,
           attributes: ["id", "event_ticket_id", "amount"],
           include: [
-            { model: EventTicketType, attributes: ["id", "title"] },
+            { model: EventTicketType, attributes: ["id", "title","ticket_image"] },
             { model: TicketDetail, attributes: ["id", "ticket_num", "qrcode"] },
           ],
           required: false,
         },
         {
           model: AddonBook,
-          include: [{ model: Addons, attributes: ["id", "name"] }],
+          include: [{ model: Addons, attributes: ["id",
+          "name",
+          "addon_location",
+          "addon_time",
+          "addon_day",
+          "addon_image",
+          "sortName",
+          "sort_day",
+          "addon_type"] }],
           attributes: ["id", "price", "addon_qrcode"],
           required: false,
         },
