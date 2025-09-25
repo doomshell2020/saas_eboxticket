@@ -16,6 +16,7 @@ import {
   InvitationEvent,
   Emailtemplet,
   AccommodationBookingInfo,
+  BookAccommodationInfo,
   AccommodationExtension,
   HousingNeighborhood,
   HousingTypes,
@@ -177,6 +178,8 @@ export async function updateDueAmount(req, res) {
     return res.status(500).json({ status: false, message: "Internal Server Error: " + error.message });
   }
 }
+
+
 
 // Main function to create an order without using transactions
 export async function createOrderV2(req, res) {
@@ -502,7 +505,7 @@ export async function createOrderForAccommodation(req, res) {
   const {
     paymentIntentId,
     eventId,
-    cartData,
+    cartData = [],
     couponDetails,
     userId,
     amount,
@@ -514,48 +517,79 @@ export async function createOrderForAccommodation(req, res) {
     selectedPaymentOption
   } = req.body;
 
-
   const parsedPropertyDetails = typeof propertyDetailsObj == 'string'
     ? JSON.parse(propertyDetailsObj)
     : propertyDetailsObj;
 
   try {
-    // const totalCartAmt = amount / 100;
+    // check if order already exists (avoid duplicate orders)
+    const existingOrder = await Order.findOne({ where: { RRN: paymentIntentId } });
+    if (existingOrder) {
+      const paymentData = await Payment.findOne({
+        where: { payment_intent: paymentIntentId },
+        attributes: { exclude: ["order_items", "fee_details_json"] },
+      });
+
+      const totalOrders = await MyOrders.findOne({
+        where: { id: existingOrder.id },
+        attributes: [
+          "id", "OriginalTrxnIdentifier", "RRN", "total_amount", "total_tax_amount",
+          "discountAmount", "discountType", "couponCode", "is_free", "adminfee", "createdAt",
+          "totalAddonAmount", "totalAddonTax", "totalTicketAmount", "totalTicketTax",
+          "totalAccommodationAmount", "totalAccommodationTax", "book_accommodation_id"
+        ],
+        include: [
+          { model: User, attributes: ["ID", "FirstName", "LastName", "Email"] },
+          {
+            model: BookTicket,
+            attributes: ["id", "event_ticket_id", "amount"],
+            include: [
+              { model: EventTicketType, attributes: ["id", "title", "ticket_image"] },
+              { model: TicketDetail, attributes: ["id", "ticket_num", "qrcode"] },
+            ],
+            required: false,
+          },
+          {
+            model: AddonBook,
+            include: [{ model: Addons, attributes: ["id", "name", "addon_location", "addon_time", "addon_day", "addon_image", "sortName", "sort_day", "addon_type"] }],
+            attributes: ["id", "price", "addon_qrcode"],
+            required: false,
+          },
+          {
+            model: BookAccommodationInfo,
+            include: [{ model: Housing, attributes: ['Name', 'Neighborhood'], include: { model: HousingNeighborhood, attributes: ['name'] } }],
+            attributes: ["id", "accommodation_id", "created_at", "check_in_date", "check_out_date", "guests_count", "no_of_bedrooms", "total_night_stay", "total_amount", "payment_status", "qr_code_image"],
+            required: false,
+          }
+        ],
+        order: [["id", "DESC"]],
+      });
+
+      return {
+        success: true,
+        status: 200,
+        message: "Order already exists.",
+        data: { totalOrders, paymentData },
+      };
+    }
+
     const totalCartAmt = amount || 0;
     const discount_type = couponDetails?.discount_type || null;
     const discount_value = couponDetails?.discount_value || 0;
     const discount_amount = couponDetails?.discount_amount || 0;
     const code = couponDetails?.coupon_code || null;
     const adminFee = adminFees ?? 0;
-    const donationFee = donationFees ?? 0;
-    // Update paymentInfo status to succeeded
-    let paymentData = await Payment.findOne({
-      where: { payment_intent: req.body.paymentIntentId },
-      attributes: { exclude: ["order_items", "fee_details_json"] }, // exclude these fields
-    });
 
+    // update payment info
+    let paymentData = await Payment.findOne({
+      where: { payment_intent: paymentIntentId },
+      attributes: { exclude: ["order_items", "fee_details_json"] },
+    });
     if (paymentData) {
       await paymentData.update({ paymentstatus: "succeeded" });
     }
 
-    // Initialize totals
-    let totalTicketCount = 0;
-    let totalAddonCount = 0;
-    let totalActualAmount = 0;
-
-    // Safe check: Make sure cartData is an array
-    if (Array.isArray(cartData) && cartData.length > 0) {
-      for (const cartItem of cartData) {
-        if (cartItem.ticketType == "ticket") {
-          totalTicketCount += cartItem.noTickets || 0;
-        } else if (cartItem.ticketType == "addon") {
-          totalAddonCount += cartItem.noTickets || 0;
-        }
-      }
-    }
-
-    totalActualAmount = totalCartAmt;
-
+    // extract needed values
     const {
       totalAccommodationAmount = 0,
       totalAccommodationTax = 0,
@@ -574,12 +608,10 @@ export async function createOrderForAccommodation(req, res) {
       totalTicketTax = 0,
       clientsecret = null,
       accommodationAmount = 0,
-      paymentOption,
       accommodation_nightlyRate = 0,
       accommodation_basePriceHousing = 0,
       total_night_stay = 0,
-      id: paymentId, // yahan se paymentData.id ka value paymentId mein store hoga
-
+      id: paymentId,
       accommodationBankFee = 0,
       accommodationProcessingFee = 0,
       accommodationStripeFee = 0,
@@ -593,17 +625,14 @@ export async function createOrderForAccommodation(req, res) {
       accommodationOndalindaPerDaysTotalAfterTaxes = 0,
     } = paymentData || {};
 
-    const halfAccommodation = (totalAccommodationAmount && totalAccommodationTax)
-      ? (totalAccommodationAmount / 2)
-      : 0;
+    const halfAccommodation = totalAccommodationAmount ? totalAccommodationAmount / 2 : 0;
 
     const userInfo = await User.findOne({
       where: { id: userId },
       attributes: ["PhoneNumber", "LastName", "FirstName", "Email", "ID"],
     });
 
-
-    // Create order
+    // create order
     const orderResponse = await Order.create({
       user_id: userId,
       Approved: "succeeded",
@@ -616,39 +645,32 @@ export async function createOrderForAccommodation(req, res) {
       discountValue: discount_value,
       discountAmount: discount_amount,
       couponCode: code,
-      totalCartAmount: totalCartAmount,
+      totalCartAmount,
       discountType: discount_type,
       paymentOption: selectedPaymentOption,
       total_tax_amount: totalTax,
       actualamount: totalCartAmt,
-      total_due_amount: selectedPaymentOption == 'partial' ? halfAccommodation : null,
+      total_due_amount: selectedPaymentOption === 'partial' ? halfAccommodation : null,
       RRN: paymentIntentId,
-      OrderIdentifier: paymentData?.clientsecret || null,
+      OrderIdentifier: clientsecret,
       book_accommodation_id: parsedPropertyDetails?.propertyId || null,
-      // accommodation_name: parsedPropertyDetails?.propertyId || null,
-
       accommodation_nightlyRate,
       accommodation_basePriceHousing,
       total_night_stay,
-
       totalAccommodationAmount,
       totalAccommodationTax,
-
       totalAddonAmount,
       totalAddonTax,
       totalTicketAmount,
       totalTicketTax,
-
       ticketBankFee,
       ticketPlatformFee,
       ticketProcessingFee,
       ticketStripeFee,
-
       ticket_platform_fee_percentage,
       ticket_stripe_fee_percentage,
       ticket_bank_fee_percentage,
       ticket_processing_fee_percentage,
-
       accommodationBankFee,
       accommodationProcessingFee,
       accommodationStripeFee,
@@ -662,34 +684,32 @@ export async function createOrderForAccommodation(req, res) {
       accommodationOndalindaPerDaysTotalAfterTaxes
     });
 
-
-    // Generate the transaction identifier
+    // transaction identifier
     const orderId = orderResponse.id;
     const trxnIde = `M-${userId}-${orderId}`;
     await orderResponse.update({ OriginalTrxnIdentifier: trxnIde });
-    const cartItemIdsToDelete = []; // Collect IDs for bulk delete
 
-    const safePaymentId = paymentData?.id || 0;
-    let accomadationBook = null;
+    const cartItemIdsToDelete = [];
+
+    // accommodation booking
+    let accommodationBook = null;
     if (parsedPropertyDetails?.propertyId) {
-      // set here AccommodationBookingInfo data set 
-      accomadationBook = await AccommodationBookingInfo.create({
+      accommodationBook = await AccommodationBookingInfo.create({
         user_id: userId,
         event_id: eventId,
         transaction_id: paymentIntentId,
         order_id: orderId,
-        payment_id: safePaymentId || 0,
+        payment_id: paymentId || 0,
         first_name: userInfo?.FirstName || '',
         last_name: userInfo?.LastName || '',
         email: userInfo?.Email || '',
         accommodation_id: parsedPropertyDetails?.propertyId,
-        // accommodation_name: parsedPropertyDetails?.accommodation_name || '',
         total_night_stay: parsedPropertyDetails?.totalNight || 0,
         check_in_date: parsedPropertyDetails?.arrivalDate,
         check_out_date: parsedPropertyDetails?.departureDate,
         guests_count: parsedPropertyDetails?.guest_count || 1,
         no_of_bedrooms: parsedPropertyDetails?.no_of_bedrooms || 1,
-        status: 'Y', // assuming active
+        status: 'Y',
         total_amount: accommodationAmount || 0,
         paid_amount: parsedPropertyDetails?.paid_amount || 0,
         payment_status: selectedPaymentOption || 'full',
@@ -697,12 +717,8 @@ export async function createOrderForAccommodation(req, res) {
         qr_code_image: parsedPropertyDetails?.qr_code_image || null,
       });
 
-      // update accommodationInfoId 
-      await orderResponse.update({
-        accommodation_bookings_info_id: accomadationBook?.id || null,
-      });
+      await orderResponse.update({ accommodation_bookings_info_id: accommodationBook?.id || null });
 
-      // After booking creation
       const qrResponse = await generateAccommodationQrToS3({
         user_id: userId,
         event_id: eventId,
@@ -711,148 +727,86 @@ export async function createOrderForAccommodation(req, res) {
         check_out_date: parsedPropertyDetails?.departureDate,
         order_id: orderId,
       });
-
       if (qrResponse.success) {
-        await accomadationBook.update({ qr_code_image: qrResponse.filePath });
+        await accommodationBook.update({ qr_code_image: qrResponse.filePath });
       }
     }
 
-    // Loop through the cartData and handle ticket and addon bookings
-    if (cartData) {
-      for (const cartItem of cartData) {
+    // handle cart items (tickets & addons)
+    for (const cartItem of cartData) {
+      if (!cartItem.ticketId) continue;
 
-        if (cartItem.ticketType == "ticket" && cartItem.ticketId) {
-          const ticketPrice = cartItem.price || 0;
-          const ticketCount = cartItem.noTickets || 0;
+      if (cartItem.ticketType == "ticket") {
+        for (let i = 0; i < (cartItem.noTickets || 0); i++) {
+          const ticketBook = await BookTicket.create({
+            order_id: orderId,
+            event_id: eventId,
+            event_ticket_id: cartItem.ticketId,
+            cust_id: userId,
+            ticket_buy: 1,
+            amount: cartItem.price || 0,
+            mobile: userInfo.PhoneNumber,
+            adminfee: adminFee,
+          });
 
-          for (let index = 1; index <= ticketCount; index++) {
-            const ticketBook = await BookTicket.create({
-              order_id: orderId,
-              event_id: eventId,
-              event_ticket_id: cartItem.ticketId,
-              cust_id: userId,
-              ticket_buy: 1,
-              amount: ticketPrice,
-              mobile: userInfo.PhoneNumber,
-              adminfee: adminFee,
-              // is_buy_addons_ids: addonIdsString,  // new functionality 08-04-2025
-            });
+          const ticketDetail = await TicketDetail.create({
+            tid: ticketBook.id,
+            ticket_num: `T${ticketBook.id}`,
+            generated_id: `T${ticketBook.id}`,
+            user_id: userId,
+            status: "0",
+          });
 
-            const ticketId = ticketBook.id;
-            const ticketNum = `T${ticketId}`;
-            const ticketDetail = await TicketDetail.create({
-              tid: ticketId,
-              ticket_num: `T${ticketId}`,
-              generated_id: ticketNum,
-              user_id: userId,
-              status: "0",
-            });
-
-            const qrCodeImage = await generateTicketQrToS3({
-              userId,
-              orderId,
-              ticketId: ticketDetail.id,
-              ticketType: "ticket",
-            });
-
-
-            if (qrCodeImage.success) {
-              await ticketDetail.update({ qrcode: qrCodeImage.filePath });
-            }
-
-            cartItemIdsToDelete.push(cartItem.cartId); // Collect cart item ID for deletion
-          }
-        } else if (cartItem.ticketType === "addon" && cartItem.ticketId) {
-          const addonPrice = cartItem.price || 0;
-          const addonCount = cartItem.noTickets || 0;
-
-          for (let index = 1; index <= addonCount; index++) {
-            const addonBook = await AddonBook.create({
-              addons_id: cartItem.ticketId,
-              event_id: eventId,
-              order_id: orderId,
-              user_id: userId,
-              price: addonPrice,
-            });
-
-            const qrCodeImage = await generateTicketQrToS3({
-              userId,
-              orderId,
-              ticketId: addonBook.id,
-              ticketType: "addon",
-            });
-            if (qrCodeImage.success) {
-              await addonBook.update({ addon_qrcode: qrCodeImage.filePath });
-            }
-
-            cartItemIdsToDelete.push(cartItem.cartId); // Collect cart item ID for deletion
+          const qrCodeImage = await generateTicketQrToS3({
+            userId,
+            orderId,
+            ticketId: ticketDetail.id,
+            ticketType: "ticket",
+          });
+          if (qrCodeImage.success) {
+            await ticketDetail.update({ qrcode: qrCodeImage.filePath });
           }
         }
       }
+
+      if (cartItem.ticketType == "addon") {
+        for (let i = 0; i < (cartItem.noTickets || 0); i++) {
+          const addonBook = await AddonBook.create({
+            addons_id: cartItem.ticketId,
+            event_id: eventId,
+            order_id: orderId,
+            user_id: userId,
+            price: cartItem.price || 0,
+          });
+
+          const qrCodeImage = await generateTicketQrToS3({
+            userId,
+            orderId,
+            ticketId: addonBook.id,
+            ticketType: "addon",
+          });
+          if (qrCodeImage.success) {
+            await addonBook.update({ addon_qrcode: qrCodeImage.filePath });
+          }
+        }
+      }
+
+      cartItemIdsToDelete.push(cartItem.cartId);
     }
 
-    // Delete the cart items after processing
-    if (cartData) {
-      await CartModel.destroy({
-        where: {
-          id: cartItemIdsToDelete,
-        },
-      });
+    // delete cart
+    if (cartItemIdsToDelete.length) {
+      await CartModel.destroy({ where: { id: cartItemIdsToDelete } });
     }
 
-    const orderObject = {
-      order_id: orderId,
-      user_id: userId,
-      eventId: eventId,
-      trxnIde,
-      Approved: "succeeded",
-      TransactionType: "Online",
-      paymenttype: "Online",
-      adminfee: adminFee,
-      total_amount: totalCartAmt,
-      discountValue: discount_value,
-      couponCode: code,
-      discountType: discount_type,
-      RRN: paymentIntentId,
-      OrderIdentifier: paymentIntentId,
-      actualamount: totalActualAmount,
-      paymentOption: selectedPaymentOption,
-      event_id: eventId,
-      donationfee: 0,
-      discountAmount: discount_amount,
-      total_tax_amount: totalTax,
-      total_due_amount: halfAccommodation,
-      RRN: paymentIntentId,
-      OrderIdentifier: clientsecret || null,
-      accommodationQr: accomadationBook?.qr_code_image,
-      finalPrice,
-      accommodation_nightlyRate,
-      accommodation_basePriceHousing,
-      total_night_stay,
-      totalAccommodationAmount,
-      totalAccommodationTax,
-      accommodationPerDaysPropertyOwnerAmount
-    };
-
-    const totalOrders = await MyOrders.findAll({
+    // get final order with relations
+    const totalOrders = await MyOrders.findOne({
       where: { id: orderId },
       attributes: [
-        "id",
-        "RRN",
-        "total_amount",
-        "total_tax_amount",
-        "discountAmount",
-        "discountType",
-        "couponCode",
-        "is_free",
-        "adminfee",
-        "createdAt",
-        "totalAddonAmount",
-        "totalAddonTax",
-        "totalTicketAmount",
-        "totalTicketTax",
-        "totalAccommodationAmount",
-        "totalAccommodationTax",
+        "id", "OriginalTrxnIdentifier", "RRN", "total_amount", "total_tax_amount",
+        "discountAmount", "discountType", "couponCode", "is_free", "adminfee", "createdAt",
+        "totalAddonAmount", "totalAddonTax", "totalTicketAmount", "totalTicketTax",
+        "totalAccommodationAmount", "totalAccommodationTax", "book_accommodation_id"
       ],
       include: [
         { model: User, attributes: ["ID", "FirstName", "LastName", "Email"] },
@@ -860,27 +814,23 @@ export async function createOrderForAccommodation(req, res) {
           model: BookTicket,
           attributes: ["id", "event_ticket_id", "amount"],
           include: [
-            { model: EventTicketType, attributes: ["id", "title"] },
+            { model: EventTicketType, attributes: ["id", "title", "ticket_image"] },
             { model: TicketDetail, attributes: ["id", "ticket_num", "qrcode"] },
           ],
           required: false,
         },
         {
           model: AddonBook,
-          include: [{ model: Addons, attributes: ["id", "name"] }],
+          include: [{ model: Addons, attributes: ["id", "name", "addon_location", "addon_time", "addon_day", "addon_image", "sortName", "sort_day", "addon_type"] }],
           attributes: ["id", "price", "addon_qrcode"],
           required: false,
         },
         {
           model: BookAccommodationInfo,
-          include: [{
-            model: Housing,
-            attributes: ['Name', 'Neighborhood'],
-            include: { model: HousingNeighborhood, attributes: ['name'] }
-          }],
-          attributes: ["id", "accommodation_id", 'created_at', "check_in_date", "check_out_date", "guests_count", "no_of_bedrooms", "total_night_stay", "total_amount", "payment_status", "qr_code_image"],
+          include: [{ model: Housing, attributes: ['Name', 'Neighborhood'], include: { model: HousingNeighborhood, attributes: ['name'] } }],
+          attributes: ["id", "accommodation_id", "created_at", "check_in_date", "check_out_date", "guests_count", "no_of_bedrooms", "total_night_stay", "total_amount", "payment_status", "qr_code_image"],
           required: false,
-        },
+        }
       ],
       order: [["id", "DESC"]],
     });
@@ -893,15 +843,18 @@ export async function createOrderForAccommodation(req, res) {
     };
 
   } catch (error) {
-    console.error("Error Order Creating createOrderForAccommodation :", error);
-
+    console.error("Error Order Creating createOrderForAccommodation:", error);
     return {
       success: false,
       status: 404,
-      message: `Error Order Creating createOrderForAccommodation : ${error.message}`,
+      message: `Error Order Creating createOrderForAccommodation: ${error.message}`,
     };
   }
 }
+
+
+
+
 
 const sendOrderEmailWithAccommodation = async (userInfo, orderObj, cartData, parsedPropertyDetails, userId) => {
   console.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<----sendOrderEmailWithAccommodation----->>>>>>>>>>>>>>>>>>>>>>>>>>>")
