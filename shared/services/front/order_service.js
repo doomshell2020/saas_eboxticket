@@ -532,12 +532,12 @@ export async function createOrderForAccommodation(req, res) {
 
       const totalOrders = await MyOrders.findOne({
         where: { id: existingOrder.id },
-        attributes: [
-          "id", "OriginalTrxnIdentifier", "RRN", "total_amount", "total_tax_amount",
-          "discountAmount", "discountType", "couponCode", "is_free", "adminfee", "createdAt",
-          "totalAddonAmount", "totalAddonTax", "totalTicketAmount", "totalTicketTax",
-          "totalAccommodationAmount", "totalAccommodationTax", "book_accommodation_id"
-        ],
+        // attributes: [
+        //   "id", "OriginalTrxnIdentifier", "RRN", "total_amount", "total_tax_amount",
+        //   "discountAmount", "discountType", "couponCode", "is_free", "adminfee", "createdAt",
+        //   "totalAddonAmount", "totalAddonTax", "totalTicketAmount", "totalTicketTax",
+        //   "totalAccommodationAmount", "totalAccommodationTax", "book_accommodation_id","accommodationPerDaysPropertyOwnerAmount"
+        // ],
         include: [
           { model: User, attributes: ["ID", "FirstName", "LastName", "Email"] },
           {
@@ -802,12 +802,12 @@ export async function createOrderForAccommodation(req, res) {
     // get final order with relations
     const totalOrders = await MyOrders.findOne({
       where: { id: orderId },
-      attributes: [
-        "id", "OriginalTrxnIdentifier", "RRN", "total_amount", "total_tax_amount",
-        "discountAmount", "discountType", "couponCode", "is_free", "adminfee", "createdAt",
-        "totalAddonAmount", "totalAddonTax", "totalTicketAmount", "totalTicketTax",
-        "totalAccommodationAmount", "totalAccommodationTax", "book_accommodation_id"
-      ],
+      // attributes: [
+      //   "id", "OriginalTrxnIdentifier", "RRN", "total_amount", "total_tax_amount",
+      //   "discountAmount", "discountType", "couponCode", "is_free", "adminfee", "createdAt",
+      //   "totalAddonAmount", "totalAddonTax", "totalTicketAmount", "totalTicketTax",
+      //   "totalAccommodationAmount", "totalAccommodationTax", "book_accommodation_id"
+      // ],
       include: [
         { model: User, attributes: ["ID", "FirstName", "LastName", "Email"] },
         {
