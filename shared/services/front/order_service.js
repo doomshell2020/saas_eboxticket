@@ -650,7 +650,7 @@ export async function createOrderForAccommodation(req, res) {
       paymentOption: selectedPaymentOption,
       total_tax_amount: totalTax,
       actualamount: totalCartAmt,
-      total_due_amount: selectedPaymentOption === 'partial' ? halfAccommodation : null,
+      total_due_amount: selectedPaymentOption == 'partial' ? halfAccommodation : null,
       RRN: paymentIntentId,
       OrderIdentifier: clientsecret,
       book_accommodation_id: parsedPropertyDetails?.propertyId || null,
