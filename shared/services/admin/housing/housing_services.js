@@ -1454,7 +1454,9 @@ export async function updateHousingNewV3(id, req, res) {
             } catch (err) {
                 console.warn("Invalid JSON in bedrooms field:", err.message);
             }
-            
+
+            await HousingBedrooms.destroy({ where: { HousingID: id } });
+
             for (const bedroom of parsedBedrooms) {
                 const { bedroom_number, beds } = bedroom;
 
