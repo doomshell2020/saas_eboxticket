@@ -35,7 +35,7 @@ const handler = async (req, res) => {
                 }
                 case "PUT": {
                     const { id, action } = query;
-                    // console.log('>>>>>>>>>>>>>>',action);
+                    // console.log('>>>>>>>>>>>>>>',req.body, id, action);
                     // return true
 
                     try {

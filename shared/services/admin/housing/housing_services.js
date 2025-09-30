@@ -1437,6 +1437,65 @@ export async function add_new_housingV3(data, filename = '', res) {
     }
 }
 
+export async function updateHousingNewV3(id, req, res) {
+    try {
+        // Take data directly from body
+        const updateData = { ...req.body };
+        // Update housing details
+        await Housing.update(updateData, { where: { id } });
+        // Handle bedrooms if provided
+        if (req.body.bedrooms) {
+            let parsedBedrooms = [];
+            try {
+                parsedBedrooms =
+                    typeof req.body.bedrooms == "string"
+                        ? JSON.parse(req.body.bedrooms)
+                        : req.body.bedrooms;
+            } catch (err) {
+                console.warn("Invalid JSON in bedrooms field:", err.message);
+            }
+            
+            for (const bedroom of parsedBedrooms) {
+                const { bedroom_number, beds } = bedroom;
+
+                for (const bed of beds) {
+                    const { id: bedId, bed_number, bed_type } = bed;
+
+                    if (bedId) {
+                        // Update existing bed
+                        await HousingBedrooms.update(
+                            { bedroom_number, bed_number, bed_type },
+                            { where: { id: bedId, HousingID: id } }
+                        );
+                    } else {
+                        // Insert new bed
+                        await HousingBedrooms.create({
+                            HousingID: id,
+                            bedroom_number,
+                            bed_number,
+                            bed_type
+                        });
+                    }
+                }
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Housing updated successfully!",
+        });
+    } catch (error) {
+        console.error("Error in updateHousingNewV3:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to update housing",
+            error: error.message,
+        });
+    }
+}
+
+
+
 export async function syncAllProperty(req, res) {
     const allData = req.body.data;
     const transaction = await sequelize.transaction();
@@ -1603,9 +1662,6 @@ export async function View_HousingNew(req) {
         };
     }
 }
-
-
-
 
 // View housing for id
 export async function view_HousingByIdNew({ housing_id }, res) {
