@@ -2114,45 +2114,63 @@ export async function ticketExport(
   res
 ) {
   try {
-    const commonConditions = [];
+    const commonConditionsTicket = [];
+    const commonConditionsAddon = [];
 
     // Date Conditions
     if (startDate) {
       const formattedStartDate = moment(startDate).startOf("day").toISOString();
-      commonConditions.push({ "$Order.createdAt$": { [Op.gte]: formattedStartDate } });
+      commonConditionsTicket.push({ "$Order.createdAt$": { [Op.gte]: formattedStartDate } });
+      commonConditionsAddon.push({ "$Order.createdAt$": { [Op.gte]: formattedStartDate } });
     }
     if (endDate) {
       const formattedEndDate = moment(endDate).endOf("day").toISOString();
-      commonConditions.push({ "$Order.createdAt$": { [Op.lte]: formattedEndDate } });
+      commonConditionsTicket.push({ "$Order.createdAt$": { [Op.lte]: formattedEndDate } });
+      commonConditionsAddon.push({ "$Order.createdAt$": { [Op.lte]: formattedEndDate } });
     }
 
     // Additional Filters
     if (orderId) {
-      commonConditions.push({ "$Order.OriginalTrxnIdentifier$": { [Op.like]: `%${orderId.toUpperCase()}%` } });
+      const condition = { "$Order.OriginalTrxnIdentifier$": { [Op.like]: `%${orderId.toUpperCase()}%` } };
+      commonConditionsTicket.push(condition);
+      commonConditionsAddon.push(condition);
     }
     if (email) {
-      commonConditions.push({ "$User.Email$": { [Op.like]: `%${email.toUpperCase()}%` } });
+      const condition = { "$User.Email$": { [Op.like]: `%${email.toUpperCase()}%` } };
+      commonConditionsTicket.push(condition);
+      commonConditionsAddon.push(condition);
     }
     if (mobile) {
-      commonConditions.push({ "$User.PhoneNumber$": { [Op.like]: `%${mobile.toUpperCase()}%` } });
+      const condition = { "$User.PhoneNumber$": { [Op.like]: `%${mobile.toUpperCase()}%` } };
+      commonConditionsTicket.push(condition);
+      commonConditionsAddon.push(condition);
     }
     if (name) {
-      commonConditions.push({ "$User.FirstName$": { [Op.like]: `%${name.toUpperCase()}%` } });
+      const condition = { "$User.FirstName$": { [Op.like]: `%${name.toUpperCase()}%` } };
+      commonConditionsTicket.push(condition);
+      commonConditionsAddon.push(condition);
     }
     if (lname) {
-      commonConditions.push({ "$User.LastName$": { [Op.like]: `%${lname.toUpperCase()}%` } });
+      const condition = { "$User.LastName$": { [Op.like]: `%${lname.toUpperCase()}%` } };
+      commonConditionsTicket.push(condition);
+      commonConditionsAddon.push(condition);
     }
 
     // Scanned/Cancelled status
-    // Scanned/Cancelled status
-    let scanstatusCondition = {}; // 👈 सिर्फ TicketDetail के लिए
+    let scanstatus = "all";
     if (scanned == "scanned") {
-      scanstatusCondition = { scannedstatus: 1 };
+      scanstatus = 1;
+      commonConditionsAddon.push({ scannedstatus: 1 });
     } else if (scanned == "notscanned") {
-      scanstatusCondition = { scannedstatus: 0 };
+      scanstatus = 0;
+      commonConditionsAddon.push({ scannedstatus: 0 });
     } else if (scanned == "cancelled") {
-      commonConditions.push({ ticket_status: { [Op.not]: null } });
+      commonConditionsTicket.push({ ticket_status: { [Op.not]: null } });
+      commonConditionsAddon.push({ ticket_status: { [Op.not]: null } });
     }
+
+    // console.log("commonConditionsTicket", commonConditionsTicket);
+    // console.log("commonConditionsAddon", commonConditionsAddon);
 
     // Fetch Tickets (latest first)
     const findTickets = ticket_type !== "addon"
@@ -2160,7 +2178,7 @@ export async function ticketExport(
         include: [
           {
             model: TicketDetail,
-            where: { ...scanstatusCondition }, 
+            where: { ...(scanstatus !== "all" && { status: scanstatus }) },
           },
           EventTicketType,
           {
@@ -2179,7 +2197,7 @@ export async function ticketExport(
         ],
         where: {
           event_id,
-          ...(commonConditions.length > 0 && { [Op.and]: commonConditions }),
+          ...(commonConditionsTicket.length > 0 && { [Op.and]: commonConditionsTicket }),
         },
         order: [[{ model: Orders }, 'createdAt', 'DESC']], // sort by order createdAt DESC
       })
@@ -2209,7 +2227,7 @@ export async function ticketExport(
         ],
         where: {
           event_id,
-          ...(commonConditions.length > 0 && { [Op.and]: commonConditions }),
+          ...(commonConditionsAddon.length > 0 && { [Op.and]: commonConditionsAddon }),
         },
         order: [[{ model: Orders }, 'createdAt', 'DESC']], // sort by order createdAt DESC
       })
@@ -2227,9 +2245,9 @@ export async function ticketExport(
     // Process Tickets
     for (const ticket of findTickets) {
       const ticketDetail = ticket.TicketDetails?.[0];
-      if (ticketDetail?.status == 1) totalScannedTickets++;
-      if (ticket.ticket_status == "cancel") totalCancelTicket++;
-      if (ticket.ticket_status == null) totalTickets++;
+      if (ticketDetail?.status === 1) totalScannedTickets++;
+      if (ticket.ticket_status === "cancel") totalCancelTicket++;
+      if (ticket.ticket_status === null) totalTickets++;
 
       const ticketData = {
         orderId: ticket.Order.OriginalTrxnIdentifier,
