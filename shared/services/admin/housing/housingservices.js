@@ -924,18 +924,6 @@ async function removeBookedPropertyFromInvitations(eventId, propertyId) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 // housing deleted
 export async function deleteHousing({ id }, res) {
     try {

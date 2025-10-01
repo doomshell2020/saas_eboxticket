@@ -3,6 +3,9 @@ import config from "./config/config.js"; // ✅ ensure .js if using ES modules
 
 let sequelize;
 
+console.log("Current NODE_ENV:", process.env.NODE_ENV);
+console.log("Database Config:", config);
+
 try {
   // Choose config based on NODE_ENV
   switch (process.env.NODE_ENV) {

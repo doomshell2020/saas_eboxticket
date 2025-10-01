@@ -51,8 +51,18 @@ const handler = async (req, res) => {
                     break;
                 }
                 case "DELETE": {
-                    return res.status(500).json({ success: false, message: 'Internal Server Error' });
-                    break;
+                    // return res.status(500).json({ success: false, message: 'Internal Server Error' });
+                    // break;
+                    const { id, imageId } = query;
+                    if (id) {
+                        const deletionResult = await deleteHousing({ id }, res);
+                        res.status(200).json(deletionResult);
+                        break;
+                    } else if (imageId) {
+                        const deletionResult = await deleteHousingImage({ imageId }, res);
+                        res.json(deletionResult);
+                        break;
+                    }
                 }
                 default:
                     res.setHeader("Allow", ["POST", "GET", "PUT", "DELETE"]);
