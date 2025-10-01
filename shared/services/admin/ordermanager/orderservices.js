@@ -2144,76 +2144,75 @@ export async function ticketExport(
     }
 
     // Scanned/Cancelled status
-    let scanstatus = "all";
-    if (scanned === "scanned") {
-      scanstatus = 1;
-      commonConditions.push({ scannedstatus: 1 });
-    } else if (scanned === "notscanned") {
-      scanstatus = 0;
-      commonConditions.push({ scannedstatus: 0 });
-    } else if (scanned === "cancelled") {
+    // Scanned/Cancelled status
+    let scanstatusCondition = {}; // 👈 सिर्फ TicketDetail के लिए
+    if (scanned == "scanned") {
+      scanstatusCondition = { scannedstatus: 1 };
+    } else if (scanned == "notscanned") {
+      scanstatusCondition = { scannedstatus: 0 };
+    } else if (scanned == "cancelled") {
       commonConditions.push({ ticket_status: { [Op.not]: null } });
     }
 
     // Fetch Tickets (latest first)
     const findTickets = ticket_type !== "addon"
       ? await BookTicket.findAll({
-          include: [
-            {
-              model: TicketDetail,
-              where: { ...(scanstatus !== "all" && { status: scanstatus }) },
-            },
-            EventTicketType,
-            {
-              model: User,
-              attributes: ["id", "FirstName", "LastName", "Email", "PhoneNumber"],
-            },
-            {
-              model: Orders,
-              where: {
-                [Op.or]: [
-                  { is_free: { [Op.is]: null } },
-                  { discountType: { [Op.ne]: "" } },
-                ],
-              },
-            },
-          ],
-          where: {
-            event_id,
-            ...(commonConditions.length > 0 && { [Op.and]: commonConditions }),
+        include: [
+          {
+            model: TicketDetail,
+            where: { ...scanstatusCondition }, 
           },
-          order: [[{ model: Orders }, 'createdAt', 'DESC']], // sort by order createdAt DESC
-        })
+          EventTicketType,
+          {
+            model: User,
+            attributes: ["id", "FirstName", "LastName", "Email", "PhoneNumber"],
+          },
+          {
+            model: Orders,
+            where: {
+              [Op.or]: [
+                { is_free: { [Op.is]: null } },
+                { discountType: { [Op.ne]: "" } },
+              ],
+            },
+          },
+        ],
+        where: {
+          event_id,
+          ...(commonConditions.length > 0 && { [Op.and]: commonConditions }),
+        },
+        order: [[{ model: Orders }, 'createdAt', 'DESC']], // sort by order createdAt DESC
+      })
       : [];
 
     // Fetch Addons (latest first)
     const findAddons = ticket_type !== "ticket"
       ? await AddonBook.findAll({
-          include: [
-            {
-              model: User,
-              attributes: ["id", "FirstName", "LastName", "Email", "PhoneNumber"],
-            },
-            {
-              model: Addons,
-              attributes: ["id", "name"],
-            },
-            {
-              model: Orders,
-              where: {
-                [Op.or]: [
-                  { is_free: { [Op.is]: null } },
-                  { couponCode: { [Op.not]: null } },
-                ],
-              },
-            },
-          ],
-          where: {
-            event_id,
-            ...(commonConditions.length > 0 && { [Op.and]: commonConditions }),
+        include: [
+          {
+            model: User,
+            attributes: ["id", "FirstName", "LastName", "Email", "PhoneNumber"],
           },
-          order: [[{ model: Orders }, 'createdAt', 'DESC']], // sort by order createdAt DESC
-        })
+          {
+            model: Addons,
+            attributes: ["id", "name"],
+          },
+          {
+            model: Orders,
+            where: {
+              [Op.or]: [
+                { is_free: { [Op.is]: null } },
+                { couponCode: { [Op.not]: null } },
+              ],
+            },
+          },
+        ],
+        where: {
+          event_id,
+          ...(commonConditions.length > 0 && { [Op.and]: commonConditions }),
+        },
+        order: [[{ model: Orders }, 'createdAt', 'DESC']], // sort by order createdAt DESC
+      })
       : [];
 
     // Prepare data
@@ -2228,9 +2227,9 @@ export async function ticketExport(
     // Process Tickets
     for (const ticket of findTickets) {
       const ticketDetail = ticket.TicketDetails?.[0];
-      if (ticketDetail?.status === 1) totalScannedTickets++;
-      if (ticket.ticket_status === "cancel") totalCancelTicket++;
-      if (ticket.ticket_status === null) totalTickets++;
+      if (ticketDetail?.status == 1) totalScannedTickets++;
+      if (ticket.ticket_status == "cancel") totalCancelTicket++;
+      if (ticket.ticket_status == null) totalTickets++;
 
       const ticketData = {
         orderId: ticket.Order.OriginalTrxnIdentifier,

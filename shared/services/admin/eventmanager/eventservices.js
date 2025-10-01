@@ -2123,7 +2123,9 @@ export async function getTotalOrders({
       ],
       order: [["id", "DESC"]],
     });
-    console.log("-------------orders-------------", orders.length)
+
+    // console.log("-------------orders-------------", orders.length)
+
     return res.json({
       statusCode: 200,
       success: true,
