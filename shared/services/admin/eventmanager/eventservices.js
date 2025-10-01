@@ -17,6 +17,7 @@ import {
   Housing,
   HousingNeighborhood,
   AccommodationBookingInfo,
+  AccommodationBooking,
   BookAccommodationInfo,
   AccommodationExtension,
   EventHousing,
@@ -158,83 +159,11 @@ export async function getEventSaleSummary(req, res) {
       const eventId = event.id;
 
       // ##############################Total Orders Start##############################
-      const totalTicketFind = await MyTicketBook.findAll({
-        where: {
-          event_id: eventId,
-          // ticket_status: { [Op.is]: null },
-        },
-        attributes: ["order_id"], // No attributes selected from MyTicketBook
-        include: [
-          {
-            model: User,
-            attributes: [], // No need to select attributes from User
-            required: true,
-          },
-          {
-            model: MyOrders,
-            where: {
-              [Op.or]: [
-                { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
-                { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
-              ],
-              // ticket_status: null,
-            },
-            required: true,
-            attributes: [], // Select only 'id' from MyOrders
-          },
-        ],
-        // group: ["MyOrders.id"], // Group results by MyOrders.id
-      });
-
-      // Extract unique order IDs from ticket bookings
-      const orderTicketIds = [
-        ...new Set(totalTicketFind.map((ticket) => ticket.order_id)),
-      ];
-
-      // Fetch unique order IDs from AddonBook
-      const orderAddonIds = await AddonBook.findAll({
-        where: {
-          event_id: eventId,
-          // ticket_status: { [Op.is]: null },
-        },
-        attributes: ["order_id"], // Only fetch 'order_id'
-        include: [
-          {
-            model: User,
-            attributes: [], // Exclude User attributes
-            required: true,
-          },
-          {
-            model: Orders,
-            where: {
-              [Op.or]: [
-                { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
-                { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
-              ],
-              // ticket_status: null,
-            },
-            attributes: [], // Exclude Order attributes
-            required: true,
-          },
-        ],
-      });
-
-      // Extract and deduplicate order IDs from AddonBook
-      const uniqueOrderAddonIds = [
-        ...new Set(orderAddonIds.map((addon) => addon.order_id)),
-      ];
-
-      // If needed, merge the two sets of unique order IDs
-      const totalOrdersIds = [
-        ...new Set([...orderTicketIds, ...uniqueOrderAddonIds]),
-      ];
-      const totalOrdersCount = totalOrdersIds.length;
-      // ##############################Total Orders End##############################
 
       const totalTicketSold = await MyTicketBook.count({
         where: {
           event_id: eventId,
-          // ticket_status: { [Op.is]: null },
+          ticket_status: { [Op.is]: null },
         },
         include: [
           {
@@ -306,7 +235,7 @@ export async function getEventSaleSummary(req, res) {
       const totalAddonSold = await AddonBook.count({
         where: {
           event_id: eventId,
-          // ticket_status: { [Op.is]: null },
+          ticket_status: { [Op.is]: null },
         },
         include: [
           {
@@ -392,11 +321,100 @@ export async function getEventSaleSummary(req, res) {
       //   },
       // });
       // const summarizeTicketsAddons = await summarizeTicketAddonValues(event);
-      const totalAmountAndDiscounts = await getTotalAmountAndDiscounts(event);
+      // const totalAmountAndDiscounts = await getTotalAmountAndDiscounts(event);
+      // total cancel ticket count
+      const totalCancelTickets = await BookTicket.count({
+        where: {
+          event_id: eventId,
+          ticket_status: { [Op.not]: null },
+        },
+        include: [
+          {
+            model: Orders,
+            where: {
+              [Op.or]: [
+                { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
+                { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
+              ],
+              // ticket_status: null,
+            },
+          },
+        ],
+      });
+      // total cancel ticket count
+      const totalCancelAddons = await AddonBook.count({
+        where: {
+          event_id: eventId,
+          ticket_status: { [Op.not]: null },
+        },
+        include: [
+          {
+            model: Orders,
+            where: {
+              [Op.or]: [
+                { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
+                { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
+              ],
+              // ticket_status: null,
+            },
+          },
+        ],
+      });
+      // total Accommodation Sold count
+      const totalAccommodationsSold = await AccommodationBooking.count({
+        where: {
+          event_id: eventId,
+          is_accommodation_cancel: "N",
+        },
+        include: [
+          {
+            model: MyOrders,
+            where: {
+              [Op.or]: [
+                { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
+                { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
+              ],
+              // ticket_status: null,
+            },
+          },
+        ],
+      });
+      // total cancel Accommodation count
+      const totalCancelAccommodations = await AccommodationBooking.count({
+        where: {
+          event_id: eventId,
+          is_accommodation_cancel: "Y",
+        },
+        include: [
+          {
+            model: MyOrders,
+            where: {
+              [Op.or]: [
+                { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
+                { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
+              ],
+              // ticket_status: null,
+            },
+          },
+        ],
+      });
+
+      // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>',event_id);
+      let totalAmountAndDiscounts;
+      let accommodationInfo;
+      let cancelAmount;
+      if (eventId == 111) {
+        totalAmountAndDiscounts = await getTotalAmountAndDiscountsFor2025(eventId);
+        accommodationInfo = await getAccommodationSales(111);
+        cancelAmount = await getTotalCancelAmount(111)
+      } else {
+        totalAmountAndDiscounts = await getTotalAmountAndDiscounts(event);
+        cancelAmount = await getTotalCancelAmount(eventId)
+      }
 
       eventsWithCounts.push({
         ...event.toJSON(),
-        totalOrdersCount,
+        totalOrdersCount: totalAmountAndDiscounts?.totalOrders || 0,
         totalTicketSold,
         totalScannedTicketCount,
         totalAddonSold,
@@ -408,6 +426,12 @@ export async function getEventSaleSummary(req, res) {
         // totalAttendees,
         totalFreeStaffTicket,
         totalStaffTicketScanned,
+        accommodationInfo,
+        totalCancelTickets,
+        totalCancelAddons,
+        totalCancelAccommodations,
+        totalAccommodationsSold,
+        cancelAmount
       });
     }
 
@@ -523,17 +547,43 @@ export async function getEventSaleSummaryByEventId(req, res) {
         ...new Set(orderAddonIds.map((addon) => addon.order_id)),
       ];
 
-      // If needed, merge the two sets of unique order IDs
-      const totalOrdersCount = [
+      const totalUniqueOrdersIds = [
         ...new Set([...orderTicketIds, ...uniqueOrderAddonIds]),
+      ];
+
+      const orderAccommodationIds = await MyOrders.findAll({
+        where: {
+          event_id: eventId,
+          Approved: "succeeded",
+          id: {
+            [Op.notIn]: totalUniqueOrdersIds
+          }
+        },
+        attributes: ["id"]
+      });
+
+      const uniqueOrderAccommodationIds = [
+        ...new Set(orderAccommodationIds.map((accommodation) => accommodation.id)),
+      ];
+
+      const finalTotalUniqueOrdersIds = [
+        ...new Set([...orderTicketIds, ...uniqueOrderAddonIds, ...uniqueOrderAccommodationIds]),
       ].length;
+
+      // If needed, merge the two sets of unique order IDs
+      // const totalOrdersCount = [
+      //   ...new Set([...orderTicketIds, ...uniqueOrderAddonIds]),
+      // ].length;
+      const totalOrdersCount = finalTotalUniqueOrdersIds;
+
+
       // ##############################Total Orders End##############################
 
       // total sold ticket
       const totalTicketSold = await MyTicketBook.count({
         where: {
           event_id: eventId,
-          // ticket_status: { [Op.is]: null },
+          ticket_status: { [Op.is]: null },
         },
         include: [
           {
@@ -607,7 +657,7 @@ export async function getEventSaleSummaryByEventId(req, res) {
       const totalAddonSold = await AddonBook.count({
         where: {
           event_id: eventId,
-          // ticket_status: { [Op.is]: null },
+          ticket_status: { [Op.is]: null },
         },
         include: [
           {
@@ -685,6 +735,83 @@ export async function getEventSaleSummaryByEventId(req, res) {
         ],
       });
 
+      // total cancel ticket count
+      const totalCancelTickets = await BookTicket.count({
+        where: {
+          event_id: eventId,
+          ticket_status: { [Op.not]: null },
+        },
+        include: [
+          {
+            model: Orders,
+            where: {
+              [Op.or]: [
+                { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
+                { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
+              ],
+              // ticket_status: null,
+            },
+          },
+        ],
+      });
+      // total cancel ticket count
+      const totalCancelAddons = await AddonBook.count({
+        where: {
+          event_id: eventId,
+          ticket_status: { [Op.not]: null },
+        },
+        include: [
+          {
+            model: Orders,
+            where: {
+              [Op.or]: [
+                { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
+                { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
+              ],
+              // ticket_status: null,
+            },
+          },
+        ],
+      });
+      // total Accommodation Sold count
+      const totalAccommodationsSold = await AccommodationBooking.count({
+        where: {
+          event_id: eventId,
+          is_accommodation_cancel: "N",
+        },
+        include: [
+          {
+            model: MyOrders,
+            where: {
+              [Op.or]: [
+                { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
+                { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
+              ],
+              // ticket_status: null,
+            },
+          },
+        ],
+      });
+      // total cancel Accommodation count
+      const totalCancelAccommodations = await AccommodationBooking.count({
+        where: {
+          event_id: eventId,
+          is_accommodation_cancel: "Y",
+        },
+        include: [
+          {
+            model: MyOrders,
+            where: {
+              [Op.or]: [
+                { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
+                { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
+              ],
+              // ticket_status: null,
+            },
+          },
+        ],
+      });
+
       // const totalAttendees = await InvitationEvent.count({
       //   where: {
       //     EventID: eventId,
@@ -694,8 +821,18 @@ export async function getEventSaleSummaryByEventId(req, res) {
 
       // const summarizeTicketsAddons = await summarizeTicketAddonValues(event);
       // return summarizeTicketsAddons;
+      let totalAmountAndDiscounts;
+      let accommodationInfo;
+      let cancelAmount;
+      if (eventId == 111) {
+        totalAmountAndDiscounts = await getTotalAmountAndDiscountsFor2025(111);
+        accommodationInfo = await getAccommodationSales(111);
+        cancelAmount = await getTotalCancelAmount(111)
+      } else {
+        totalAmountAndDiscounts = await getTotalAmountAndDiscounts(event);
+        cancelAmount = await getTotalCancelAmount(eventId)
+      }
 
-      const totalAmountAndDiscounts = await getTotalAmountAndDiscounts(event);
       // return totalAmountAndDiscounts;
       eventsWithCounts.push({
         ...event.toJSON(),
@@ -711,6 +848,13 @@ export async function getEventSaleSummaryByEventId(req, res) {
         // totalAttendees,
         totalFreeStaffTicket,
         totalStaffTicketScanned,
+        accommodationInfo,
+        // new keys update
+        totalCancelTickets,
+        totalCancelAddons,
+        totalCancelAccommodations,
+        totalAccommodationsSold,
+        cancelAmount
       });
     }
 
@@ -725,6 +869,319 @@ export async function getEventSaleSummaryByEventId(req, res) {
       message: error.message,
     });
   }
+}
+
+// fetch cancel amount 
+export async function getTotalCancelAmount(eventID) {
+  try {
+    const totalOrders = await MyOrders.findAll({
+      where: { event_id: eventID },
+      attributes: [
+        "id",
+        "RRN",
+        "total_amount",
+        "total_tax_amount",
+        "discountAmount",
+        "discountType",
+        "couponCode",
+        "is_free",
+        "adminfee",
+        "createdAt",
+        "totalAddonAmount",
+        "totalAddonTax",
+        "totalTicketAmount",
+        "totalTicketTax",
+        "totalAccommodationAmount",
+        "totalAccommodationTax",
+      ],
+      include: [
+        {
+          model: BookTicket,
+          where: { event_id: eventID, ticket_status: { [Op.not]: null } },
+          required: false,
+        },
+        {
+          model: AddonBook,
+          where: { event_id: eventID, ticket_status: { [Op.not]: null } },
+          required: false,
+        },
+        {
+          model: BookAccommodationInfo,
+          where: { event_id: eventID, is_accommodation_cancel: "Y" },
+          required: false,
+        },
+      ],
+      order: [["id", "DESC"]],
+    });
+
+    let canceledTotal = 0;
+    let accommodationTotal = 0;
+
+    totalOrders.forEach((order) => {
+      if (eventID == 111) {
+        // ✅ Rule for event 111 (tickets + addons with 10.75%, accommodation no tax)
+
+        const ticketTotal =
+          order.TicketBooks?.reduce((sum, t) => sum + Number(t.amount || 0), 0) || 0;
+
+        const addonTotal =
+          order.AddonBooks?.reduce((sum, a) => sum + Number(a.price || 0), 0) || 0;
+
+        const orderCancelBase = ticketTotal + addonTotal;
+
+        canceledTotal += orderCancelBase * 1.1075; // add 10.75%
+
+        if (order.BookAccommodationInfo) {
+          accommodationTotal += Number(order.BookAccommodationInfo.total_amount || 0);
+        }
+      } else {
+        // ✅ Rule for other events (only addons with 12%)
+        const addonTotal =
+          order.AddonBooks?.reduce((sum, a) => sum + Number(a.price || 0), 0) || 0;
+
+        if (addonTotal > 0) {
+          canceledTotal += addonTotal * 1.12; // 12% flat tax
+        }
+      }
+    });
+
+    // ✅ Final return
+    return eventID == 111
+      ? canceledTotal + accommodationTotal
+      : canceledTotal;
+  } catch (err) {
+    console.error("Error in getTotalCancelAmount:", err);
+    throw err;
+  }
+}
+
+
+async function getAccommodationSales(eventId) {
+  let grandTotalAccommodationAmount = 0;
+  let grandTotalAccommodationTax = 0;
+  let grandTotalPaidAmount = 0;
+  let grandTotalDueAmount = 0;
+
+  const getAccommodationOrders = await MyOrders.findAll({
+    where: {
+      event_id: eventId,
+      book_accommodation_id: { [Op.ne]: null },
+      order_context: { [Op.in]: ["regular", "extension"] }
+    },
+    attributes: [
+      "id",
+      "createdAt",
+      "book_accommodation_id",
+      "order_context",
+      "totalAccommodationAmount",
+      "totalAccommodationTax",
+      "total_due_amount"
+    ],
+  });
+
+  getAccommodationOrders.forEach((order) => {
+    const accommodationAmount = Math.round(order.totalAccommodationAmount) || 0;
+    const accommodationTax = Math.round(order.totalAccommodationTax) || 0;
+    const dueAmount = Math.round(order.total_due_amount) || 0;
+    const paidAmount = Math.round(accommodationAmount - dueAmount);
+
+    grandTotalAccommodationAmount += accommodationAmount;
+    grandTotalAccommodationTax += accommodationTax;
+    grandTotalPaidAmount += paidAmount;
+    grandTotalDueAmount += dueAmount;
+  });
+
+  const totalAccommodation = getAccommodationOrders.length;
+
+  return {
+    grandTotalAccommodationAmount,
+    grandTotalAccommodationTax,
+    grandTotalPaidAmount,
+    grandTotalDueAmount,
+    totalAccommodation
+  }
+}
+
+
+export async function getTotalAmountAndDiscountsFor2025(eventID) {
+
+  // ##############################Total Orders Start##############################
+  const totalTicketFind = await MyTicketBook.findAll({
+    where: {
+      event_id: eventID,
+      // ticket_status: { [Op.is]: null },
+    },
+    attributes: ["order_id"],
+    include: [
+      {
+        model: User,
+        attributes: [],
+        required: true,
+      },
+      {
+        model: MyOrders,
+        where: {
+          [Op.or]: [
+            { is_free: { [Op.is]: null } },
+            { couponCode: { [Op.not]: null } },
+          ],
+          // ticket_status: null,
+        },
+        required: true,
+        attributes: [],
+      },
+    ],
+  });
+
+  // Extract unique order IDs from ticket bookings
+  const orderTicketIds = [
+    ...new Set(totalTicketFind.map((ticket) => ticket.order_id)),
+  ];
+
+  // Fetch unique order IDs from AddonBook
+  const orderAddonIds = await AddonBook.findAll({
+    where: {
+      event_id: eventID,
+      // ticket_status: { [Op.is]: null },
+    },
+    attributes: ["order_id"],
+    include: [
+      {
+        model: User,
+        attributes: [],
+        required: true,
+      },
+      {
+        model: Orders,
+        where: {
+          [Op.or]: [
+            { is_free: { [Op.is]: null } },
+            { couponCode: { [Op.not]: null } },
+          ],
+          // ticket_status: null,
+        },
+        attributes: [],
+        required: true,
+      },
+    ],
+  });
+
+
+  // Extract and deduplicate order IDs from AddonBook
+  const uniqueOrderAddonIds = [
+    ...new Set(orderAddonIds.map((addon) => addon.order_id)),
+  ];
+
+  // If needed, merge the two sets of unique order IDs
+  const totalUniqueOrdersIds = [
+    ...new Set([...orderTicketIds, ...uniqueOrderAddonIds]),
+  ];
+
+  const orderAccommodationIds = await MyOrders.findAll({
+    where: {
+      event_id: eventID,
+      Approved: "succeeded",
+      id: {
+        [Op.notIn]: totalUniqueOrdersIds
+      }
+    },
+    attributes: ["id"]
+  });
+
+  const uniqueOrderAccommodationIds = [
+    ...new Set(orderAccommodationIds.map((accommodation) => accommodation.id)),
+  ];
+
+  const finalTotalUniqueOrdersIds = [
+    ...new Set([...orderTicketIds, ...uniqueOrderAddonIds, ...uniqueOrderAccommodationIds]),
+  ];
+
+  // return uniqueOrderAccommodationIds;
+  // ##############################Total Orders End##############################
+
+  const totalOrders = await MyOrders.findAll({
+    where: {
+      id: { [Op.in]: finalTotalUniqueOrdersIds },
+      // [Op.or]: [
+      //   { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
+      //   { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
+      // ],
+      // ticket_status: null,
+    },
+    attributes: [
+      "id",
+      "actualamount",
+      "couponCode",
+      "discountValue",
+      "discountType",
+      "discountAmount",
+      "total_amount",
+      "total_tax_amount",
+      "RRN",
+      "paymenttype",
+      "createdAt",
+      "OriginalTrxnIdentifier",
+      "is_free",
+      "adminfee",
+      "ticket_cancel_id",
+    ], // Select only 'id' from MyOrders
+    include: [
+      {
+        model: User,
+        attributes: ["FirstName", "LastName", "Email", "PhoneNumber"],
+        required: true,
+      },
+      {
+        model: BookTicket,
+        where: {
+          // ticket_status: null,
+          event_id: eventID,
+        },
+        attributes: ["id", "event_ticket_id"], // No need to select attributes from BookTicket
+        required: false,
+      },
+      {
+        model: AddonBook,
+        where: {
+          // ticket_status: null,
+          event_id: eventID,
+        },
+        attributes: ["id"], // No need to select attributes from AddonBook
+        required: false,
+      },
+    ],
+    // oder by id desc
+    order: [["id", "DESC"]],
+    // group: ["MyOrders.id"], // Group by orders.id
+  });
+
+  // return totalOrders.length
+
+  let amountInfo = {
+    total_amount: 0,
+    total_taxes: 0,
+    gross_total: 0,
+  };
+
+  totalOrders.forEach((order) => {
+    const totalAmount = Number(order.total_amount) || 0;
+    const totalTax = Number(order.total_tax_amount) || 0;
+    amountInfo.total_amount += totalAmount - totalTax;
+    amountInfo.total_taxes += totalTax;
+    amountInfo.gross_total += totalAmount;
+  });
+
+  // Final `amountInfo` will have the totals calculated
+
+  // Round the final results to remove floating point values
+  return {
+    total_amount: amountInfo.total_amount,
+    totalTax: amountInfo.total_taxes,
+    gross_total: amountInfo.gross_total,
+    // finalTotalUniqueOrdersIds,
+    totalOrders: totalOrders.length
+    // totalOrders
+  };
 }
 
 export async function getTotalAmountAndDiscounts(eventInfo) {
