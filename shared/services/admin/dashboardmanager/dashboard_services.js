@@ -202,10 +202,13 @@ export async function getSalesTicTypeEventId({ eventId }, req, res) {
 
     const totalOrdersCount = totalUniqueOrdersIds.length;
     let ticketInfo;
+    let cancelAmount;
     if (eventId == 111) {
       ticketInfo = await summarizeTicketAddonValues2025(event);
+      cancelAmount = await getTotalCancelAmount(111)
     } else {
       ticketInfo = await summarizeTicketAddonValues(event);
+      cancelAmount = await getTotalCancelAmount(eventId)
     }
 
     return {
@@ -215,6 +218,7 @@ export async function getSalesTicTypeEventId({ eventId }, req, res) {
         priceInfo,
         ticketInfo,
         totalOrdersCount,
+        cancelAmount,
       },
     };
   } catch (error) {
@@ -225,6 +229,88 @@ export async function getSalesTicTypeEventId({ eventId }, req, res) {
       message:
         "An error occurred while fetching the data Error:" + error.message,
     };
+  }
+}
+
+// fetch cancel amount
+export async function getTotalCancelAmount(eventID) {
+  try {
+    const totalOrders = await MyOrders.findAll({
+      where: { event_id: eventID },
+      attributes: [
+        "id",
+        "RRN",
+        "total_amount",
+        "total_tax_amount",
+        "discountAmount",
+        "discountType",
+        "couponCode",
+        "is_free",
+        "adminfee",
+        "createdAt",
+        "totalAddonAmount",
+        "totalAddonTax",
+        "totalTicketAmount",
+        "totalTicketTax",
+        "totalAccommodationAmount",
+        "totalAccommodationTax",
+      ],
+      include: [
+        {
+          model: BookTicket,
+          where: { event_id: eventID, ticket_status: { [Op.not]: null } },
+          required: false,
+        },
+        {
+          model: AddonBook,
+          where: { event_id: eventID, ticket_status: { [Op.not]: null } },
+          required: false,
+        },
+        {
+          model: BookAccommodationInfo,
+          where: { event_id: eventID, is_accommodation_cancel: "Y" },
+          required: false,
+        },
+      ],
+      order: [["id", "DESC"]],
+    });
+
+    let canceledTotal = 0;
+    let accommodationTotal = 0;
+    totalOrders.forEach((order) => {
+      if (eventID == 111) {
+        // ✅ Rule for event 111 (tickets + addons with 10.75%, accommodation no tax)
+
+        const ticketTotal =
+          order.TicketBooks?.reduce((sum, t) => sum + Number(t.amount || 0), 0) || 0;
+
+        const addonTotal =
+          order.AddonBooks?.reduce((sum, a) => sum + Number(a.price || 0), 0) || 0;
+
+        const orderCancelBase = ticketTotal + addonTotal;
+
+        canceledTotal += orderCancelBase * 1.1075; // add 10.75%
+
+        if (order.BookAccommodationInfo) {
+          accommodationTotal += Number(order.BookAccommodationInfo.total_amount || 0);
+        }
+      } else {
+        // ✅ Rule for other events (only addons with 12%)
+        const addonTotal =
+          order.AddonBooks?.reduce((sum, a) => sum + Number(a.price || 0), 0) || 0;
+
+        if (addonTotal > 0) {
+          canceledTotal += addonTotal * 1.12; // 12% flat tax
+        }
+      }
+    });
+    // ✅ Final return
+    return eventID == 111
+      ? canceledTotal + accommodationTotal
+      : canceledTotal;
+  } catch (err) {
+    console.error("Error in getTotalCancelAmount:", err);
+    throw err;
   }
 }
 

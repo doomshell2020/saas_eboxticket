@@ -4,7 +4,6 @@ import {
     addUpdateHousing, getAssignedHousing, View_HousingAmenities, GetHousingNeighborhood, searchEventHousingNew
 } from "@/shared/services/admin/housing/housingservices"
 import { housingImageUpload } from "@/utils/fileUpload";
-
 import { checkApiKey } from '@/middleware/checkApiKey';
 
 const handler = async (req, res) => {
