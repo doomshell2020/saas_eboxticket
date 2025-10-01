@@ -1,12 +1,27 @@
 
 module.exports = {
-    development: {
+    developmentV2: {
         username: process.env.DB_USER || "root",
         password: process.env.DB_PASSWORD || null,
         database: process.env.DB_NAME,
         host: process.env.HOST || 'localhost',
         port: 3306,
         dialect: 'mysql',
+    },
+    development: {
+        username: process.env.DB_USER || "root",
+        password: process.env.DB_PASSWORD || null,
+        database: process.env.DB_NAME || "database_development",
+        host: "localhost",
+        port: 3306,
+        dialect: 'mysql',
+        dialectOptions: {
+            charset: "utf8mb4",
+        },
+        define: {
+            charset: "utf8mb4",
+            collate: "utf8mb4_unicode_ci",
+        },
     },
     production: {
         username: process.env.DB_USER,
