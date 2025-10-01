@@ -1935,16 +1935,18 @@ export async function getTotalOrders({
   orderId,
   type,
   transfer,
-  paymentOption
+  paymentOption,
+  couponCode
 }, res) {
-
   try {
+
+    // console.log("couponCode-------------------------",couponCode)
     const orderConditions = {
       [Op.or]: [
         { is_free: { [Op.is]: null } },
         { couponCode: { [Op.not]: null } },
       ],
-      ticket_status: { [Op.is]: null },
+      // ticket_status: { [Op.is]: null },  // comment kamal 15-09-2025
     };
 
     // Date filter
@@ -1971,10 +1973,31 @@ export async function getTotalOrders({
     }
 
     // Payment Option
+    // if (paymentOption && paymentOption.trim() !== "") {
+    //   orderConditions.paymentOption = paymentOption.trim().toLowerCase();
+    // }
     if (paymentOption && paymentOption.trim() !== "") {
-      orderConditions.paymentOption = paymentOption.trim().toLowerCase();
+      const normalized = paymentOption.trim().toLowerCase();
+      if (normalized === "completed partial payment") {
+        // ✅ only users who have payment intents (done partial payment)
+        orderConditions.due_amount_intent = { [Op.ne]: null };
+      } else {
+        // ✅ normal flow for other paymentOption filters
+        orderConditions.paymentOption = normalized;
+      }
     }
-
+    if (couponCode !== undefined && couponCode !== null && couponCode !== "") {
+      if (couponCode == "Applied") {
+        orderConditions.couponCode = { [Op.ne]: null };
+      } else {
+        orderConditions.couponCode = { [Op.eq]: null };
+      }
+    }
+    // if (couponCode == "Applied") {
+    //   orderConditions.couponCode = { [Op.ne]: null };
+    // } else {
+    //   orderConditions.couponCode = { [Op.eq]: null };
+    // }
 
     // User filters
     if (email?.trim()) {
@@ -1999,6 +2022,9 @@ export async function getTotalOrders({
       };
     }
 
+    // console.log('orderConditions',orderConditions);    
+
+    // Event name -> ID
     let eventId = null;
     if (eventName?.trim()) {
       const event = await Event.findOne({
@@ -2097,12 +2123,12 @@ export async function getTotalOrders({
       ],
       order: [["id", "DESC"]],
     });
-
+    console.log("-------------orders-------------", orders.length)
     return res.json({
       statusCode: 200,
       success: true,
       message: "Orders fetched successfully!!!",
-      data: orders
+      data: orders,
     });
 
   } catch (error) {
