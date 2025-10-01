@@ -409,6 +409,7 @@ export async function getEventSaleSummary(req, res) {
         cancelAmount = await getTotalCancelAmount(111)
       } else {
         totalAmountAndDiscounts = await getTotalAmountAndDiscounts(event);
+        console.log('============================', totalAmountAndDiscounts.length);
         cancelAmount = await getTotalCancelAmount(eventId)
       }
 
@@ -1349,6 +1350,7 @@ export async function getTotalAmountAndDiscounts(eventInfo) {
     totalTax: amountInfo.total_taxes,
     gross_total: amountInfo.gross_total,
     // totalUniqueOrdersIds,
+    totalOrders: totalOrders.length
     // totalOrders
   };
 }
