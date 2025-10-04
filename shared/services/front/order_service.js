@@ -6297,6 +6297,10 @@ export async function extendAccommodationDateV3(req, res) {
     selectedPaymentOption
   } = req.body;
 
+  // console.log('req.body', req.body);
+  // return false
+
+
   try {
     const parsedPropertyDetails = typeof propertyDetailsObj == 'string'
       ? JSON.parse(propertyDetailsObj)
@@ -6460,8 +6464,8 @@ export async function extendAccommodationDateV3(req, res) {
       success: true,
       status: 200,
       data: {
-        order: orderResponse,                      // include full order object
-        accommodationExtension: accommodationExtensionBook, // include accommodationExtension if created
+        order: orderResponse,
+        parsedPropertyDetails, 
         isNewOrder,
         paymentData
       },
