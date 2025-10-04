@@ -6,13 +6,21 @@ import {
   getOrderDetails,
   getPaymentInfo,
   generateFreeTicket,
+  generateFreeTicketV3,
   resendOrderEmailToMember,
+  resendOrderEmailToMemberV3,
   cancelOrder,
+  cancelOrderV3,
   cancelTicket,
+  cancelTicketV3,
   cancelAddon,
+  cancelAddonV3,
   OrderEmailTest,
+  OrderEmailTestV3,
   updateDueAmount,
-  extendAccommodationDate
+  updateDueAmountV3,
+  extendAccommodationDate,
+  extendAccommodationDateV3
 } from "@/shared/services/front/order_service";
 import fs from "fs";
 import path from "path";
@@ -36,13 +44,13 @@ export default async function handler(req, res) {
       if (isExtension == true || isExtension == 'true') {
         console.log('>>>>>>>>>>>>>>>>function called with isExtension true');
 
-        const response = await extendAccommodationDate(req, res);
+        const response = await extendAccommodationDateV3(req, res);
         return res.json(response);
       } else if (key == "free_ticket") {
-        const freeTicket = await generateFreeTicket(req, res);
+        const freeTicket = await generateFreeTicketV3(req, res);
         res.status(200).json(freeTicket);
       } else if (key == "resend_order") {
-        const resendOrderEmail = await resendOrderEmailToMember(req, res);
+        const resendOrderEmail = await resendOrderEmailToMemberV3(req, res);
         res.status(200).json(resendOrderEmail);
       }
       //  else if (key == "resend_tickets") {
@@ -50,16 +58,16 @@ export default async function handler(req, res) {
       //   res.status(200).json(resendTicketEmail);
       // }
       else if (key == "cancel_orders") {
-        const cancelOrders = await cancelOrder(req, res);
+        const cancelOrders = await cancelOrderV3(req, res);
         res.status(200).json(cancelOrders);
       } else if (key == "cancel_ticket") {
-        const cancelTickets = await cancelTicket(req, res);
+        const cancelTickets = await cancelTicketV3(req, res);
         res.status(200).json(cancelTickets);
       } else if (key == "cancel_addon") {
-        const cancelAddons = await cancelAddon(req, res);
+        const cancelAddons = await cancelAddonV3(req, res);
         res.status(200).json(cancelAddons);
       } else if (key == "test_orderEmail") {
-        const testOrderEmail = await OrderEmailTest(req, res);
+        const testOrderEmail = await OrderEmailTestV3(req, res);
         res.status(200).json(testOrderEmail);
       }
 
@@ -70,11 +78,12 @@ export default async function handler(req, res) {
 
       let newOrder = null;
       if (selectedPaymentOption == 'due') {
-        newOrder = await updateDueAmount(req, res);
+        newOrder = await updateDueAmountV3(req, res);
 
       } else if (parsedPropertyDetails && parsedPropertyDetails.propertyId) {
         newOrder = await createOrderForAccommodation(req, res);
       } else {
+        // console.log('Creating a new order');
         newOrder = await createOrderV2(req, res);
       }
 

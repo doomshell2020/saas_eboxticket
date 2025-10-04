@@ -180,6 +180,106 @@ export async function updateDueAmount(req, res) {
 }
 
 
+export async function updateDueAmountV3(req, res) {
+  console.log('----------------------------updateDueAmount called ---------------------------');
+
+  try {
+    const { paymentIntentId, OriginalTrxnIdentifier } = req.body;
+
+    // Validate required fields
+    if (!paymentIntentId || !OriginalTrxnIdentifier) {
+      return res.status(400).json({ status: false, message: "Missing required parameters." });
+    }
+
+    const paymentData = await Payment.findOne({
+      where: { payment_intent: paymentIntentId }
+    });
+
+    if (!paymentData) {
+      return res.status(404).json({ status: false, message: "Payment record not found." });
+    }
+
+    // Mark payment as succeeded
+    await paymentData.update({ paymentstatus: "succeeded" });
+
+    const order = await Order.findOne({
+      where: { OriginalTrxnIdentifier }
+    });
+
+    if (!order) {
+      return res.status(404).json({ status: false, message: "Order not found." });
+    }
+
+    const bookingAccommodationInfo = await AccommodationBookingInfo.findOne({
+      where: { order_id: order.id },
+      include: [
+        {
+          model: Housing,
+          attributes: ["id", "Name", "Neighborhood"],
+          include: [{ model: HousingNeighborhood, attributes: ["name"] }]
+        }
+      ]
+    });
+
+    const propertyName = bookingAccommodationInfo?.Housing.Name || null;
+    const Neighborhood = bookingAccommodationInfo?.Housing?.HousingNeighborhood.name || null;
+    const checkInDate = bookingAccommodationInfo?.check_in_date ? new Date(bookingAccommodationInfo.check_in_date) : null;
+    const checkOutDate = bookingAccommodationInfo?.check_out_date ? new Date(bookingAccommodationInfo.check_out_date) : null;
+    const customCheckInOut = checkInDate && checkOutDate
+      ? `${checkInDate.getDate()} to the ${checkOutDate.getDate()} of ${checkInDate.toLocaleString("en-US", { month: "long" })}, ${checkOutDate.getFullYear()}`
+      : null;
+
+    // Calculate values safely
+    const partialPaymentTax = parseFloat(order.totalAccommodationTax || 0) / 2;
+    const newAmount = paymentData.amount || 0;
+    const newTotalAmount = (order.total_amount || 0) + newAmount;
+    const newActualAmount = (order.actualamount || 0) + newAmount;
+    const newTotalTaxAmount = Math.round((order.total_tax_amount || 0) + partialPaymentTax);
+
+    // Update order
+    await order.update({
+      due_amount_intent: paymentIntentId,
+      paymentOption: "full",
+      total_due_amount: null,
+      total_amount: newTotalAmount,
+      actualamount: newActualAmount,
+      partial_payment_amount: order.total_due_amount,
+      partial_payment_tax: partialPaymentTax,
+      total_tax_amount: newTotalTaxAmount
+    });
+
+    if (bookingAccommodationInfo) {
+      await bookingAccommodationInfo.update({ payment_status: "full" });
+    }
+
+    // Respond with updated order & accommodation info
+    return res.json({
+      status: true,
+      message: "Payment updated successfully",
+      data: {
+        order,
+        payment: {
+          id: paymentData.id,
+          payment_intent: paymentData.payment_intent,
+          amount: paymentData.amount,
+          paymentstatus: paymentData.paymentstatus
+        },
+        accommodation: bookingAccommodationInfo ? {
+          id: bookingAccommodationInfo.id,
+          propertyName,
+          Neighborhood,
+          checkInOut: customCheckInOut,
+          payment_status: bookingAccommodationInfo.payment_status
+        } : null
+      }
+    });
+
+  } catch (error) {
+    console.error("Payment Update Error:", error);
+    return res.status(500).json({ status: false, message: "Internal Server Error: " + error.message });
+  }
+}
+
 
 // Main function to create an order without using transactions
 export async function createOrderV2(req, res) {
@@ -197,11 +297,14 @@ export async function createOrderV2(req, res) {
     totalTax
   } = req.body;
 
+
   try {
     // -----------------------------
     // 1️⃣ Check if order already exists
     // -----------------------------
     const existingOrder = await Order.findOne({ where: { RRN: paymentIntentId } });
+    // console.log('existingOrder------------------', existingOrder);
+    // return false;
     if (existingOrder) {
 
       console.log("✅ Order already exists, returning existing order details");
@@ -517,6 +620,9 @@ export async function createOrderForAccommodation(req, res) {
     selectedPaymentOption
   } = req.body;
 
+  // console.log('existingOrder------------------', paymentIntentId);
+  // return false;
+
   const parsedPropertyDetails = typeof propertyDetailsObj == 'string'
     ? JSON.parse(propertyDetailsObj)
     : propertyDetailsObj;
@@ -524,6 +630,7 @@ export async function createOrderForAccommodation(req, res) {
   try {
     // check if order already exists (avoid duplicate orders)
     const existingOrder = await Order.findOne({ where: { RRN: paymentIntentId } });
+
     if (existingOrder) {
       const paymentData = await Payment.findOne({
         where: { payment_intent: paymentIntentId },
@@ -851,9 +958,6 @@ export async function createOrderForAccommodation(req, res) {
     };
   }
 }
-
-
-
 
 
 const sendOrderEmailWithAccommodation = async (userInfo, orderObj, cartData, parsedPropertyDetails, userId) => {
@@ -2275,6 +2379,191 @@ export async function generateFreeTicket(request, response) {
   }
 }
 
+export async function generateFreeTicketV3(req, res) {
+  const transaction = await sequelize.transaction(); // Start a transaction
+
+  try {
+    const encryptedData = req.body.data;
+    const secretKey = process.env.DATA_ENCODE_SECRET_KEY;
+
+    // Decrypt the data
+    const bytes = CryptoJS.AES.decrypt(encryptedData, secretKey);
+    const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+    const { cart, couponDetails, adminFees } = decryptedData;
+
+    if (!cart || cart.length === 0) {
+      await transaction.rollback();
+      return res.json({
+        success: false,
+        status: 200,
+        message: "No items in cart",
+      });
+    }
+
+    const { totalPrice, finalPriceAfterDiscount, taxes } = calculateTotals(
+      cart,
+      couponDetails?.discountAmt,
+      adminFees
+    );
+
+    const userId = cart[0].user_id;
+    const getEventId = cart[0].event_id;
+    const userInfo = await User.findOne({ where: { id: userId }, transaction });
+
+    const discount_type = couponDetails?.discount_type || null;
+    const discount_value = couponDetails?.discount_value || null;
+    const code = couponDetails?.code || null;
+    const adminFee = adminFees ?? 0;
+
+    // Check if free order already exists
+    let existingOrder = await Order.findOne({
+      where: { user_id: userId, event_id: getEventId, is_free: 1 },
+      order: [["id", "DESC"]],
+      transaction
+    });
+
+    let orderResponse;
+    let tickets = [];
+    let addons = [];
+    let isNewOrder = false;
+
+    if (!existingOrder) {
+      // Create new order
+      orderResponse = await Order.create(
+        {
+          user_id: userId,
+          Approved: "succeeded",
+          TransactionType: "Online",
+          paymenttype: "Online",
+          adminfee: adminFee,
+          total_amount: finalPriceAfterDiscount,
+          discountValue: discount_value,
+          couponCode: code,
+          discountType: discount_type,
+          RRN: null,
+          is_free: 1,
+          event_id: getEventId,
+          OrderIdentifier: null,
+          actualamount: totalPrice,
+        },
+        { transaction }
+      );
+
+      const trxnIde = `M-${userId}-${orderResponse.id}`;
+      await orderResponse.update({ OriginalTrxnIdentifier: trxnIde }, { transaction });
+      isNewOrder = true;
+
+      // Process tickets & addons
+      for (const cartItem of cart) {
+        if (cartItem.ticket_type === "ticket" && cartItem.EventTicketType) {
+          const ticketPrice = cartItem.EventTicketType.price || 0;
+          const ticketCount = cartItem.no_tickets || 0;
+
+          for (let i = 1; i <= ticketCount; i++) {
+            const ticketBook = await BookTicket.create(
+              {
+                order_id: orderResponse.id,
+                event_id: cartItem.event_id,
+                event_ticket_id: cartItem.ticket_id,
+                cust_id: userId,
+                ticket_buy: 1,
+                amount: ticketPrice,
+                mobile: userInfo.PhoneNumber,
+                adminfee: adminFee,
+              },
+              { transaction }
+            );
+
+            const ticketDetail = await TicketDetail.create(
+              {
+                tid: ticketBook.id,
+                ticket_num: `T${ticketBook.id}`,
+                generated_id: `T${ticketBook.id}`,
+                user_id: userId,
+                status: "0",
+              },
+              { transaction }
+            );
+
+            const qrCodeImage = await generateTicketQrToS3({
+              userId,
+              orderId: orderResponse.id,
+              ticketId: ticketDetail.id,
+              ticketType: "ticket",
+            });
+
+            if (qrCodeImage.success) {
+              await ticketDetail.update({ qrcode: qrCodeImage.filePath }, { transaction });
+            }
+
+            tickets.push(ticketDetail);
+          }
+        } else if (cartItem.ticket_type === "addon" && cartItem.Addon) {
+          const addonPrice = cartItem.Addon.price || 0;
+          const addonCount = cartItem.no_tickets || 0;
+
+          for (let i = 1; i <= addonCount; i++) {
+            const addonBook = await AddonBook.create(
+              {
+                addons_id: cartItem.addons_id,
+                event_id: cartItem.event_id,
+                order_id: orderResponse.id,
+                user_id: userId,
+                price: addonPrice,
+              },
+              { transaction }
+            );
+
+            const qrCodeImage = await generateTicketQrToS3({
+              userId,
+              orderId: orderResponse.id,
+              ticketId: addonBook.id,
+              ticketType: "addon",
+            });
+
+            if (qrCodeImage.success) {
+              await addonBook.update({ addon_qrcode: qrCodeImage.filePath }, { transaction });
+            }
+
+            addons.push(addonBook);
+          }
+        }
+      }
+    } else {
+      orderResponse = existingOrder;
+
+      // Fetch tickets and addons for existing order
+      tickets = await TicketDetail.findAll({ where: { user_id: userId }, transaction });
+      addons = await AddonBook.findAll({ where: { user_id: userId, order_id: orderResponse.id }, transaction });
+    }
+
+    await transaction.commit();
+
+    return res.json({
+      success: true,
+      status: 200,
+      data: {
+        order: orderResponse,
+        tickets,
+        addons,
+        isNewOrder,
+        paymentData: null,
+      },
+      message: isNewOrder ? "Free order created successfully." : "Existing free order retrieved.",
+    });
+  } catch (error) {
+    if (transaction.finished !== "commit") await transaction.rollback();
+
+    console.error("Error generating free ticket:", error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message: "Error generating free ticket: " + error.message,
+    });
+  }
+}
+
+
 const sendOrderEmailToUserV2 = async (userInfo, orderObj, cartData, userId) => {
   const eventIds = orderObj.eventId;
   const createdOrderId = orderObj.order_id;
@@ -3429,6 +3718,110 @@ font-weight: 300;">
     return res.status(500).json({
       success: false,
       message: "Error Resending Order Email :" + error.message,
+    });
+  }
+}
+
+export async function resendOrderEmailToMemberV3(req, res) {
+  try {
+    const existOrderId = req.body.orderId;
+
+    if (existOrderId.length === 0) {
+      return res.status(400).json({ success: false, message: "No order IDs provided" });
+    }
+
+    const ordersData = await Promise.all(
+      existOrderId.map(async (orderId) => {
+        const order = await Order.findOne({
+          where: { id: orderId },
+          include: { model: User, attributes: ["Email", "FirstName", "LastName"] },
+          raw: true,
+        });
+
+        if (!order) return null;
+
+        // Tickets
+        const findAllTickets = await BookTicket.findAll({
+          where: { order_id: order.id },
+          include: [{ model: EventTicketType, attributes: ["title", "price"] }],
+          raw: true,
+        });
+
+        const ticketArray = [];
+        const ticketMap = {};
+        findAllTickets.forEach((ticket) => {
+          const eventTicketId = ticket.event_ticket_id;
+          if (ticketMap[eventTicketId]) {
+            ticketMap[eventTicketId].total_ticket_count += 1;
+          } else {
+            ticketMap[eventTicketId] = {
+              event_ticket_id: eventTicketId,
+              title: ticket["EventTicketType.title"],
+              price: ticket["EventTicketType.price"],
+              total_ticket_count: 1,
+              ticket_type: "ticket",
+            };
+          }
+        });
+
+        // Addons
+        const findAllAddons = await AddonBook.findAll({
+          where: { order_id: order.id },
+          include: [{ model: Addons, attributes: ["name", "price"] }],
+          raw: true,
+        });
+
+        const addonMap = {};
+        findAllAddons.forEach((addon) => {
+          const addonId = addon.addons_id;
+          if (addonMap[addonId]) {
+            addonMap[addonId].total_addon_count += 1;
+          } else {
+            addonMap[addonId] = {
+              addons_id: addonId,
+              name: addon["Addon.name"],
+              price: addon["Addon.price"],
+              total_addon_count: 1,
+              ticket_type: "addon",
+            };
+          }
+        });
+
+        ticketArray.push(...Object.values(ticketMap));
+        ticketArray.push(...Object.values(addonMap));
+
+        return {
+          orderId: order.id,
+          user: {
+            firstName: order["User.FirstName"],
+            lastName: order["User.LastName"],
+            email: order["User.Email"],
+          },
+          originalTransactionId: order.OriginalTrxnIdentifier,
+          couponCode: order.couponCode,
+          discountType: order.discountType,
+          discountValue: order.discountValue,
+          totalAmount: order.total_amount,
+          ticketsAndAddons: ticketArray,
+        };
+      })
+    );
+
+    const filteredOrdersData = ordersData.filter((o) => o !== null);
+
+    if (filteredOrdersData.length === 0) {
+      return res.status(404).json({ success: false, message: "No valid orders found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Order data retrieved successfully",
+      data: filteredOrdersData,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error retrieving order data: " + error.message,
     });
   }
 }
@@ -4866,6 +5259,86 @@ export async function cancelOrder(req, res, { refund = null }) {
   }
 }
 
+export async function cancelOrderV3(req, res, { refund = null }) {
+  try {
+    const orderId = req.body.orderId;
+    const tickctCancelId = req.body.requested_by;
+    const cancel_reason = req.body.refund_details;
+
+    // Find the order
+    const orderInfo = await Order.findOne({
+      where: { id: orderId },
+    });
+
+    if (!orderInfo) {
+      return res.status(404).json({ success: false, message: "Order not found." });
+    }
+
+    const firstEventId = orderInfo.event_id;
+
+    const userInfo = await User.findOne({
+      where: { id: orderInfo.user_id },
+      attributes: ["id", "Email", "FirstName"],
+    });
+
+    // Extract data from refund
+    const refundId = refund?.id || null;
+    const refundBalanceTransaction = refund?.balance_transaction || null;
+    const refundReason = cancel_reason || null;
+
+    // Update the Order table
+    await Order.update(
+      {
+        ticket_status: "cancel",
+        ticket_cancel_id: tickctCancelId,
+        order_cancel_id: refundId,
+        refund_balance_transaction: refundBalanceTransaction,
+        refund_reason: refundReason,
+        cancel_date: new Date(),
+      },
+      { where: { id: orderId } }
+    );
+
+    // Update tickets, ticket details, addons
+    const findAllTickets = await BookTicket.findAll({ where: { order_id: orderId } });
+    const findAllAddons = await AddonBook.findAll({ where: { order_id: orderId } });
+    const ticketIds = findAllTickets.map((t) => t.id);
+    const addonIds = findAllAddons.map((a) => a.id);
+
+    await BookTicket.update(
+      { ticket_status: "cancel", ticket_cancel_id: tickctCancelId, cancel_date: new Date() },
+      { where: { id: ticketIds } }
+    );
+
+    await TicketDetail.update(
+      { ticket_status: "cancel", ticket_cancel_id: tickctCancelId, cancel_date: new Date() },
+      { where: { tid: ticketIds } }
+    );
+
+    await AddonBook.update(
+      { ticket_status: "cancel", ticket_cancel_id: tickctCancelId, cancel_date: new Date() },
+      { where: { id: addonIds } }
+    );
+
+    await InvitationEvent.update(
+      { Status: 1 },
+      { where: { UserID: orderInfo.user_id } }
+    );
+
+    return res.status(200).json({
+      message: "Order and tickets cancelled successfully.",
+      success: true,
+      orderId: orderInfo.id,
+      user: { id: userInfo.id, firstName: userInfo.FirstName, email: userInfo.Email },
+      emailData,
+    });
+  } catch (err) {
+    console.error("Error:", err.message);
+    return res.status(500).json({ success: false, error: "Internal Server Error: " + err.message });
+  }
+}
+
+
 const createTemplate = (html, replacements) => {
   if (!html || typeof html !== "string") {
     throw new Error("Invalid HTML content provided.");
@@ -5004,6 +5477,84 @@ export async function cancelTicket(req, res) {
   }
 }
 
+export async function cancelTicketV3(req, res) {
+  try {
+    const { ticketId, ticket_cancel_id } = req.body;
+
+    // Find the ticket
+    const findTicket = await BookTicket.findOne({
+      where: { id: ticketId },
+      attributes: ["id", "ticket_status", "order_id", "cust_id", "event_id"],
+    });
+
+    if (!findTicket) {
+      return res.status(404).json({ message: "Ticket not found", success: false });
+    }
+
+    // Check if already canceled
+    if (findTicket.ticket_status == "cancel") {
+      return res.status(400).json({ message: "This ticket is already canceled", success: false });
+    }
+
+    const orderId = findTicket.order_id;
+    const orderInfo = await Order.findOne({ where: { id: orderId } });
+    const userInfo = await User.findOne({
+      where: { id: findTicket.cust_id },
+      attributes: ["id", "Email", "FirstName"],
+    });
+
+    // Update ticket status in BookTicket
+    await BookTicket.update(
+      { ticket_status: "cancel", ticket_cancel_id, cancel_date: new Date() },
+      { where: { id: ticketId } }
+    );
+
+    // Update ticket detail if exists
+    const findTicketDetail = await TicketDetail.findOne({ where: { tid: ticketId } });
+    if (findTicketDetail) {
+      await TicketDetail.update(
+        { ticket_status: "cancel", ticket_cancel_id, cancel_date: new Date() },
+        { where: { tid: ticketId } }
+      );
+    }
+
+    // Count remaining active tickets and addons
+    const remainingTickets = await BookTicket.count({
+      where: { order_id: orderId, ticket_status: { [Op.is]: null } },
+    });
+
+    const remainingAddons = await AddonBook.count({
+      where: { order_id: orderId, ticket_status: { [Op.is]: null } },
+    });
+
+    // Cancel the order if no active tickets/addons remain
+    if (remainingTickets === 0 && remainingAddons === 0) {
+      await Order.update(
+        { ticket_status: "cancel", ticket_cancel_id, cancel_date: new Date() },
+        { where: { id: orderId } }
+      );
+
+      await InvitationEvent.update(
+        { Status: 1 },
+        { where: { UserID: findTicket.cust_id } }
+      );
+    }
+
+    return res.status(200).json({
+      message: "Ticket canceled successfully",
+      success: true,
+      ticketId,
+      orderId,
+      orderInfo,
+      user: { id: userInfo.id, firstName: userInfo.FirstName, email: userInfo.Email },
+    });
+
+  } catch (err) {
+    console.error("Error:", err.message);
+    return res.status(500).json({ message: "Internal server error", success: false });
+  }
+}
+
 // Cancel Addon
 export async function cancelAddon(req, res) {
   try {
@@ -5100,6 +5651,67 @@ export async function cancelAddon(req, res) {
   } catch (err) {
     console.error("Error:", err.message);
     res.status(500).json({ error: "Internal Server Error" });
+  }
+}
+
+export async function cancelAddonV3(req, res) {
+  try {
+    const { addonId, ticket_cancel_id } = req.body;
+
+    // Find the addon
+    const addonInfo = await AddonBook.findOne({ where: { id: addonId } });
+
+    if (!addonInfo) {
+      return res.status(404).json({ message: "Invalid addon", success: false });
+    }
+
+    // Find user info
+    const userInfo = await User.findOne({
+      where: { id: addonInfo.user_id },
+      attributes: ["id", "Email", "FirstName"],
+    });
+
+    // Update Addon status
+    await AddonBook.update(
+      {
+        ticket_status: "cancel",
+        ticket_cancel_id,
+        cancel_date: new Date(),
+      },
+      { where: { id: addonId } }
+    );
+
+    // Count remaining active tickets and addons
+    const remainingTickets = await BookTicket.count({
+      where: { order_id: addonInfo.order_id, ticket_status: { [Op.is]: null } },
+    });
+
+    const remainingAddons = await AddonBook.count({
+      where: { order_id: addonInfo.order_id, ticket_status: { [Op.is]: null } },
+    });
+
+    // Cancel the order if no tickets and addons remain
+    if (remainingTickets == 0 && remainingAddons == 0) {
+      await Order.update(
+        { ticket_status: "cancel", ticket_cancel_id, cancel_date: new Date() },
+        { where: { id: addonInfo.order_id } }
+      );
+    }
+
+    const orderInfo = await Order.findOne({ where: { id: addonInfo.order_id } });
+
+
+    return res.status(200).json({
+      message: "Addon cancelled successfully",
+      success: true,
+      addonId,
+      orderInfo,
+      orderId: addonInfo.order_id,
+      user: { id: userInfo.id, firstName: userInfo.FirstName, email: userInfo.Email },
+    });
+  } catch (err) {
+    console.error("Error:", err.message);
+    return res.status(500).json({ message: "Internal server error", success: false });
   }
 }
 
@@ -5329,6 +5941,74 @@ export async function OrderEmailTest(req, res) {
   }
 }
 
+export async function OrderEmailTestV3(req, res) {
+  try {
+    const existOrderId = req.body.orderId;
+
+    const order = await Order.findOne({
+      where: { id: existOrderId },
+      include: {
+        model: User,
+        attributes: ["id", "Email", "FirstName", "LastName"],
+      },
+    });
+
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
+    }
+
+    // Fetch tickets
+    const findAllTickets = await BookTicket.findAll({
+      where: { order_id: order.id },
+      include: [{ model: EventTicketType, attributes: ["title", "price"] }],
+      raw: true,
+    });
+
+    const tickets = findAllTickets.map((ticket) => ({
+      id: ticket.id,
+      event_ticket_id: ticket.event_ticket_id,
+      title: ticket["EventTicketType.title"],
+      price: ticket["EventTicketType.price"],
+      status: ticket.ticket_status,
+      count: 1, // assuming each row is 1 ticket
+    }));
+
+    // Fetch addons
+    const findAllAddons = await AddonBook.findAll({
+      where: { order_id: order.id },
+      include: [{ model: Addons, attributes: ["name", "price"] }],
+      raw: true,
+    });
+
+    const addons = findAllAddons.map((addon) => ({
+      id: addon.id,
+      addons_id: addon.addons_id,
+      name: addon["Addon.name"],
+      price: addon["Addon.price"],
+      status: addon.ticket_status,
+      count: 1, // assuming each row is 1 addon
+    }));
+
+    // Return only order details, tickets, and addons
+    return res.status(200).json({
+      success: true,
+      data: {
+        order,
+        tickets,
+        addons,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching order details: " + error.message,
+    });
+  }
+}
+
+
 // extend date for accommodation
 export async function extendAccommodationDate(req, res) {
   console.log('----------------------------extendAccommodationDate ---------------------------');
@@ -5346,7 +6026,7 @@ export async function extendAccommodationDate(req, res) {
   } = req.body;
 
   try {
-    const parsedPropertyDetails = typeof propertyDetailsObj === 'string'
+    const parsedPropertyDetails = typeof propertyDetailsObj == 'string'
       ? JSON.parse(propertyDetailsObj)
       : propertyDetailsObj;
 
@@ -5599,5 +6279,203 @@ export async function extendAccommodationDate(req, res) {
       status: 404,
       message: `Error Order Creating createOrderForAccommodation : ${error.message}`
     };
+  }
+}
+
+export async function extendAccommodationDateV3(req, res) {
+  console.log('----------------------------extendAccommodationDate ---------------------------');
+
+  const {
+    paymentIntentId,
+    eventId,
+    userId,
+    amount,
+    adminFees,
+    propertyDetailsObj,
+    totalTax,
+    finalPrice,
+    selectedPaymentOption
+  } = req.body;
+
+  try {
+    const parsedPropertyDetails = typeof propertyDetailsObj == 'string'
+      ? JSON.parse(propertyDetailsObj)
+      : propertyDetailsObj;
+
+    const propertyId = parsedPropertyDetails?.propertyId;
+    const totalNight = parsedPropertyDetails?.totalNight || 0;
+    const arrivalDate = parsedPropertyDetails?.arrivalDate;
+    const departureDate = parsedPropertyDetails?.departureDate;
+    const propertyName = parsedPropertyDetails?.fullPropertyName || "";
+
+    const getHousingInfo = await HousingInfo.findOne({
+      where: { id: propertyId },
+      attributes: ["ID", "OwnerName", "ManagerName", "OwnerEmail", "ManagerEmail"],
+      include: [{
+        model: EventHousing,
+        where: { EventID: eventId },
+        attributes: ["ID", "OwnerAmount"],
+        separate: true,
+        limit: 1,
+        order: [['ID', 'DESC']]
+      }]
+    });
+
+    const userInfo = await User.findOne({
+      where: { id: userId },
+      attributes: ["PhoneNumber", "LastName", "FirstName", "Email", "ID"]
+    });
+
+    let paymentData = await Payment.findOne({ where: { payment_intent: paymentIntentId } });
+    if (paymentData) await paymentData.update({ paymentstatus: "succeeded" });
+
+    const {
+      totalAccommodationAmount = 0,
+      totalAccommodationTax = 0,
+      ticket_platform_fee_percentage = 0,
+      ticket_stripe_fee_percentage = 0,
+      ticket_bank_fee_percentage = 0,
+      ticket_processing_fee_percentage = 0,
+      clientsecret = null,
+      accommodationAmount = 0,
+      paymentOption,
+      accommodation_nightlyRate = 0,
+      accommodation_basePriceHousing = 0,
+      total_night_stay = 0,
+      id: paymentId,
+      accommodationBankFee = 0,
+      accommodationProcessingFee = 0,
+      accommodationStripeFee = 0,
+      accommodation_nightlyPerDaysRate = 0,
+      accommodation_basePerDaysPriceHousing = 0,
+      accommodationPerDaysPropertyOwnerAmount = 0,
+      accommodationPerDaysServiceFeeAmount = 0,
+      accommodationPerDaysMexicanVATAmount = 0,
+      accommodationPerDaysTaxAmount = 0,
+      accommodationOndalindaPerDaysFeeAmount = 0,
+      accommodationOndalindaPerDaysTotalAfterTaxes = 0
+    } = paymentData || {};
+
+    // Check if order already exists
+    const existingOrder = await Order.findOne({
+      where: {
+        user_id: userId,
+        event_id: eventId,
+        book_accommodation_id: propertyId,
+        order_context: "extension"
+      },
+      order: [["id", "DESC"]]
+    });
+
+    let orderResponse = existingOrder;
+    let accommodationExtensionBook = null;
+    let isNewOrder = false;
+
+    if (!existingOrder) {
+      // Create new order
+      orderResponse = await Order.create({
+        user_id: userId,
+        Approved: "succeeded",
+        TransactionType: "Online",
+        paymenttype: "Online",
+        order_context: "extension",
+        event_id: eventId,
+        adminfee: adminFees ?? 0,
+        total_amount: amount,
+        actualamount: amount,
+        totalCartAmount: amount,
+        paymentOption: selectedPaymentOption,
+        total_tax_amount: totalTax,
+        RRN: paymentIntentId,
+        OrderIdentifier: null,
+        book_accommodation_id: propertyId,
+        totalAccommodationTax,
+        ticket_platform_fee_percentage,
+        ticket_stripe_fee_percentage,
+        ticket_bank_fee_percentage,
+        ticket_processing_fee_percentage,
+        accommodation_nightlyRate,
+        accommodation_basePriceHousing,
+        total_night_stay,
+        totalAccommodationAmount,
+        accommodationBankFee,
+        accommodationProcessingFee,
+        accommodationStripeFee,
+        accommodation_nightlyPerDaysRate,
+        accommodation_basePerDaysPriceHousing,
+        accommodationPerDaysPropertyOwnerAmount,
+        accommodationPerDaysServiceFeeAmount,
+        accommodationPerDaysMexicanVATAmount,
+        accommodationPerDaysTaxAmount,
+        accommodationOndalindaPerDaysFeeAmount,
+        accommodationOndalindaPerDaysTotalAfterTaxes
+      });
+
+      const trxnIde = `M-${userId}-${orderResponse.id}`;
+      await orderResponse.update({ OriginalTrxnIdentifier: trxnIde });
+      isNewOrder = true;
+
+      // Create AccommodationExtension
+      accommodationExtensionBook = await AccommodationExtension.create({
+        user_id: userId,
+        event_id: eventId,
+        transaction_id: paymentIntentId,
+        order_id: orderResponse.id,
+        payment_id: paymentId || 0,
+        first_name: userInfo?.FirstName || '',
+        last_name: userInfo?.LastName || '',
+        email: userInfo?.Email || '',
+        accommodation_id: propertyId,
+        total_night_stay: totalNight,
+        check_in_date: arrivalDate,
+        check_out_date: departureDate,
+        total_amount: totalAccommodationAmount,
+        qr_code_image: parsedPropertyDetails?.qr_code_image || null
+      });
+
+      await orderResponse.update({
+        accommodation_bookings_info_id: accommodationExtensionBook?.id || null
+      });
+
+      // Generate QR
+      try {
+        const qrResponse = await generateAccommodationQrToS3({
+          user_id: userId,
+          event_id: eventId,
+          accommodation_id: propertyId,
+          check_in_date: arrivalDate,
+          check_out_date: departureDate,
+          order_id: orderResponse.id
+        });
+
+        if (qrResponse?.success) {
+          await accommodationExtensionBook.update({ qr_code_image: qrResponse.filePath });
+        }
+      } catch (err) {
+        console.warn("QR generation failed:", err.message);
+      }
+    }
+
+    return res.json({
+      success: true,
+      status: 200,
+      data: {
+        order: orderResponse,                      // include full order object
+        accommodationExtension: accommodationExtensionBook, // include accommodationExtension if created
+        isNewOrder,
+        paymentData
+      },
+      message: isNewOrder
+        ? "New order created successfully."
+        : "Existing order found."
+    });
+
+  } catch (error) {
+    console.error("Error in extendAccommodationDateV3:", error);
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message: `Error in extendAccommodationDateV3: ${error.message}`
+    });
   }
 }

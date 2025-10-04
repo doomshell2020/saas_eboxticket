@@ -33,7 +33,7 @@ export default async function handler(req, res) {
         : propertyDetailsObj ?? null;
 
       if (isExtension == true || isExtension == 'true') {
-        console.log('>>>>>>>>>>>>>>>>funtion called with isExtension true');
+        console.log('>>>>>>>>>>>>>>>>function called with isExtension true');
 
         const response = await extendAccommodationDate(req, res);
         return res.json(response);
