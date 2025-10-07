@@ -21,9 +21,6 @@ export default async function handler(req, res) {
     }
 
     const { housingData, eventHousingData, housingBedRoomsData } = response.data.data;
-    // console.log('>>>>>>>>>>',housingData);
-    // return false
-    
 
     let synced = {
       housingInserted: 0,
@@ -38,10 +35,10 @@ export default async function handler(req, res) {
     for (const record of housingData) {
       const existing = await Housing.findOne({ where: { id: record.id } });
       if (existing) {
-        if (new Date(record.updatedAt) > new Date(existing.updatedAt)) {
+        // if (new Date(record.updatedAt) > new Date(existing.updatedAt)) {
           await existing.update(record);
           synced.housingUpdated++;
-        }
+        // }
       } else {
         await Housing.create(record);
         synced.housingInserted++;
@@ -52,10 +49,10 @@ export default async function handler(req, res) {
     for (const record of eventHousingData) {
       const existing = await EventHousing.findOne({ where: { id: record.id } });
       if (existing) {
-        if (new Date(record.updatedAt) > new Date(existing.updatedAt)) {
+        // if (new Date(record.updatedAt) > new Date(existing.updatedAt)) {
           await existing.update(record);
           synced.eventUpdated++;
-        }
+        // }
       } else {
         await EventHousing.create(record);
         synced.eventInserted++;
@@ -66,10 +63,10 @@ export default async function handler(req, res) {
     for (const record of housingBedRoomsData) {
       const existing = await HousingBedrooms.findOne({ where: { id: record.id } });
       if (existing) {
-        if (new Date(record.updatedAt) > new Date(existing.updatedAt)) {
+        // if (new Date(record.updatedAt) > new Date(existing.updatedAt)) {
           await existing.update(record);
           synced.bedroomUpdated++;
-        }
+        // }
       } else {
         await HousingBedrooms.create(record);
         synced.bedroomInserted++;
