@@ -1,0 +1,94 @@
+import axios from "axios";
+import { Op } from "sequelize";
+import { Housing, EventHousing, HousingBedrooms } from "@/database/models";
+
+export default async function handler(req, res) {
+  const { method, body } = req;
+
+  if (method !== "POST") {
+    return res.status(405).json({ message: "Method not allowed" });
+  }
+
+  try {
+    // Step 1️⃣: Fetch changed data from Server A
+    const serverAUrl = "https://staging.ondalinda.com/api/cron"; // 👈 Update if needed
+    const response = await axios.post(serverAUrl, {
+      date: body.date || null, // if no date, Server A defaults to today
+    });
+
+    if (!response.data?.status) {
+      return res.status(400).json({ message: "Failed to fetch data from Server A" });
+    }
+
+    const { housingData, eventHousingData, housingBedRoomsData } = response.data.data;
+    // console.log('>>>>>>>>>>',housingData);
+    // return false
+    
+
+    let synced = {
+      housingInserted: 0,
+      housingUpdated: 0,
+      eventInserted: 0,
+      eventUpdated: 0,
+      bedroomInserted: 0,
+      bedroomUpdated: 0,
+    };
+
+    // Step 2️⃣: Sync Housing Data
+    for (const record of housingData) {
+      const existing = await Housing.findOne({ where: { id: record.id } });
+      if (existing) {
+        if (new Date(record.updatedAt) > new Date(existing.updatedAt)) {
+          await existing.update(record);
+          synced.housingUpdated++;
+        }
+      } else {
+        await Housing.create(record);
+        synced.housingInserted++;
+      }
+    }
+
+    // Step 3️⃣: Sync EventHousing Data
+    for (const record of eventHousingData) {
+      const existing = await EventHousing.findOne({ where: { id: record.id } });
+      if (existing) {
+        if (new Date(record.updatedAt) > new Date(existing.updatedAt)) {
+          await existing.update(record);
+          synced.eventUpdated++;
+        }
+      } else {
+        await EventHousing.create(record);
+        synced.eventInserted++;
+      }
+    }
+
+    // Step 4️⃣: Sync HousingBedrooms Data
+    for (const record of housingBedRoomsData) {
+      const existing = await HousingBedrooms.findOne({ where: { id: record.id } });
+      if (existing) {
+        if (new Date(record.updatedAt) > new Date(existing.updatedAt)) {
+          await existing.update(record);
+          synced.bedroomUpdated++;
+        }
+      } else {
+        await HousingBedrooms.create(record);
+        synced.bedroomInserted++;
+      }
+    }
+
+    // Step 5️⃣: Return sync summary
+    return res.status(200).json({
+      status: true,
+      message: "Data synced successfully from Server A",
+      synced,
+    });
+
+  } catch (error) {
+    console.error("Error syncing data from Server A:", error);
+    return res.status(500).json({
+      status: false,
+      message: "Server error during data sync",
+      error: error.message,
+    });
+  }
+}

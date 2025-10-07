@@ -42,8 +42,6 @@ export default async function handler(req, res) {
         : propertyDetailsObj ?? null;
 
       if (isExtension == true || isExtension == 'true') {
-        console.log('>>>>>>>>>>>>>>>>function called with isExtension true');
-
         const response = await extendAccommodationDateV3(req, res);
         return res.json(response);
       } else if (key == "free_ticket") {
