@@ -101,6 +101,203 @@ export async function getEventListByOrganizer(req, res) {
   }
 }
 
+export async function ticket_sales_count(event_id) {
+  try {
+    // Ticket-wise count using relation to EventTicketType
+    const ticketCounts = await MyTicketBook.findAll({
+      attributes: [
+        [Sequelize.fn("COUNT", Sequelize.col("MyTicketBook.id")), "count"]
+      ],
+      where: { event_id, ticket_status: null },
+      include: [
+        {
+          model: EventTicketType,
+          attributes: ["id", "title"],
+          as: "EventTicketType", // make sure your association uses this alias
+        }
+      ],
+      group: ["EventTicketType.id", "EventTicketType.title"],
+      raw: true,
+      nest: true,
+    });
+
+    // Addon-wise count using relation to Addons
+    const addonCounts = await AddonBook.findAll({
+      attributes: [
+        [Sequelize.fn("COUNT", Sequelize.col("AddonBook.id")), "count"]
+      ],
+      where: { event_id, ticket_status: null },
+      include: [
+        {
+          model: Addons,
+          as: "Addon", // match your association alias
+          attributes: ["id", "name"]
+        }
+      ],
+      group: ["Addon.id", "Addon.name"],
+      raw: true,
+      nest: true,
+    });
+
+    // Calculate total tickets sold
+    const totalTicketSale = ticketCounts.reduce(
+      (acc, item) => acc + parseInt(item.count || 0),
+      0
+    );
+
+    // Calculate total addons sold
+    const totalAddonSale = addonCounts.reduce(
+      (acc, item) => acc + parseInt(item.count || 0),
+      0
+    );
+
+    return {
+      ticket_sales: ticketCounts || [],
+      addon_sales: addonCounts || [],
+      total_ticket_sale: totalTicketSale,
+      total_addon_sale: totalAddonSale,
+    };
+  } catch (error) {
+    console.error("Error fetching ticket sales count:", error);
+    throw new Error("Unable to fetch ticket sales count");
+  }
+}
+
+export async function getAllEventSales() {
+  try {
+    // Fetch all events first
+    const events = await Event.findAll({
+      attributes: ["id", "name"],
+      order: [["id", "DESC"]],
+      raw: true,
+    });
+
+    const results = [];
+
+    for (const event of events) {
+      const event_id = event.id;
+
+      // Ticket-wise count
+      const ticketCounts = await MyTicketBook.findAll({
+        attributes: [
+          [Sequelize.col("EventTicketType.id"), "ticket_type_id"],
+          [Sequelize.col("EventTicketType.title"), "ticket_name"],
+          [Sequelize.fn("COUNT", Sequelize.col("MyTicketBook.id")), "count"],
+        ],
+        where: { event_id, ticket_status: null },
+        include: [
+          {
+            model: EventTicketType,
+            as: "EventTicketType",
+            attributes: [],
+          },
+        ],
+        group: ["EventTicketType.id", "EventTicketType.title"],
+        raw: true,
+      });
+
+      // Addon-wise count
+      const addonCounts = await AddonBook.findAll({
+        attributes: [
+          [Sequelize.col("Addon.id"), "addon_id"],
+          [Sequelize.col("Addon.name"), "addon_name"],
+          [Sequelize.fn("COUNT", Sequelize.col("AddonBook.id")), "count"],
+        ],
+        where: { event_id, ticket_status: null },
+        include: [
+          {
+            model: Addons,
+            as: "Addon",
+            attributes: [],
+          },
+        ],
+        group: ["Addon.id", "Addon.name"],
+        raw: true,
+      });
+
+      // Totals
+      const totalTicketSale = ticketCounts.reduce(
+        (acc, t) => acc + parseInt(t.count || 0),
+        0
+      );
+      const totalAddonSale = addonCounts.reduce(
+        (acc, a) => acc + parseInt(a.count || 0),
+        0
+      );
+
+      results.push({
+        event_id,
+        eventName: event.name,
+        ticketType: ticketCounts,
+        addonType: addonCounts,
+        totalTicketSale,
+        totalAddonSale,
+      });
+    }
+
+    return results;
+  } catch (error) {
+    console.error("Error fetching all event sales:", error);
+    throw new Error("Unable to fetch all event sales data");
+  }
+}
+
+export async function getAllEventSalesCount() {
+  try {
+    // Fetch all events first
+    const events = await Event.findAll({
+      attributes: ["id", "name"],
+      order: [["id", "DESC"]],
+      raw: true,
+    });
+
+    const results = [];
+
+    for (const event of events) {
+      const event_id = event.id;
+
+      // Ticket-wise count
+      const ticketCounts = await MyTicketBook.findAll({
+        attributes: [
+          [Sequelize.fn("COUNT", Sequelize.col("MyTicketBook.id")), "count"],
+        ],
+        where: { event_id, ticket_status: null },
+        raw: true,
+      });
+
+      // Addon-wise count
+      const addonCounts = await AddonBook.findAll({
+        attributes: [
+          [Sequelize.fn("COUNT", Sequelize.col("AddonBook.id")), "count"],
+        ],
+        where: { event_id, ticket_status: null },
+        raw: true,
+      });
+
+      // Totals
+      const totalTicketSale = ticketCounts.reduce(
+        (acc, t) => acc + parseInt(t.count || 0),
+        0
+      );
+      const totalAddonSale = addonCounts.reduce(
+        (acc, a) => acc + parseInt(a.count || 0),
+        0
+      );
+
+      results.push({
+        event_id,
+        eventName: event.name,
+        totalTicketSale,
+        totalAddonSale,
+      });
+    }
+
+    return results;
+  } catch (error) {
+    console.error("Error fetching all event sales:", error);
+    throw new Error("Unable to fetch all event sales data");
+  }
+}
 
 // Currency View
 export async function getAllCurrency(req, res) {

@@ -19,14 +19,12 @@ import {
   viewEventDetailsAdminPreview,
   addTicketsAddons,
   findCompleteOrderListByEvent,
-  updateEventStatus //update event status
+  updateEventStatus, //update event status
+  ticket_sales_count,
+  getAllEventSalesCount
 } from "@/shared/services/admin/eventmanager/eventservices";
 import fs from "fs";
-// export const config = {
-//   api: {
-//     bodyParser: false,
-//   },
-// };
+
 
 import { imageUpload } from "@/utils/fileUpload";
 import { uploadToS3 } from '@/utils/s3Uploader';
@@ -122,7 +120,14 @@ export default async function handler(req, res) {
         case "GET": {
           const { id, active, key, event_id } = query;
 
-          if (key == "get_summary") {
+          if (key == 'event_ticket_sale_count') {
+            const result = await getAllEventSalesCount();
+            return res.status(200).json({
+              success: true,
+              message: "Ticket sales count fetched successfully",
+              data: result
+            });
+          } else if (key == "get_summary") {
             let getResponse;
             if (event_id) {
               getResponse = await getEventSaleSummaryByEventId(req, res);
@@ -221,32 +226,6 @@ export default async function handler(req, res) {
           });
           break;
         }
-        // case "PUT": {
-        //   try {
-        //     imageUpload.single("ImageURL")(req, res, async (err) => {
-        //       if (err) {
-        //         console.error("Error uploading image:", err);
-        //         return res
-        //           .status(400)
-        //           .json({ message: "Error uploading image", error: err.message });
-        //       }
-        //       const { id } = query;
-        //       if (req.file) {
-        //         const { filename } = req.file;
-        //         const EdiEvents = await UpdateEvent({ id, filename }, req, res);
-        //         res.status(200).json({ EdiEvents });
-        //       } else {
-        //         // console.log("rewiuofr", req.body);
-        //         const EdiEvents = await UpdateEvent({ id }, req, res);
-        //         res.status(200).json({ EdiEvents });
-        //       }
-        //     });
-        //   } catch (error) {
-        //     console.error("Error processing request:", error);
-        //     res.status(500).json({ error: "Internal Server Error" });
-        //   }
-        //   break;
-        // }
 
         default:
           res.setHeader("Allow", ["POST", "GET", "PUT", "DELETE"]);

@@ -30,6 +30,7 @@ export default async function handler(req, res) {
             addonsData,
         } = response.data.data;
 
+
         let synced = {
             housingInserted: 0,
             housingUpdated: 0,
@@ -63,6 +64,7 @@ export default async function handler(req, res) {
         for (const record of eventHousingData) {
             const existing = await EventHousing.findOne({ where: { id: record.id } });
             if (existing) {
+                // console.log('>>>>>>>>>>>', record);
                 // if (new Date(record.updatedAt) > new Date(existing.updatedAt)) {
                 await existing.update(record);
                 synced.eventUpdated++;
@@ -86,7 +88,6 @@ export default async function handler(req, res) {
                 synced.bedroomInserted++;
             }
         }
-
 
         // Step 5️⃣: Sync Event Data
         for (const record of eventData) {
