@@ -1,40 +1,69 @@
 import Sequelize from "sequelize";
-import config from "./config/config.js"; // ✅ ensure .js if using ES modules
+
+// DB configuration (merged)
+const dbConfig = {
+  development: {
+    username: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD || null,
+    database: process.env.DB_NAME || "dev_db",
+    host: process.env.HOST || "localhost",
+    port: 3306,
+    dialect: "mysql",
+    dialectOptions: {
+      charset: "utf8mb4",
+    },
+    define: {
+      charset: "utf8mb4",
+      collate: "utf8mb4_unicode_ci",
+    },
+  },
+  production: {
+    username: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    host: process.env.HOST,
+    port: 3306,
+    dialect: "mysql",
+    dialectOptions: {
+      charset: "utf8mb4",
+    },
+    define: {
+      charset: "utf8mb4",
+      collate: "utf8mb4_unicode_ci",
+    },
+  },
+  test: {
+    username: "root",
+    password: null,
+    database: "database_test",
+    host: "127.0.0.1",
+    dialect: "mysql",
+  },
+};
+
+// Determine environment
+const env = process.env.NODE_ENV || "development";
+console.log(`🌐 Current Environment: ${env}`);
+
+const config = dbConfig[env];
+
+if (!config) {
+  console.error(`❌ Database configuration for "${env}" not found.`);
+  // process.exit(1);
+}
 
 let sequelize;
 
-console.log("Current NODE_ENV:", process.env.NODE_ENV);
-// console.log("Database Config:", config);
-
 try {
-  // Choose config based on NODE_ENV
-  switch (process.env.NODE_ENV) {
-    case "production":
-      sequelize = new Sequelize(config.production);
-      break;
-    case "staging":
-      sequelize = new Sequelize(config.staging);
-      break;
-    case "test":
-      sequelize = new Sequelize(config.test);
-      break;
-    case "development":
-      sequelize = new Sequelize(config.development);
-      break;
-    default:
-      sequelize = new Sequelize(config.development);
-      break;
-  }
+  sequelize = new Sequelize(config);
 
-  // ✅ Test database connection
+  // Test DB connection
   await sequelize.authenticate();
-  console.log("✅ Database connection has been established successfully.");
+  console.log(`✅ Successfully connected to the database (${env})`);
 } catch (error) {
-  console.error("❌ Unable to connect to the database:", error.message);
-  //   process.exit(1); // Exit the app if DB connection fails
+  console.error(`❌ Database connection failed (${env}):`, error.message);
+  // process.exit(1);
 }
 
-const connection = sequelize;
-
-export { sequelize }; // Named export
-export default connection;
+export { sequelize };
+export default sequelize;
