@@ -228,6 +228,12 @@ const EventOrganisersList = () => {
                   >
                     Add New Organizer
                   </Link>
+                  <Link
+                    className="btn ripple btn-info btn-sm"
+                    href={"/admin/organizer/api-documentation"}
+                  >
+                    API Docs
+                  </Link>
                 </div>
               </div>
             </Card.Header>
