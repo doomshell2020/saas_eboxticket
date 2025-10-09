@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Op } from "sequelize";
-import { Housing, EventHousing, HousingBedrooms, Event, EventTicketType, Addons } from "@/database/models";
+import { Housing, EventHousing, HousingBedrooms, Event, EventTicketType, Addons, CouponsModel } from "@/database/models";
 
 
 export default async function handler(req, res) {
@@ -28,6 +28,7 @@ export default async function handler(req, res) {
             eventData,
             eventTicketTypeData,
             addonsData,
+            getCouponsList
         } = response.data.data;
 
 
@@ -44,6 +45,8 @@ export default async function handler(req, res) {
             ticketTypeUpdated: 0,
             addonsInserted: 0,
             addonsUpdated: 0,
+            couponUpdated: 0,
+            couponInserted: 0,
         };
 
         // Step 2️⃣: Sync Housing Data
@@ -125,8 +128,19 @@ export default async function handler(req, res) {
             }
         }
 
+        // Step 8: Sync getCouponsList Data
+        for (const record of getCouponsList) {
+            const existing = await CouponsModel.findOne({ where: { id: record.id } });
+            if (existing) {
+                await existing.update(record);
+                synced.couponUpdated++;
+            } else {
+                await CouponsModel.create(record);
+                synced.couponInserted++;
+            }
+        }
 
-        // Step 5️⃣: Return sync summary
+        // Step Return sync summary
         return res.status(200).json({
             status: true,
             message: "Data synced successfully from Server A",
