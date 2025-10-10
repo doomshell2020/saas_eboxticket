@@ -65,9 +65,6 @@ const CryptoJS = require("crypto-js");
 // }
 
 export async function PromotionCodes({ eventName }, res) {
-  // const { eventName } = req.body;
-
-  //   console.log("eventName", eventName);
   try {
     const couponData = await Coupon.findAll({
       where: { status: "Y" },
@@ -75,60 +72,64 @@ export async function PromotionCodes({ eventName }, res) {
         {
           model: Event,
           where: { name: eventName },
-          include: [Currency],
+          attributes: ['id', 'name'],
+          include: [{ model: Currency, attributes: ['Currency_symbol'] }],
         },
       ],
       order: [["id", "DESC"]],
     });
 
-    const data = await Promise.all(
-      couponData.map(async (value, index) => {
-        // Find the total times the coupon code has been redeemed
-        const total_time_redeem = await Orders.count({
-          where: {
-            couponCode: value.code,
-          },
-        });
-
-        const coupon = {
-          id: value.id,
-          SNO: index + 1,
-          // EventName: value.Event.dataValues.Name,
-          PromoCode: value.code,
-          Discount:
-            value.discount_type === "percentage"
-              ? `${parseFloat(value.discount_value)}% OFF`
-              : `${value.Event.Currency.Currency_symbol}${parseFloat(
-                value.discount_value
-              )} OFF`,
-          ApplicableFor: value.applicable_for.toUpperCase(),
-          // maxRedeems: value.max_redeems,
-          // status: value.status === "Y",
-          // discountType:
-          //   value.discount_type === "percentage"
-          //     ? "Percentage"
-          //     : "Fixed Amount",
-          CreatedOn: value.createdAt.toISOString().split("T")[0],
-          Usage: total_time_redeem, // Add total redeem count
-        };
-
-        if (value.validity_period === "unlimited") {
-          coupon.Duration = "Unlimited";
-          coupon.StartOn = null;
-          coupon.ExpiresOn = null;
-        } else {
-          const StartOn = new Date(value.specific_date_from);
-          const ExpiresOn = new Date(value.specific_date_to);
-          const duration =
-            Math.round((ExpiresOn - StartOn) / (1000 * 60 * 60 * 24)) + 1;
-          coupon.Duration = duration + " Days";
-          coupon.StartOn = StartOn.toISOString().split("T")[0];
-          coupon.ExpiresOn = ExpiresOn.toISOString().split("T")[0];
+    // Get redemption counts in one query
+    const couponRedemptions = await Orders.findAll({
+      attributes: [
+        'couponCode',
+        [Sequelize.fn('COUNT', Sequelize.col('couponCode')), 'totalRedeemed']
+      ],
+      where: {
+        couponCode: {
+          [Op.in]: couponData.map(c => c.code)
         }
+      },
+      group: ['couponCode']
+    });
 
-        return coupon;
-      })
-    );
+    const redemptionMap = {};
+    couponRedemptions.forEach(r => {
+      redemptionMap[r.couponCode] = parseInt(r.get('totalRedeemed'), 10);
+    });
+
+    const data = couponData.map((value, index) => {
+      const coupon = {
+        id: value.id,
+        SNO: index + 1,
+        PromoCode: value.code,
+        Discount:
+          value.discount_type === "percentage"
+            ? `${parseFloat(value.discount_value)}% OFF`
+            : `${value.Event.Currency.Currency_symbol}${parseFloat(
+              value.discount_value
+            )} OFF`,
+        ApplicableFor: value.applicable_for.toUpperCase(),
+        CreatedOn: value.createdAt.toISOString().split("T")[0],
+        Usage: redemptionMap[value.code] || 0,
+      };
+
+      if (value.validity_period === "unlimited") {
+        coupon.Duration = "Unlimited";
+        coupon.StartOn = null;
+        coupon.ExpiresOn = null;
+      } else {
+        const StartOn = new Date(value.specific_date_from);
+        const ExpiresOn = new Date(value.specific_date_to);
+        const duration =
+          Math.round((ExpiresOn - StartOn) / (1000 * 60 * 60 * 24)) + 1;
+        coupon.Duration = duration + " Days";
+        coupon.StartOn = StartOn.toISOString().split("T")[0];
+        coupon.ExpiresOn = ExpiresOn.toISOString().split("T")[0];
+      }
+
+      return coupon;
+    });
 
     res.status(200).json({
       success: true,
