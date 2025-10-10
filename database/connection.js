@@ -43,7 +43,7 @@ const dbConfig = {
 
 // Determine environment
 const env = process.env.NODE_ENV || "development";
-console.log(`🌐 Current Environment: ${env}`);
+console.log(`🌐 Current Environment: ${dbConfig[env]}`);
 
 const config = dbConfig[env];
 
