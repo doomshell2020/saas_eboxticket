@@ -43,7 +43,10 @@ const dbConfig = {
 
 // Determine environment
 const env = process.env.NODE_ENV || "development";
-console.log(`🌐 Current Environment: ${dbConfig[env]}`);
+console.log(`🌐 Current host: ${dbConfig[env].host}`);
+console.log(`🌐 Current username: ${dbConfig[env].username}`);
+console.log(`🌐 Current password: ${dbConfig[env].password}`);
+console.log(`🌐 Current database: ${dbConfig[env].database}`);
 
 const config = dbConfig[env];
 
