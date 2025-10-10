@@ -86,10 +86,7 @@ const handler = async (req, res) => {
               const remaining_amount = await SendRemainingAmountEmail(req.body, res);
               res.json(remaining_amount);
             } else if (req.body.key == "transferTicketCheck") {
-              const ticketTransferCheck = await transferTicketCheck(
-                req.body,
-                res
-              );
+              const ticketTransferCheck = await transferTicketCheck(req.body,res);
               res.json(ticketTransferCheck);
             }
           } catch (error) {

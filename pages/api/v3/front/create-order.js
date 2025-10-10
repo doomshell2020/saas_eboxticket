@@ -20,7 +20,8 @@ import {
   updateDueAmount,
   updateDueAmountV3,
   extendAccommodationDate,
-  extendAccommodationDateV3
+  extendAccommodationDateV3,
+  createOrderStylePackage
 } from "@/shared/services/front/order_service";
 import fs from "fs";
 import path from "path";
@@ -31,16 +32,18 @@ export default async function handler(req, res) {
   if (req.method == "POST") {
     try {
       // Extract necessary fields from the request body
-      const { key, paymentIntentId, eventId, userId, propertyDetailsObj, totalTax, finalPrice, selectedPaymentOption, paymentBreakDown, isExtension } = req.body;
+      const { key, paymentIntentId, eventId, userId, propertyDetailsObj, totalTax, finalPrice, selectedPaymentOption, paymentBreakDown, isExtension, isStylingAddon } = req.body;
 
-      // return req.body;
-      // return res.json(req.body);
 
       let parsedPropertyDetails = null;
       parsedPropertyDetails = typeof propertyDetailsObj == 'string'
         ? JSON.parse(propertyDetailsObj)
         : propertyDetailsObj ?? null;
 
+      if (isStylingAddon && isStylingAddon == true || isStylingAddon == "true") {
+        const response = await createOrderStylePackage(req, res);
+        return res.json(response);
+      }
       if (isExtension == true || isExtension == 'true') {
         const response = await extendAccommodationDateV3(req, res);
         return res.json(response);
