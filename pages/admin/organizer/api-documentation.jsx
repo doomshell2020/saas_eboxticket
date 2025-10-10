@@ -154,6 +154,16 @@ const ApiDocumentation = () => {
             }
         },
         {
+            title: "Coupon Code List",
+            method: "POST",
+            endpoint: `${liveBaseUrl}/v3/orders`,
+            description: "Coupon Code List for Admin.",
+            body: {
+                "key": "PromotionCodes",
+                "eventName": "ONDALINDA x CAREYES 2025"
+            }
+        },
+        {
             title: "Order Create",
             method: "POST",
             endpoint: `${liveBaseUrl}/v3/front/create-order`,
