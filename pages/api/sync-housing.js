@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Op } from "sequelize";
-import { Housing, EventHousing, HousingBedrooms, Event, EventTicketType, Addons, CouponsModel } from "@/database/models";
+import { Housing, EventHousing, HousingBedrooms, Event, EventTicketType, Addons, CouponsModel, Payment } from "@/database/models";
 
 
 export default async function handler(req, res) {
@@ -11,24 +11,24 @@ export default async function handler(req, res) {
     }
 
     try {
+
         // Step 1️⃣: Fetch changed data from Server A
         const serverAUrl = "https://staging.ondalinda.com/api/cron"; // 👈 Update if needed
-        const response = await axios.post(serverAUrl, {
-            date: body.date || null, // if no date, Server A defaults to today
-        });
+        const response = await axios.post(serverAUrl, body);
 
         if (!response.data?.status) {
             return res.status(400).json({ message: "Failed to fetch data from Server A" });
         }
 
         const {
-            housingData,
-            eventHousingData,
-            housingBedRoomsData,
-            eventData,
-            eventTicketTypeData,
-            addonsData,
-            getCouponsList
+            housingData = [],
+            eventHousingData = [],
+            housingBedRoomsData = [],
+            eventData = [],
+            eventTicketTypeData = [],
+            addonsData = [],
+            getCouponsList = [],
+            paymentData = [],
         } = response.data.data;
 
 
@@ -47,6 +47,8 @@ export default async function handler(req, res) {
             addonsUpdated: 0,
             couponUpdated: 0,
             couponInserted: 0,
+            paymentUpdated: 0,
+            paymentInserted: 0,
         };
 
         // Step 2️⃣: Sync Housing Data
@@ -137,6 +139,18 @@ export default async function handler(req, res) {
             } else {
                 await CouponsModel.create(record);
                 synced.couponInserted++;
+            }
+        }
+
+        // Step 9: Sync Payment Data
+        for (const record of paymentData) {
+            const existing = await Payment.findOne({ where: { id: record.id } });
+            if (existing) {
+                synced.paymentUpdated++;
+                await existing.update(record);
+            } else {
+                synced.paymentInserted++;
+                await Payment.create(record);
             }
         }
 
