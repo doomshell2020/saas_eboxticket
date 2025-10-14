@@ -34,7 +34,6 @@ export default async function handler(req, res) {
       // Extract necessary fields from the request body
       const { key, paymentIntentId, eventId, userId, propertyDetailsObj, totalTax, finalPrice, selectedPaymentOption, paymentBreakDown, isExtension, isStylingAddon } = req.body;
 
-
       let parsedPropertyDetails = null;
       parsedPropertyDetails = typeof propertyDetailsObj == 'string'
         ? JSON.parse(propertyDetailsObj)
@@ -53,12 +52,7 @@ export default async function handler(req, res) {
       } else if (key == "resend_order") {
         const resendOrderEmail = await resendOrderEmailToMemberV3(req, res);
         res.status(200).json(resendOrderEmail);
-      }
-      //  else if (key == "resend_tickets") {
-      //   const resendTicketEmail = await resendTicketToMember(req, res);
-      //   res.status(200).json(resendTicketEmail);
-      // }
-      else if (key == "cancel_orders") {
+      } else if (key == "cancel_orders") {
         const cancelOrders = await cancelOrderV3(req, res);
         res.status(200).json(cancelOrders);
       } else if (key == "cancel_ticket") {

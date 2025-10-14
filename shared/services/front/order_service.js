@@ -180,10 +180,9 @@ export async function updateDueAmount(req, res) {
   }
 }
 
-
 export async function createOrderStylePackage(req, res) {
   console.log('----------------------------createOrderStylePackage called ---------------------------');
-  // return false
+
   const {
     paymentIntentId,
     eventId,
@@ -196,8 +195,85 @@ export async function createOrderStylePackage(req, res) {
     totalTax,
     isStylingAddon
   } = req.body;
+
   try {
-    // const totalCartAmt = amount / 100;
+    // Check if order already exists for this paymentIntentId
+    const existingOrder = await MyOrders.findOne({
+      where: { RRN: paymentIntentId },
+      include: [
+        { model: BookTicket },
+        { model: AddonBook },
+      ]
+    });
+    // console.log('........................',existingOrder)
+    // return false;
+
+    if (existingOrder) {
+      const totalOrders = await MyOrders.findOne({
+        where: { id: existingOrder.id },
+        attributes: [
+          "id",
+          "OriginalTrxnIdentifier",
+          "RRN",
+          "total_amount",
+          "total_tax_amount",
+          "discountAmount",
+          "discountType",
+          "couponCode",
+          "is_free",
+          "adminfee",
+          "createdAt",
+          "totalAddonAmount",
+          "totalAddonTax",
+          "totalTicketAmount",
+          "totalTicketTax",
+          "totalAccommodationAmount",
+          "totalAccommodationTax",
+        ],
+        include: [
+          { model: User, attributes: ["ID", "FirstName", "LastName", "Email"] },
+          {
+            model: BookTicket,
+            attributes: ["id", "event_ticket_id", "amount"],
+            include: [
+              { model: EventTicketType, attributes: ["id", "title", "ticket_image"] },
+              { model: TicketDetail, attributes: ["id", "ticket_num", "qrcode"] },
+            ],
+            required: false,
+          },
+          {
+            model: AddonBook,
+            include: [{
+              model: Addons, attributes: ["id",
+                "name",
+                "addon_location",
+                "addon_time",
+                "addon_day",
+                "addon_image",
+                "sortName",
+                "sort_day",
+                "addon_type"]
+            }],
+            attributes: ["id", "price", "addon_qrcode"],
+            required: false,
+          },
+        ],
+        order: [["id", "DESC"]],
+      });
+
+      const paymentData = await Payment.findOne({
+        where: { payment_intent: paymentIntentId },
+      });
+
+      return res.json({
+        success: true,
+        status: 200,
+        message: "Order already exists",
+        data: { totalOrders, paymentData },
+      });
+    }
+
+    // ----- continue with existing order creation logic -----
     const totalCartAmt = amount || 0;
     const discount_type = couponDetails?.discount_type || null;
     const discount_value = couponDetails?.discount_value || 0;
@@ -205,7 +281,6 @@ export async function createOrderStylePackage(req, res) {
     const code = couponDetails?.coupon_code || null;
     const adminFee = adminFees ?? 0;
     const donationFee = donationFees ?? 0;
-
 
     // Update paymentInfo status to succeeded
     const paymentData = await Payment.findOne({
@@ -216,7 +291,6 @@ export async function createOrderStylePackage(req, res) {
       await paymentData.update({ paymentstatus: "succeeded", totalTaxes: totalTax });
     }
 
-    // Destructure the required fee fields from paymentData
     const {
       ticketBankFee = 0,
       ticketPlatformFee = 0,
@@ -234,17 +308,15 @@ export async function createOrderStylePackage(req, res) {
       clientsecret = null
     } = paymentData || {};
 
-
     const userInfo = await User.findOne({
       where: { id: userId },
       attributes: ["PhoneNumber", "LastName", "FirstName", "Email", "ID"],
     });
-    // Initialize totals
+
     let totalTicketCount = 0;
     let totalAddonCount = 0;
     let totalActualAmount = 0;
 
-    // Calculate totals from cartData
     for (const cartItem of cartData) {
       if (cartItem.ticketType == "ticket") {
         totalTicketCount += cartItem.noTickets;
@@ -255,7 +327,6 @@ export async function createOrderStylePackage(req, res) {
       }
     }
 
-    // Create order
     const orderResponse = await Order.create({
       user_id: userId,
       Approved: "succeeded",
@@ -274,24 +345,20 @@ export async function createOrderStylePackage(req, res) {
       RRN: paymentIntentId,
       total_tax_amount: totalTax,
       OrderIdentifier: clientsecret,
-
       totalAddonAmount,
       totalAddonTax,
       totalTicketAmount,
       totalTicketTax,
-
       ticketBankFee,
       ticketPlatformFee,
       ticketProcessingFee,
       ticketStripeFee,
-
       ticket_platform_fee_percentage,
       ticket_stripe_fee_percentage,
       ticket_bank_fee_percentage,
       ticket_processing_fee_percentage
     });
 
-    // Generate the transaction identifier
     const orderId = orderResponse.id;
     const trxnIde = `M-${userId}-${orderId}`;
     await orderResponse.update({ OriginalTrxnIdentifier: trxnIde });
@@ -317,7 +384,7 @@ export async function createOrderStylePackage(req, res) {
           const ticketNum = `T${ticketId}`;
           const ticketDetail = await TicketDetail.create({
             tid: ticketId,
-            ticket_num: `T${ticketId}`,
+            ticket_num: ticketNum,
             generated_id: ticketNum,
             user_id: userId,
             status: "0",
@@ -333,16 +400,12 @@ export async function createOrderStylePackage(req, res) {
           if (qrCodeImage.success) {
             await ticketDetail.update({ qrcode: qrCodeImage.filePath });
           }
-
         }
-
       } else if (cartItem.ticketType == "addon" && cartItem.ticketId) {
-
         const addonPrice = cartItem.price || 0;
         const addonCount = cartItem.noTickets || 0;
 
         for (let index = 1; index <= addonCount; index++) {
-          AddonsID = cartItem.ticketId;
           const addonBook = await AddonBook.create({
             addons_id: cartItem.ticketId,
             event_id: eventId,
@@ -350,17 +413,18 @@ export async function createOrderStylePackage(req, res) {
             user_id: userId,
             price: addonPrice,
           });
+
           const qrCodeImage = await generateTicketQrToS3({
             userId,
             orderId,
             ticketId: addonBook.id,
             ticketType: "addon",
           });
+
           if (qrCodeImage.success) {
             await addonBook.update({ addon_qrcode: qrCodeImage.filePath });
           }
         }
-
       }
     }
 
@@ -399,7 +463,8 @@ export async function createOrderStylePackage(req, res) {
         {
           model: AddonBook,
           include: [{
-            model: Addons, attributes: ["id",
+            model: Addons, attributes: [
+              "id",
               "name",
               "addon_location",
               "addon_time",
@@ -407,7 +472,8 @@ export async function createOrderStylePackage(req, res) {
               "addon_image",
               "sortName",
               "sort_day",
-              "addon_type"]
+              "addon_type"
+            ]
           }],
           attributes: ["id", "price", "addon_qrcode"],
           required: false,
@@ -419,16 +485,9 @@ export async function createOrderStylePackage(req, res) {
     return res.json({
       success: true,
       status: 200,
-      message: "Order create successfully",
+      message: "Order created successfully",
       data: { totalOrders, paymentData },
     });
-
-    // return {
-    //   success: true,
-    //   status: 200,
-    //   message: "Payment details updated successfully.",
-    //   data: { totalOrders, paymentData },
-    // };
 
   } catch (error) {
     console.error("Error createOrderStylePackage Function Order:", error.message);
@@ -439,6 +498,7 @@ export async function createOrderStylePackage(req, res) {
     };
   }
 }
+
 
 
 export async function updateDueAmountV3(req, res) {
