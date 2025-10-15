@@ -579,6 +579,7 @@ export async function updateDueAmountV3(req, res) {
       message: "Payment updated successfully",
       data: {
         order,
+        paymentIntentId, OriginalTrxnIdentifier
         payment: {
           id: paymentData.id,
           payment_intent: paymentData.payment_intent,
