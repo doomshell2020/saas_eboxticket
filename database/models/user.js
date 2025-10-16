@@ -93,6 +93,8 @@ const initUser = (sequelize, Types) => {
             States: DataTypes.STRING,
             test_email: DataTypes.STRING,
             donation_fees: DataTypes.FLOAT,
+            IsVerified: Types.INTEGER,
+            VerificationToken: Types.STRING,
             // member_status: Types.INTEGER,
             member_status: {
                 type: Types.STRING,
