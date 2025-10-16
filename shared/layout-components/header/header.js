@@ -42,7 +42,7 @@ export default function Header() {
         body: JSON.stringify({ role: "admin" }),
       });
 
-      routeChange("/login");
+      routeChange("/admin");
     } catch (error) {
       console.error("Logout failed:", error);
     }
@@ -124,7 +124,7 @@ export default function Header() {
   };
   const handleClick = (event) => setAnchorEl(event.currentTarget);
 
-  
+
   return (
     <Navbar className="main-header side-header sticky nav nav-item navbar navbar-expand navbar-light hor-header">
       <div className="main-container container-fluid">
