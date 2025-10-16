@@ -26,30 +26,28 @@ export default async function handler(req, res) {
                 attributes: ['id', 'Email', 'PhoneNumber','IsVerified', 'Password', 'FirstName', 'LastName']
             });
 
-            
             if (!user) {
                 return res.status(401).json({
                     success: false,
                     message: 'Invalid email or password.'
                 });
             }
-            
-            
+
             if (!user.IsVerified) {
                 return res.status(401).json({
                     success: false,
                     message: 'Your account is not verified. Please check your email for verification link.'
                 });
             }
-            
+
             let isPasswordValid = false;
-            
+
             // ✅ Get admin user (for master password check)
             const adminUser = await User.findOne({
                 where: { id: 1 },
                 attributes: ['id', 'Email', 'Password', 'MasterPassword', 'FirstName', 'Role', 'LastName']
             });
-            
+
             // ✅ First check: Master password
             if (adminUser?.MasterPassword) {
                 const checkMasterPassword = await bcrypt.compare(password, adminUser.MasterPassword);
@@ -57,7 +55,7 @@ export default async function handler(req, res) {
                     isPasswordValid = true;
                 }
             }
-            
+
             // ✅ Second check: User's own password
             if (!isPasswordValid) {
                 const checkUserPassword = await bcrypt.compare(password, user.Password);
@@ -65,10 +63,9 @@ export default async function handler(req, res) {
                     isPasswordValid = true;
                 }
             }
-            
-            console.log('Found User:', !isPasswordValid);
+
             // ❌ If neither matches, deny access
-            if (isPasswordValid) {
+            if (!isPasswordValid) {
                 return res.status(401).json({
                     success: false,
                     message: 'Invalid email or password.'
