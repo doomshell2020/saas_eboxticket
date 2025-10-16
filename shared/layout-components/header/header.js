@@ -1,190 +1,130 @@
 import React, { useState, useEffect } from "react";
 import { Navbar, Dropdown, Button, Form, Col, Row, Modal } from "react-bootstrap";
-import PerfectScrollbar from 'react-perfect-scrollbar';
-import Link from "next/link"
-import { useDispatch, useSelector } from 'react-redux';
-import { Delete } from '../../redux/actions/action';
-// import ProductService from '../../services/ProductService';
+import PerfectScrollbar from "react-perfect-scrollbar";
+import Link from "next/link";
+import { useDispatch, useSelector } from "react-redux";
+import { Delete } from "../../redux/actions/action";
 import { useRouter } from "next/router";
 import Image from "next/image";
 
 export default function Header() {
-  let { basePath } = useRouter()
-  let navigate = useRouter();
-
-  const routeChange = () => {
-    let path = `/`;
-    navigate.push(path);
-  }
-  const [Lang, setLang] = React.useState(false);
-
-  function Fullscreen() {
-    if (
-      (document.fullScreenElement && document.fullScreenElement === null) ||
-      (!document.mozFullScreen && !document.webkitIsFullScreen)
-    ) {
-      if (document.documentElement.requestFullScreen) {
-        document.documentElement.requestFullScreen();
-      } else if (document.documentElement.mozRequestFullScreen) {
-        document.documentElement.mozRequestFullScreen();
-      } else if (document.documentElement.webkitRequestFullScreen) {
-        document.documentElement.webkitRequestFullScreen(
-          Element.ALLOW_KEYBOARD_INPUT
-        );
-      }
-    } else {
-      if (document.cancelFullScreen) {
-        document.cancelFullScreen();
-      } else if (document.mozCancelFullScreen) {
-        document.mozCancelFullScreen();
-      } else if (document.webkitCancelFullScreen) {
-        document.webkitCancelFullScreen();
-      }
-    }
-  }
-
-
-  //leftsidemenu
-  const openCloseSidebar = () => {
-    document.querySelector("body").classList.toggle("sidenav-toggled");
-  };
-  //rightsidebar
-  const Rightsidebar = () => {
-    document.querySelector(".sidebar-right").classList.add("sidebar-open");
-  };
-  const Darkmode = () => {
-    document.querySelector(".app").classList.toggle("dark-theme");
-    document.querySelector(".app").classList.remove("light-theme");
-  };
-
-  // responsivesearch
-  const responsivesearch = () => {
-    document.querySelector(".navbar-form").classList.toggle("active");
-  };
-  //swichermainright
-  const swichermainright = () => {
-    document.querySelector(".demo_changer").classList.toggle("active");
-    document.querySelector(".demo_changer").style.right = "0px";
-  };
-  const [price, setPrice] = React.useState(0);
-  // console.log(price);
-
-  let getdata = useSelector((state) => state.cartreducer.carts);
-
-
+  const router = useRouter();
   const dispatch = useDispatch();
+  const getdata = useSelector((state) => state.cartreducer.carts || []);
 
-  const [anchorEl, setAnchorEl] = React.useState(null);
+  // -------------------------
+  // States
+  // -------------------------
+  const [Lang, setLang] = useState(false);
+  const [price, setPrice] = useState(0);
+  const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-    // console.log(open)
-  };
+  const [Data, setData] = useState([]);
+  const [profile, setProfile] = useState({});
 
+  // -------------------------
+  // Navigation
+  // -------------------------
+  const routeChange = (path = "/login") => router.push(path);
 
-  const [Data, setData] = React.useState([]);
-
-  // const { id } = useParams();
-  const { id } = "";
-
-  const compare = () => {
-    let comparedata = getdata.filter((e) => {
-      // console.log(e, id)
-      return e.id === id
-    });
-    setData(comparedata);
-  }
-
-  React.useEffect(() => {
-    compare();
-    // eslint-disable-next-line 
-  }, [id])
-
-  // const ondelete = (id) => {
-  //   dispatch(Delete(id))
-  // }
-
-
-  function total() {
-    let price = 0;
-    getdata.map((ele) => {
-      price = ele.price * ele.qnty + price
-      return price;
-    });
-    setPrice(price);
-  };
-
-  React.useEffect(() => {
-    total();
-  })
-
+  // -------------------------
+  // Logout
+  // -------------------------
   const handleLogout = async () => {
     try {
-      // 1. Clear localStorage
-      localStorage.removeItem('accessToken_');
-      localStorage.removeItem('UserID_');
-      sessionStorage.clear(); // optional if used
-      // 2. Call backend to clear auth cookie
-      await fetch('/api/logout', {
-        method: 'POST',
+      localStorage.removeItem("accessToken_");
+      localStorage.removeItem("UserID_");
+      sessionStorage.clear();
+
+      await fetch("/api/logout", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "admin" }),
       });
-      // 3. Redirect to login or home
-      routeChange();
+
+      routeChange("/login");
     } catch (error) {
       console.error("Logout failed:", error);
     }
   };
 
-
-
-  // const clearUserData = () => {
-  //   localStorage.clear();
-  //   // navigate("/admin", { replace: true });
-  //   return true;
-  // };
-
-  const [profile, setProfile] = useState({})
+  // -------------------------
+  // Fetch Admin Profile
+  // -------------------------
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storeToken = localStorage.getItem('accessToken_');
-      if (!storeToken) {
-        routeChange();
-        return;
+    const fetchProfile = async () => {
+      const token = localStorage.getItem("accessToken_");
+      if (!token) return routeChange("/login");
+
+      try {
+        const response = await fetch("/api/v1/users", {
+          headers: { Authorization: token },
+        });
+
+        const data = await response.json();
+        if (data.success && data.data) setProfile(data.data);
+        else routeChange("/login");
+      } catch (error) {
+        console.error("Fetch profile error:", error.message);
+        routeChange("/login");
       }
+    };
 
-      const option = {
-        headers: {
-          Authorization: storeToken,
-        },
-      };
-
-      const fetchProfile = async () => {
-        try {
-          const response = await fetch('/api/v1/users', option);
-          const data = await response.json();
-          if (data.success) {
-            setProfile(data.data);
-          } else {
-            routeChange();
-          }
-          // if (!response.ok) {
-          //   routeChange();
-          //   return;
-          // }
-          // setProfile(data.data);
-        } catch (error) {
-          console.error('There was a problem with your fetch request:', error.message);
-        }
-      };
-
-      fetchProfile();
-    }
+    fetchProfile();
   }, []);
 
+  // -------------------------
+  // Cart Total
+  // -------------------------
+  useEffect(() => {
+    const total = getdata.reduce((acc, item) => acc + item.price * item.qnty, 0);
+    setPrice(total);
+  }, [getdata]);
 
+  // -------------------------
+  // Compare function
+  // -------------------------
+  const compare = (id = "") => {
+    const comparedata = getdata.filter((e) => e.id === id);
+    setData(comparedata);
+  };
 
+  // -------------------------
+  // UI Functions
+  // -------------------------
+  const Fullscreen = () => {
+    if (
+      !document.fullscreenElement &&
+      !document.mozFullScreen &&
+      !document.webkitIsFullScreen
+    ) {
+      const docEl = document.documentElement;
+      if (docEl.requestFullscreen) docEl.requestFullscreen();
+      else if (docEl.mozRequestFullScreen) docEl.mozRequestFullScreen();
+      else if (docEl.webkitRequestFullScreen)
+        docEl.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+      else if (document.webkitCancelFullScreen) document.webkitCancelFullScreen();
+    }
+  };
+
+  const openCloseSidebar = () => document.body.classList.toggle("sidenav-toggled");
+  const Rightsidebar = () => document.querySelector(".sidebar-right")?.classList.add("sidebar-open");
+  const Darkmode = () => {
+    document.querySelector(".app")?.classList.toggle("dark-theme");
+    document.querySelector(".app")?.classList.remove("light-theme");
+  };
+  const responsivesearch = () => document.querySelector(".navbar-form")?.classList.toggle("active");
+  const swichermainright = () => {
+    const elem = document.querySelector(".demo_changer");
+    elem?.classList.toggle("active");
+    if (elem) elem.style.right = "0px";
+  };
+  const handleClick = (event) => setAnchorEl(event.currentTarget);
+
+  
   return (
     <Navbar className="main-header side-header sticky nav nav-item navbar navbar-expand navbar-light hor-header">
       <div className="main-container container-fluid">
