@@ -90,6 +90,8 @@ const LoginPage = () => {
     }
   };
   const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slider_bg.jpg');
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <>
       <FrontendHeader backgroundImage={backgroundImage} />
@@ -126,7 +128,7 @@ const LoginPage = () => {
                       />
                     </div>
 
-                    <div>
+                    {/* <div>
                       <input
                         id="password"
                         type="password"
@@ -137,7 +139,35 @@ const LoginPage = () => {
                         className="form-control"
                         required
                       />
+                    </div> */}
+
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        id="password"
+                        type={showPassword ? "text" : "password"} // toggle type
+                        name="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder=" password"
+                        className="form-control"
+                        required
+                      />
+                      <span
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {showPassword ? 'Hide' : 'Show'}
+                      </span>
                     </div>
+
+
+
                     <div className="row justify-content-between">
                       <div className="col-6">
                         <div className="form-check">

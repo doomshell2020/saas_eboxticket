@@ -56,6 +56,7 @@ export default async function handler(req, res) {
                 }
             }
 
+
             // ✅ Second check: User's own password
             if (!isPasswordValid) {
                 const checkUserPassword = await bcrypt.compare(password, user.Password);
@@ -63,6 +64,7 @@ export default async function handler(req, res) {
                     isPasswordValid = true;
                 }
             }
+            console.log('>>>>>>>>>>>>>>>>',!isPasswordValid)
 
             // ❌ If neither matches, deny access
             if (!isPasswordValid) {
