@@ -2563,7 +2563,7 @@ export async function ticketExport(
       };
 
       if (ticketDetail?.transfer_reply && ticketDetail?.transfer_user_id != null) {
-        console.log('>>>>>>>>>ticketDetail',ticketDetail.TransferUser.dataValues);
+        // console.log('>>>>>>>>>ticketDetail',ticketDetail.TransferUser.dataValues);
         const { FirstName, LastName, Email } = ticketDetail.TransferUser.dataValues;
 
         // const transferUser = await User.findOne({
