@@ -40,8 +40,6 @@ import { generateTicketQrToS3, generateAccommodationQrToS3 } from "@/utils/gener
 let SITE_URL = process.env.NEXT_PUBLIC_SITE_URL;
 let NEXT_S3_URL = process.env.NEXT_PUBLIC_S3_URL;
 
-
-
 const Sequelize = require("sequelize");
 const Op = Sequelize.Op;
 const encryptionKey = "yourEncryptionKey";
