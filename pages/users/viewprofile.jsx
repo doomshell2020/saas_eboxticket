@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import FrontendHeader from "@/shared/layout-components/frontelements/frontendheader";
 import FrontendFooter from "@/shared/layout-components/frontelements/frontendfooter";
+import { name } from "@/shared/data/switcher/Switcherdata";
 
 
 const ProfilePage = () => {
@@ -20,8 +21,9 @@ const ProfilePage = () => {
     }
   }, [router]);
 
+  // console.log('>>>>>>>>>>>>>>>>>>>>>>>>>',user);
 
-const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slider_bg.jpg');
+  const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slider_bg.jpg');
   return (
     <>
       <FrontendHeader backgroundImage={backgroundImage} />
@@ -43,9 +45,9 @@ const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slid
                       alt="Maxwell Admin"
                     />
                   </div>
-                  <h5 className="user-name text-center text-16 my-3">Rupam Singh</h5>
+                  <h5 className="user-name text-center text-16 my-3">{user?.name}</h5>
                   <Link
-                    className=" primery-button text-14 fw-normal "href="/"
+                    className=" primery-button text-14 fw-normal " href="/"
                   >
                     <i className="fas fa-edit"></i> Edit Profile
                   </Link>
@@ -58,20 +60,16 @@ const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slid
                     <tbody>
                       <tr>
                         <td className="border-top-0">Email</td>
-                        <td className="border-top-0">rupam@doomshell.com</td>
+                        <td className="border-top-0">{user?.email}</td>
                       </tr>
                       <tr>
                         <td>Registered On</td>
                         <td>Fri, 30th May 2025 04:47 AM</td>
                       </tr>
                       <tr>
-                        <td>First Name</td>
-                        <td>Rupam</td>
-                      </tr>
-                      <tr>
-                        <td>Last Name</td>
-                        <td>Singh</td>
-                      </tr>
+                        <td>Name</td>
+                        <td>{user?.name}</td>
+                      </tr>                      
                       <tr>
                         <td>Date of Birth</td>
                         <td>01-01-2000</td>

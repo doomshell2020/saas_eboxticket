@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="oEr1UiwORU1CSs5Gnhbm" name="Project Flow">
-        <mxGraphModel dx="1080" dy="1887" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+        <mxGraphModel dx="1386" dy="1887" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -66,13 +66,13 @@
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="27" value="Admin Review" style="whiteSpace=wrap;html=1;strokeColor=#3d85c6;fontColor=#fff;rounded=1;fontStyle=1;gradientColor=default;" parent="1" vertex="1">
-                    <mxGeometry x="50" y="1290" width="110" height="40" as="geometry"/>
+                    <mxGeometry x="55" y="1290" width="110" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="31" value="Public" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#005700;fontColor=#ffffff;rounded=1;fontStyle=1;fillColor=#008a00;" parent="1" vertex="1">
                     <mxGeometry x="205" y="1270" width="80" height="80" as="geometry"/>
                 </mxCell>
                 <mxCell id="33" value="Deactive" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#A50040;fontColor=#ffffff;rounded=1;fontStyle=1;fillColor=light-dark(#D80073,#FF0000);" parent="1" vertex="1">
-                    <mxGeometry x="65" y="1360" width="80" height="80" as="geometry"/>
+                    <mxGeometry x="70" y="1360" width="80" height="80" as="geometry"/>
                 </mxCell>
                 <mxCell id="45" value="" style="edgeStyle=none;html=1;" parent="1" source="35" target="44" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
@@ -105,7 +105,7 @@
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="62" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;Eboxticket&lt;/b&gt;&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" parent="1" vertex="1">
-                    <mxGeometry x="550" width="120" height="60" as="geometry"/>
+                    <mxGeometry x="530" width="120" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="64" style="edgeStyle=none;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.456;entryY=-0.024;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="62" target="59" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
@@ -268,7 +268,7 @@
                     <mxGeometry x="1380" y="220" width="120" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="147" value="Members" style="whiteSpace=wrap;html=1;rounded=1;gradientColor=default;" parent="1" vertex="1">
-                    <mxGeometry x="1530" y="220" width="120" height="40" as="geometry"/>
+                    <mxGeometry x="1520" y="220" width="120" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="148" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.429;entryY=-0.067;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="137" target="146" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
@@ -325,8 +325,16 @@
                 <mxCell id="165" value="" style="edgeStyle=none;html=1;" parent="1" source="163" target="164" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="163" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;&lt;b&gt;Ondalinda&lt;/b&gt;&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" parent="1" vertex="1">
-                    <mxGeometry x="2680" width="240" height="70" as="geometry"/>
+                <mxCell id="226" style="edgeStyle=none;html=1;" edge="1" parent="1" source="163" target="185">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="227" value="Clone" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="226">
+                    <mxGeometry x="-0.0044" y="6" relative="1" as="geometry">
+                        <mxPoint x="-2" y="-8" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="163" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;&lt;b&gt;Ondalinda (Event Organiser)&lt;/b&gt;&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" parent="1" vertex="1">
+                    <mxGeometry x="2630" width="330" height="70" as="geometry"/>
                 </mxCell>
                 <mxCell id="167" value="" style="edgeStyle=none;html=1;" parent="1" source="164" target="166" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
@@ -361,7 +369,7 @@
                 <mxCell id="178" value="Coupon List" style="whiteSpace=wrap;html=1;rounded=1;gradientColor=default;" parent="1" vertex="1">
                     <mxGeometry x="3070" y="440" width="100" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="218" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="185" target="137">
+                <mxCell id="218" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="185" target="137" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="185" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;SAAS&lt;/b&gt;&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" parent="1" vertex="1">
@@ -396,7 +404,7 @@
                         <mxPoint x="425" y="990" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="220" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="213">
+                <mxCell id="220" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="213" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="1030" y="1480.3333333333335" as="targetPoint"/>
                     </mxGeometry>
@@ -404,13 +412,16 @@
                 <mxCell id="213" value="" style="line;strokeWidth=2;direction=south;html=1;" parent="1" vertex="1">
                     <mxGeometry x="2360" width="10" height="1480" as="geometry"/>
                 </mxCell>
-                <mxCell id="221" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="216">
+                <mxCell id="221" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="216" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="10" y="1480.3333333333335" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="216" value="" style="line;strokeWidth=2;direction=south;html=1;" parent="1" vertex="1">
                     <mxGeometry x="1029" width="10" height="1480" as="geometry"/>
+                </mxCell>
+                <mxCell id="223" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;Review&lt;/h1&gt;&lt;p&gt;&lt;span&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;&lt;b style=&quot;&quot;&gt;Ticket Platform Review with Gajanand Sir&lt;/b&gt;&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;We reviewed the database that has tables like &lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;b&gt;Users&lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;/b&gt;, &lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;b&gt;Orders&lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;/b&gt;, &lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;b&gt;Tickets&lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;/b&gt;, and others related to &lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;b&gt;Ondalinda&lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;/b&gt;.&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;The current database design is &lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;b&gt;not suitable for a SaaS platform&lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;/b&gt;, so we need to &lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;b&gt;create a new database design&lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;/b&gt;.&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;We will also need to &lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;b&gt;add our own embed URL&lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;/b&gt;, similar to how &lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;b&gt;Eventbrite&lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;/b&gt; provides it.&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;Right now, Ondalinda manages its &lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;b&gt;own custom checkout page&lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;/b&gt;, which is &lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;b&gt;not possible to handle in a SaaS setup&lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;/b&gt;.&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;So, we need to &lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;b style=&quot;&quot;&gt;redesign the database and the embed system&lt;span style=&quot;display: none;&quot;&gt;&lt;/span&gt;&lt;/b&gt; to make it work properly for a SaaS model.&lt;/font&gt;&lt;/p&gt;" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" vertex="1" parent="1">
+                    <mxGeometry x="1207" y="-230" width="823" height="200" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>

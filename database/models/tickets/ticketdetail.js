@@ -47,6 +47,11 @@ const initTicketDetail = (sequelize, Types) => {
     TicketDetail.belongsTo(User, {
         foreignKey: 'user_id',
     });
+    
+    TicketDetail.belongsTo(User, {
+        as: 'Scanner',       // scanner user
+        foreignKey: 'scanner_id',
+    });
     // TicketDetail.belongsTo(EventStaffMember, {
     //     foreignKey: 'user_id',
     // });

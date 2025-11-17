@@ -7,7 +7,7 @@ export function middleware(request) {
   const userToken = request.cookies.get('userAuthToken')?.value;
 
   // ✅ Allow user login page without redirect
-  if (pathname === '/login') {
+  if (pathname == '/login') {
     return NextResponse.next();
   }
 

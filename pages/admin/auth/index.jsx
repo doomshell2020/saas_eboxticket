@@ -33,7 +33,7 @@ export default function Login() {
 
     let navigate = useRouter();
     const routeChange = () => {
-        let path = `/admin/index/`;
+        let path = `/admin/index`;
         navigate.push(path);
     }
 

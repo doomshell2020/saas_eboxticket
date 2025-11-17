@@ -54,14 +54,16 @@ export default function Header() {
   useEffect(() => {
     const fetchProfile = async () => {
       const token = localStorage.getItem("accessToken_");
+      
       if (!token) return routeChange("/admin");
-
+      
       try {
         const response = await fetch("/api/v1/users", {
           headers: { Authorization: token },
         });
-
+        
         const data = await response.json();
+        // console.log('????????????????',data);
         if (data.success && data.data) setProfile(data.data);
         else routeChange("/admin");
       } catch (error) {
