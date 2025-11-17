@@ -2449,6 +2449,11 @@ export async function ticketExport(
                 },
                 {
                   model: User,
+                  as: 'TransferUser',
+                  attributes: ["id", "FirstName", "LastName", "Email", "PhoneNumber"],
+                },
+                {
+                  model: User,
                   as: 'Scanner',
                   attributes: ["FirstName", "LastName", "Email"]
                 }
@@ -2558,8 +2563,8 @@ export async function ticketExport(
       };
 
       if (ticketDetail?.transfer_reply && ticketDetail?.transfer_user_id != null) {
-        // console.log('>>>>>>>>>ticketDetail',ticketDetail.User.dataValues);
-        const { FirstName, LastName, Email } = ticketDetail.User.dataValues;
+        console.log('>>>>>>>>>ticketDetail',ticketDetail.TransferUser.dataValues);
+        const { FirstName, LastName, Email } = ticketDetail.TransferUser.dataValues;
 
         // const transferUser = await User.findOne({
         //   where: { id: ticketDetail.transfer_user_id },
