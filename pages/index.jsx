@@ -33,6 +33,8 @@ export async function getServerSideProps() {
   }
 }
 
+// rupam sing 
+
 const Home = ({ events }) => {
 
   const [searchTerm, setSearchTerm] = useState("");
