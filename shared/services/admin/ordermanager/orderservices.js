@@ -2099,7 +2099,7 @@ import moment from "moment";
 //     });
 //   }
 // }
-export async function ticketExport(
+export async function ticketExportV1(
   {
     name,
     lname,
@@ -2357,7 +2357,317 @@ export async function ticketExport(
   }
 }
 
+export async function ticketExport(
+  {
+    name,
+    lname,
+    email,
+    mobile,
+    orderId,
+    scanned,
+    startDate,
+    endDate,
+    event_id,
+    ticket_type,
+  },
+  res
+) {
+  try {
+    const commonConditions = [];
+    const ticketDetailCondition = {}; // ✅ separate condition for TicketDetail table only
+    const addonCondition = {};        // ✅ separate condition for AddonBook table only
 
+    // ✅ Date Conditions
+    if (startDate) {
+      const formattedStartDate = moment(startDate).startOf("day").toISOString();
+      commonConditions.push({ "$Order.createdAt$": { [Op.gte]: formattedStartDate } });
+    }
+    if (endDate) {
+      const formattedEndDate = moment(endDate).endOf("day").toISOString();
+      commonConditions.push({ "$Order.createdAt$": { [Op.lte]: formattedEndDate } });
+    }
+
+    // orderId = 'M-5170-2523'
+    // orderId = 'M-12678-2696'
+
+    // ✅ Additional Filters
+    if (orderId) {
+      commonConditions.push({
+        "$Order.OriginalTrxnIdentifier$": { [Op.like]: `%${orderId.toUpperCase()}%` },
+      });
+    }
+    if (email) {
+      commonConditions.push({ "$User.Email$": { [Op.like]: `%${email.toUpperCase()}%` } });
+    }
+    if (mobile) {
+      commonConditions.push({ "$User.PhoneNumber$": { [Op.like]: `%${mobile.toUpperCase()}%` } });
+    }
+    if (name) {
+      commonConditions.push({ "$User.FirstName$": { [Op.like]: `%${name.toUpperCase()}%` } });
+    }
+    if (lname) {
+      commonConditions.push({ "$User.LastName$": { [Op.like]: `%${lname.toUpperCase()}%` } });
+    }
+
+    // ✅ Scanned / Cancelled filter
+    if (scanned === "scanned") {
+      ticketDetailCondition.status = 1; // TicketDetail column
+      addonCondition.scannedstatus = 1; // AddonBook column
+    } else if (scanned === "notscanned") {
+      ticketDetailCondition.status = 0;
+      addonCondition.scannedstatus = 0;
+    } else if (scanned === "cancelled") {
+      ticketDetailCondition.ticket_status = { [Op.ne]: null };
+      addonCondition.ticket_status = { [Op.ne]: null };
+    }
+
+    // console.log("-------------event_id-----", event_id)
+    const EventInfo = await Event.findOne({
+      where: { id: event_id },
+      attributes: ['payment_currency'],
+      include: [
+        {
+          model: Currency,
+          attributes: ['Currency_symbol'],
+        },
+      ],
+    });
+
+    const Currency_Symbol = EventInfo?.Currency?.Currency_symbol || '';
+    // ✅ Fetch Tickets (latest first)
+    const findTickets =
+      ticket_type !== "addon"
+        ? await BookTicket.findAll({
+          include: [
+            {
+              model: TicketDetail,
+              where: ticketDetailCondition, // ✅ applied only to TicketDetail
+              include: [
+                {
+                  model: User,
+                  attributes: ["FirstName", "LastName", "Email"]
+                },
+                {
+                  model: User,
+                  as: 'Scanner',
+                  attributes: ["FirstName", "LastName", "Email"]
+                }
+              ]
+            },
+            EventTicketType,
+            {
+              model: User,
+              attributes: ["id", "FirstName", "LastName", "Email", "PhoneNumber"],
+            },
+            {
+              model: Orders,
+              where: {
+                [Op.or]: [
+                  { is_free: { [Op.is]: null } },
+                  { discountType: { [Op.ne]: "" } },
+                ],
+              },
+            },
+          ],
+          where: {
+            event_id,
+            ...(commonConditions.length > 0 && { [Op.and]: commonConditions }),
+          },
+          order: [[{ model: Orders }, "createdAt", "DESC"]],
+        })
+        : [];
+
+    // ✅ Fetch Addons (latest first)
+    const findAddons =
+      ticket_type !== "ticket"
+        ? await AddonBook.findAll({
+          include: [
+            {
+              model: User,
+              attributes: ["id", "FirstName", "LastName", "Email", "PhoneNumber"],
+            },
+            {
+              model: User,
+              as: 'TransferUser',
+              attributes: ["id", "FirstName", "LastName", "Email", "PhoneNumber"],
+            },
+            {
+              model: User,
+              as: 'Scanner',
+              attributes: ["id", "FirstName", "LastName", "Email", "PhoneNumber"],
+            },
+            {
+              model: Addons,
+              attributes: ["id", "name"],
+            },
+            {
+              model: Orders,
+              where: {
+                [Op.or]: [
+                  { is_free: { [Op.is]: null } },
+                  { couponCode: { [Op.not]: null } },
+                ],
+              },
+            },
+          ],
+          where: {
+            event_id,
+            ...addonCondition, // ✅ applied to AddonBook table
+            ...(commonConditions.length > 0 && { [Op.and]: commonConditions }),
+          },
+          order: [[{ model: Orders }, "createdAt", "DESC"]],
+        })
+        : [];
+
+    // ✅ Prepare Data
+    const orderData = [];
+    let totalTickets = 0,
+      totalScannedTickets = 0,
+      totalCancelTicket = 0,
+      totalAddons = 0,
+      totalScannedAddons = 0,
+      totalCancelAddon = 0;
+
+    // ✅ Process Tickets
+    for (const ticket of findTickets) {
+      // console.log('???????????',ticket);
+
+      const ticketDetail = ticket.TicketDetails?.[0];
+      if (ticketDetail?.status == 1) totalScannedTickets++;
+      if (ticket.ticket_status == "cancel") totalCancelTicket++;
+      if (ticket.ticket_status == null) totalTickets++;
+
+      const ticketData = {
+        orderId: ticket.Order.OriginalTrxnIdentifier,
+        totalOrderAmount: ticket.Order.total_amount,
+        orderDate: moment(ticket.Order.createdAt).format("YYYY-MM-DD"),
+        ticketType: "ticket",
+        ticketQR: ticketDetail?.qrcode,
+        ticketId: ticketDetail?.id,
+        ticketName: ticket.EventTicketType?.title,
+        memberFirstName: ticket.User?.FirstName || "",
+        memberLastName: ticket.User?.LastName || "",
+        memberEmail: ticket.User?.Email || "",
+        memberMobile: ticket.User?.PhoneNumber || "",
+        membershipType: "N/A",
+        isTransfer: ticketDetail?.transfer_reply ? "Yes" : "No",
+        isCanceled: ticketDetail?.ticket_status == "cancel",
+        ticketRenameFname: ticketDetail?.fname || "",
+        ticketRenameLname: ticketDetail?.lname || "",
+        currency_symbol: Currency_Symbol || ""
+      };
+
+      if (ticketDetail?.transfer_reply && ticketDetail?.transfer_user_id != null) {
+        // console.log('>>>>>>>>>ticketDetail',ticketDetail.User.dataValues);
+        const { FirstName, LastName, Email } = ticketDetail.User.dataValues;
+
+        // const transferUser = await User.findOne({
+        //   where: { id: ticketDetail.transfer_user_id },
+        //   attributes: ["FirstName", "LastName", "Email"],
+        // });
+
+        ticketData.transferToFname = FirstName || "";
+        ticketData.transferToLname = LastName || "";
+        ticketData.transferToEmail = Email || "";
+      }
+
+      if (ticketDetail?.scanner_id) {
+        // console.log('>>>>>>>>>ticketDetail', ticketDetail.Scanner.dataValues);
+        const { FirstName, LastName, Email } = ticketDetail.Scanner.dataValues;
+
+        // const scannerDetails = await User.findOne({
+        //   where: { id: ticketDetail.scanner_id },
+        //   attributes: ["FirstName", "LastName", "Email"],
+        // });
+        ticketData.usedBy = ticketDetail.usedby || "";
+        ticketData.usedDate = moment(ticketDetail.usedate).format(
+          "YYYY-MM-DD HH:mm:ss"
+        );
+        ticketData.scannedBy = `${FirstName || ""} ${LastName || ""}`;
+      }
+      orderData.push(ticketData);
+    }
+
+    // ✅ Process Addons
+    for (const addon of findAddons) {
+      if (addon.scannedstatus == 1) totalScannedAddons++;
+      if (addon.ticket_status == "cancel") totalCancelAddon++;
+      if (addon.ticket_status == null) totalAddons++;
+      // console.log("---------------", addon.TransferUser)
+
+      const addonData = {
+        orderId: addon.Order.OriginalTrxnIdentifier,
+        totalOrderAmount: addon.Order.total_amount,
+        orderDate: moment(addon.Order.createdAt).format("YYYY-MM-DD"),
+        ticketType: "addon",
+        ticketQR: addon.addon_qrcode,
+        addonId: addon.id,
+        addonName: addon.name,
+        memberFirstName: addon.User?.FirstName || "",
+        memberLastName: addon.User?.LastName || "",
+        memberEmail: addon.User?.Email || "",
+        memberMobile: addon.User?.PhoneNumber || "",
+        ticketName: addon.Addon?.name || "",
+        isTransfer: addon.transfer_reply ? "Yes" : "No",
+        isCanceled: addon.ticket_status === "cancel",
+        ticketRenameFname: addon.fname || "",
+        ticketRenameLname: addon.lname || "",
+        currency_symbol: Currency_Symbol || ""
+      };
+
+      if (addon.transfer_reply && addon.transfer_user_id != null) {
+
+        // const transferUser = await User.findOne({
+        //   where: { id: addon.transfer_user_id },
+        //   attributes: ["FirstName", "LastName", "Email"],
+        // });
+        // console.log("------transferUser?.Email----",transferUser?.Email)
+
+        const { FirstName, LastName, Email } = addon.TransferUser?.dataValues || {};
+
+
+        addonData.transferToFname = FirstName || "";
+        addonData.transferToLname = LastName || "";
+        addonData.transferToEmail = Email || "";
+      }
+
+      if (addon.scannedstatus == 1) {
+        // const scannerDetails = await User.findOne({
+        //   where: { id: addon.scanner_id },
+        //   attributes: ["FirstName", "LastName"],
+        // });
+        const { FirstName, LastName } = addon.Scanner?.dataValues || {};
+        addonData.usedBy = addon.usedby || "";
+        addonData.usedDate = moment(addon.usedate).format("YYYY-MM-DD HH:mm:ss");
+        addonData.scannedBy = `${FirstName || ""} ${LastName || ""}`;
+      }
+
+      orderData.push(addonData);
+    }
+
+    // ✅ Response
+    return res.status(200).json({
+      success: true,
+      message: "Orders Data fetched successfully!",
+      data: orderData,
+      ticketSaleInfo: {
+        totalTickets,
+        totalScannedTickets,
+        totalCancelTicket,
+        totalAddons,
+        totalScannedAddons,
+        totalCancelAddon,
+      },
+    });
+  } catch (error) {
+    console.error("Error during ticket export:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error during ticket export",
+      error: error.message,
+    });
+  }
+}
 
 export async function eventOrderList(req, res) {
   const { eventName } = req;

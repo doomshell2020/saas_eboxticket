@@ -41,9 +41,21 @@ const initAddonBook = (sequelize, Types) => {
             tableName: 'addonsbook',
         }
     );
+
     AddonBook.belongsTo(User, {
         foreignKey: 'user_id',
-    })
+    });
+
+    AddonBook.belongsTo(User, {
+        as: 'TransferUser',
+        foreignKey: 'transfer_user_id',
+    });
+
+    AddonBook.belongsTo(User, {
+        as: 'Scanner',        
+        foreignKey: 'scanner_id',
+    });
+
     AddonBook.belongsTo(Event, {
         foreignKey: 'event_id',
     })

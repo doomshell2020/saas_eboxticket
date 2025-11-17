@@ -89,6 +89,7 @@ const LoginPage = () => {
       setLoading(false);
     }
   };
+  
   const [backgroundImage, setIsMobile] = useState('/assets/front-images/about-slider_bg.jpg');
   const [showPassword, setShowPassword] = useState(false);
 
