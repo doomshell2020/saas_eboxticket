@@ -46,6 +46,10 @@ const handler = async (req, res) => {
             const tickets_addons_months_test = await TicketsAddonsSalesMonthlyTest(req.body);
             res.json(tickets_addons_months_test);
             break;
+          } else if (req.body.key == "tickets_addons_sales_summary_report") {
+            const tickets_addons_months_test = await TicketsAddonsSalesSummaryReport(req.body);
+            res.json(tickets_addons_months_test);
+            break;
           } else if (req.body.key == "getLastHousesBooked") {
             const housesData = await getLastHousesBookedV1(req.body);
             res.json(housesData);

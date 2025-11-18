@@ -2530,6 +2530,193 @@ export async function getRecentlyBookedTicketsUser({ event_id } = {}) {
 //     return { statusCode: 500, success: false, message: "Internal server error." };
 //   }
 // }
+
+// export async function TicketsAddonsSalesSummaryReport({ eventId }) {
+//   try {
+//     // Step 1: Fetch Event & Currency details
+//     const event = await Event.findOne({
+//       where: { id: eventId },
+//       include: [{ model: Currency, attributes: ["id", "Currency_symbol", "Currency"] }],
+//       attributes: ["id", "Name", "status"],
+//     });
+
+//     if (!event) {
+//       return { statusCode: 404, success: false, message: "Event not found." };
+//     }
+
+//     //  const accommodationReports = await AccommodationSalesSummaryReportSecond(eventId);
+//     const eventName = event.Name;
+//     const currencySymbol = event.Currency?.Currency_symbol || "";
+
+//     // Step 2: Fetch Orders (with discountAmount included)
+//     const orders = await Order.findAll({
+//       where: {
+//         event_id: eventId,
+//         [Op.or]: [{ is_free: { [Op.is]: null } }, { couponCode: { [Op.not]: null } }],
+//       },
+//       attributes: [
+//         "id",
+//         "createdAt",
+//         "totalAddonAmount",
+//         "totalAddonTax",
+//         "totalTicketAmount",
+//         "totalTicketTax",
+//         "discountAmount",
+//       ],
+//     });
+
+//     if (orders.length === 0) {
+//       return {
+//         statusCode: 200,
+//         success: true,
+//         message: "No data found for this event.",
+//         data: {},
+//       };
+//     }
+
+//     // Build orderIds array for counting tickets/addons
+//     const orderIds = orders.map((o) => o.id);
+
+//     // Fetch ticket rows and addon rows for counting (only order_id needed)
+//     const ticketRows = await BookTicket.findAll({
+//       where: { order_id: orderIds, ticket_status: { [Op.is]: null } },
+//       attributes: ["order_id"],
+//     });
+
+//     const addonRows = await AddonBook.findAll({
+//       where: { order_id: orderIds, ticket_status: { [Op.is]: null } },
+//       attributes: ["order_id"],
+//     });
+
+//     // Build maps: orderId => ticketCount / addonCount
+//     const ticketCountMap = new Map();
+//     ticketRows.forEach((t) => {
+//       const oid = t.order_id;
+//       ticketCountMap.set(oid, (ticketCountMap.get(oid) || 0) + 1);
+//     });
+
+//     const addonCountMap = new Map();
+//     addonRows.forEach((a) => {
+//       const oid = a.order_id;
+//       addonCountMap.set(oid, (addonCountMap.get(oid) || 0) + 1);
+//     });
+
+//     // Step 3: Group orders by month (MM/YYYY)
+//     const orderDataByMonth = {};
+//     let grandTotalTax = 0;
+//     let grandTotalAmount = 0;
+
+//     let grandTotalTickets = 0;
+//     let grandTotalTicketsAmount = 0;
+//     let grandTotalTicketsTax = 0;
+
+//     let grandTotalAddons = 0;
+//     let grandTotalAddonsAmount = 0;
+//     let grandTotalAddonsTax = 0;
+
+//     let grandTotalDiscount = 0;
+//     const totalTaxByMonth = {};
+
+//     orders.forEach((order) => {
+//       const monthYear = moment(order.createdAt).format("MM/YYYY");
+
+//       if (!orderDataByMonth[monthYear]) {
+//         orderDataByMonth[monthYear] = {
+//           orders: [],
+//           totalOrders: 0,
+//           totalAmount: 0,
+//           totalDiscount: 0,
+//           ticketCount: 0,
+//           ticketAmount: 0,
+//           ticketTax: 0,
+//           addonCount: 0,
+//           addonAmount: 0,
+//           addonTax: 0,
+//         };
+//       }
+
+//       // Extract values directly from order
+//       let ticketAmount = parseFloat(order.totalTicketAmount) || 0;
+//       const ticketTax = parseFloat(order.totalTicketTax) || 0;
+//       const addonAmount = parseFloat(order.totalAddonAmount) || 0;
+//       const addonTax = parseFloat(order.totalAddonTax) || 0;
+//       const discountAmount = parseFloat(order.discountAmount) || 0;
+
+//       // Apply discount only once (subtract from ticketAmount)
+//       ticketAmount = ticketAmount - discountAmount;
+
+//       // Actual quantities for this order (from maps)
+//       const ticketQty = ticketCountMap.get(order.id) || 0;
+//       const addonQty = addonCountMap.get(order.id) || 0;
+
+//       // Push order
+//       orderDataByMonth[monthYear].orders.push(order.toJSON());
+
+//       // Increment counters
+//       orderDataByMonth[monthYear].totalOrders++;
+//       orderDataByMonth[monthYear].ticketCount += ticketQty;
+//       orderDataByMonth[monthYear].addonCount += addonQty;
+
+//       // Sum amounts & taxes
+//       orderDataByMonth[monthYear].ticketAmount += ticketAmount;
+//       orderDataByMonth[monthYear].ticketTax += ticketTax;
+//       orderDataByMonth[monthYear].addonAmount += addonAmount;
+//       orderDataByMonth[monthYear].addonTax += addonTax;
+//       orderDataByMonth[monthYear].totalDiscount += discountAmount;
+
+//       // Monthly total (already discounted ticket + addons + taxes)
+//       orderDataByMonth[monthYear].totalAmount +=
+//         ticketAmount + ticketTax + addonAmount + addonTax;
+
+//       // Grand totals
+//       grandTotalTickets += ticketQty;
+//       grandTotalAddons += addonQty;
+
+//       grandTotalTicketsAmount += ticketAmount;
+//       grandTotalTicketsTax += ticketTax;
+
+//       grandTotalAddonsAmount += addonAmount;
+//       grandTotalAddonsTax += addonTax;
+
+//       grandTotalDiscount += discountAmount;
+//     });
+
+//     // Step 4: Calculate monthly & grand totals (tax & total amount sums)
+//     for (const [monthYear, data] of Object.entries(orderDataByMonth)) {
+//       totalTaxByMonth[monthYear] = Math.round(data.ticketTax + data.addonTax);
+//       grandTotalTax += totalTaxByMonth[monthYear];
+//       grandTotalAmount += data.totalAmount;
+//     }
+
+//     // console.log("--------------------------",accommodationReports);
+//     // Step 5: Structure response
+//     return {
+//       statusCode: 200,
+//       success: true,
+//       message: "Orders grouped by month.",
+//       data: {
+//         eventName,
+//         currencySymbol,
+//         ordersByMonth: orderDataByMonth,
+//         totalTaxByMonth,
+//         grandTotalTax,
+//         grandTotalTickets,
+//         grandTotalTicketsAmount,
+//         grandTotalTicketsTax,
+//         grandTotalAddons,
+//         grandTotalAddonsAmount,
+//         grandTotalAddonsTax,
+//         grandTotalDiscount,
+//         totalOrderAmount: grandTotalAmount,
+//         FaceAmountTicketAddons: grandTotalTicketsAmount + grandTotalAddonsAmount, // ✅ New key
+//       },
+//     };
+//   } catch (error) {
+//     console.error("Error fetching monthly order data:", error);
+//     return { statusCode: 500, success: false, message: "Internal server error." };
+//   }
+// }
+
 export async function TicketsAddonsSalesSummaryReport({ eventId }) {
   try {
     // Step 1: Fetch Event & Currency details
@@ -2543,7 +2730,7 @@ export async function TicketsAddonsSalesSummaryReport({ eventId }) {
       return { statusCode: 404, success: false, message: "Event not found." };
     }
 
-    //  const accommodationReports = await AccommodationSalesSummaryReportSecond(eventId);
+    const accommodationReports = await AccommodationSalesSummaryReportSecond(eventId);
     const eventName = event.Name;
     const currencySymbol = event.Currency?.Currency_symbol || "";
 
@@ -2561,6 +2748,7 @@ export async function TicketsAddonsSalesSummaryReport({ eventId }) {
         "totalTicketAmount",
         "totalTicketTax",
         "discountAmount",
+        "total_amount",
       ],
     });
 
@@ -2573,10 +2761,8 @@ export async function TicketsAddonsSalesSummaryReport({ eventId }) {
       };
     }
 
-    // Build orderIds array for counting tickets/addons
     const orderIds = orders.map((o) => o.id);
 
-    // Fetch ticket rows and addon rows for counting (only order_id needed)
     const ticketRows = await BookTicket.findAll({
       where: { order_id: orderIds, ticket_status: { [Op.is]: null } },
       attributes: ["order_id"],
@@ -2587,7 +2773,6 @@ export async function TicketsAddonsSalesSummaryReport({ eventId }) {
       attributes: ["order_id"],
     });
 
-    // Build maps: orderId => ticketCount / addonCount
     const ticketCountMap = new Map();
     ticketRows.forEach((t) => {
       const oid = t.order_id;
@@ -2600,7 +2785,6 @@ export async function TicketsAddonsSalesSummaryReport({ eventId }) {
       addonCountMap.set(oid, (addonCountMap.get(oid) || 0) + 1);
     });
 
-    // Step 3: Group orders by month (MM/YYYY)
     const orderDataByMonth = {};
     let grandTotalTax = 0;
     let grandTotalAmount = 0;
@@ -2615,6 +2799,9 @@ export async function TicketsAddonsSalesSummaryReport({ eventId }) {
 
     let grandTotalDiscount = 0;
     const totalTaxByMonth = {};
+
+    // ✅ New variable to hold total_amount sum
+    let grandTotalOrderAmount = 0;
 
     orders.forEach((order) => {
       const monthYear = moment(order.createdAt).format("MM/YYYY");
@@ -2634,40 +2821,34 @@ export async function TicketsAddonsSalesSummaryReport({ eventId }) {
         };
       }
 
-      // Extract values directly from order
-      let ticketAmount = parseFloat(order.totalTicketAmount) || 0;
-      const ticketTax = parseFloat(order.totalTicketTax) || 0;
-      const addonAmount = parseFloat(order.totalAddonAmount) || 0;
-      const addonTax = parseFloat(order.totalAddonTax) || 0;
-      const discountAmount = parseFloat(order.discountAmount) || 0;
+      // Extract & round values
+      let ticketAmount = Math.round(parseFloat(order.totalTicketAmount) || 0);
+      const ticketTax = Math.round(parseFloat(order.totalTicketTax) || 0);
+      const addonAmount = Math.round(parseFloat(order.totalAddonAmount) || 0);
+      const addonTax = Math.round(parseFloat(order.totalAddonTax) || 0);
+      const discountAmount = Math.round(parseFloat(order.discountAmount) || 0);
 
-      // Apply discount only once (subtract from ticketAmount)
+      // Apply discount only once
       ticketAmount = ticketAmount - discountAmount;
 
-      // Actual quantities for this order (from maps)
       const ticketQty = ticketCountMap.get(order.id) || 0;
       const addonQty = addonCountMap.get(order.id) || 0;
 
-      // Push order
       orderDataByMonth[monthYear].orders.push(order.toJSON());
 
-      // Increment counters
       orderDataByMonth[monthYear].totalOrders++;
       orderDataByMonth[monthYear].ticketCount += ticketQty;
       orderDataByMonth[monthYear].addonCount += addonQty;
 
-      // Sum amounts & taxes
       orderDataByMonth[monthYear].ticketAmount += ticketAmount;
       orderDataByMonth[monthYear].ticketTax += ticketTax;
       orderDataByMonth[monthYear].addonAmount += addonAmount;
       orderDataByMonth[monthYear].addonTax += addonTax;
       orderDataByMonth[monthYear].totalDiscount += discountAmount;
 
-      // Monthly total (already discounted ticket + addons + taxes)
       orderDataByMonth[monthYear].totalAmount +=
         ticketAmount + ticketTax + addonAmount + addonTax;
 
-      // Grand totals
       grandTotalTickets += ticketQty;
       grandTotalAddons += addonQty;
 
@@ -2678,36 +2859,48 @@ export async function TicketsAddonsSalesSummaryReport({ eventId }) {
       grandTotalAddonsTax += addonTax;
 
       grandTotalDiscount += discountAmount;
+
+      // ✅ Add total_amount (raw DB column) to new grand total
+      grandTotalOrderAmount += Math.round(parseFloat(order.total_amount) || 0);
     });
 
-    // Step 4: Calculate monthly & grand totals (tax & total amount sums)
+    // Step 4: Round monthly & grand totals
     for (const [monthYear, data] of Object.entries(orderDataByMonth)) {
+      data.ticketAmount = Math.round(data.ticketAmount);
+      data.ticketTax = Math.round(data.ticketTax);
+      data.addonAmount = Math.round(data.addonAmount);
+      data.addonTax = Math.round(data.addonTax);
+      data.totalDiscount = Math.round(data.totalDiscount);
+      data.totalAmount = Math.round(data.totalAmount);
+
       totalTaxByMonth[monthYear] = Math.round(data.ticketTax + data.addonTax);
       grandTotalTax += totalTaxByMonth[monthYear];
       grandTotalAmount += data.totalAmount;
     }
 
-    // console.log("--------------------------",accommodationReports);
     // Step 5: Structure response
     return {
       statusCode: 200,
       success: true,
+      total: orders.length,
       message: "Orders grouped by month.",
       data: {
         eventName,
         currencySymbol,
         ordersByMonth: orderDataByMonth,
         totalTaxByMonth,
-        grandTotalTax,
+        grandTotalTax: Math.round(grandTotalTax),
         grandTotalTickets,
-        grandTotalTicketsAmount,
-        grandTotalTicketsTax,
+        grandTotalTicketsAmount: Math.round(grandTotalTicketsAmount),
+        grandTotalTicketsTax: Math.round(grandTotalTicketsTax),
         grandTotalAddons,
-        grandTotalAddonsAmount,
-        grandTotalAddonsTax,
-        grandTotalDiscount,
-        totalOrderAmount: grandTotalAmount,
-        FaceAmountTicketAddons: grandTotalTicketsAmount + grandTotalAddonsAmount, // ✅ New key
+        grandTotalAddonsAmount: Math.round(grandTotalAddonsAmount),
+        grandTotalAddonsTax: Math.round(grandTotalAddonsTax),
+        grandTotalDiscount: Math.round(grandTotalDiscount),
+        totalOrderAmount: Math.round(grandTotalAmount), // monthly calc
+        grandTotalOrderAmount: Math.round(grandTotalOrderAmount), // ✅ new key from DB total_amount sum
+        FaceAmountTicketAddons: Math.round(grandTotalTicketsAmount + grandTotalAddonsAmount),
+        accommodationData: accommodationReports,
       },
     };
   } catch (error) {
@@ -2717,10 +2910,7 @@ export async function TicketsAddonsSalesSummaryReport({ eventId }) {
 }
 
 
-
-
 // New functionality added(11-09-2025)
-// export async function AccommodationSalesSummaryReportSecond(eventId) {
 export async function AccommodationSalesSummaryReportSecond({ eventId }) {
   try {
     // Step 1: Fetch all accommodation orders (only those with book_accommodation_id not null)
@@ -2815,12 +3005,137 @@ export async function AccommodationSalesSummaryReportSecond({ eventId }) {
   }
 }
 
+// New functionality added(11-09-2025)
+export async function AccommodationSalesSummaryReportSecond(eventId) {
+  try {
+    const orders = await MyOrders.findAll({
+      where: {
+        event_id: eventId,
+        book_accommodation_id: { [Op.ne]: null },
+        order_context: { [Op.in]: ["regular", "extension"] }
+      },
+      include: [
+        {
+          model: BookAccommodationInfo,
+          where: { event_id: eventId },
+          required: false,
+        },
+      ],
+      attributes: [
+        "id",
+        "createdAt",
+        "book_accommodation_id",
+        "order_context",
+        "totalAccommodationAmount",
+        "totalAccommodationTax",
+        "total_due_amount",
+        'paymentOption',
+      ],
 
+    });
 
+    if (orders.length === 0) {
+      return {
+        statusCode: 200,
+        success: true,
+        message: "No accommodation bookings found for this event.",
+        data: {},
+      };
+    }
 
+    let orderDataByMonth = {};
+    let grandTotalAccommodationAmount = 0;
+    let grandTotalAccommodationTax = 0;
+    let grandTotalPaidAmount = 0;
+    let grandTotalDueAmount = 0;
+    let grandTotalAmount = 0;
 
+    const monthlyAccommodationSets = {};
 
+    orders.forEach((order) => {
 
+      // console.log("order------------",order.BookAccommodationInfo);
+      const monthYear = moment(order.createdAt).format("MM/YYYY");
+      if (!orderDataByMonth[monthYear]) {
+        orderDataByMonth[monthYear] = {
+          totalAccommodationAmount: 0,
+          totalAccommodationTax: 0,
+          paidAmount: 0,
+          dueAmount: 0,
+          accommodationCount: 0,
+        };
+        monthlyAccommodationSets[monthYear] = new Set();
+      }
 
+      const accommodationAmount = Math.round(parseFloat(order.totalAccommodationAmount) || 0);
+      const accommodationTax = Math.round(parseFloat(order.totalAccommodationTax) || 0);
+      const grandTotalAmountNew = Math.round(parseFloat(order.totalAccommodationTax) || 0);
+      // const dueAmount = Math.round(parseFloat(order.total_due_amount) || 0);
 
+      let dueAmount = 0;
+      if (order.BookAccommodationInfo) {
+        const paymentOpt = order.paymentOption;
+        if (paymentOpt === "partial" && order.BookAccommodationInfo.is_accommodation_cancel === "N" ) {
+          // accommodationAmount = accommodationAmount - due;
+          dueAmount = Math.round(parseFloat(order.total_due_amount) || 0);
+        }
+      }
+      const paidAmount = accommodationAmount - dueAmount;
 
+      // ✅ Monthly totals (with rounding)
+      orderDataByMonth[monthYear].totalAccommodationAmount += accommodationAmount;
+      orderDataByMonth[monthYear].totalAccommodationTax += accommodationTax;
+      orderDataByMonth[monthYear].paidAmount += paidAmount;
+      orderDataByMonth[monthYear].dueAmount += dueAmount;
+
+      if (
+        order.order_context === "regular" &&
+        !monthlyAccommodationSets[monthYear].has(order.book_accommodation_id)
+      ) {
+        monthlyAccommodationSets[monthYear].add(order.book_accommodation_id);
+        orderDataByMonth[monthYear].accommodationCount += 1;
+      }
+
+      // ✅ Grand totals (with rounding)
+      grandTotalAccommodationAmount += accommodationAmount;
+      grandTotalAccommodationTax += accommodationTax;
+      grandTotalPaidAmount += paidAmount;
+      grandTotalDueAmount += dueAmount;
+    });
+
+    // Step 3: Unique count (unchanged)
+    const totalAccommodationCount = new Set(
+      orders
+        .filter(o => o.order_context === "regular")
+        .map(o => o.book_accommodation_id)
+    ).size;
+
+    // ✅ Ensure monthly values are rounded properly in final response
+    Object.keys(orderDataByMonth).forEach(month => {
+      orderDataByMonth[month].totalAccommodationAmount = Math.round(orderDataByMonth[month].totalAccommodationAmount);
+      orderDataByMonth[month].totalAccommodationTax = Math.round(orderDataByMonth[month].totalAccommodationTax);
+      orderDataByMonth[month].paidAmount = Math.round(orderDataByMonth[month].paidAmount);
+      orderDataByMonth[month].dueAmount = Math.round(orderDataByMonth[month].dueAmount);
+    });
+    let cancelAmount;
+    cancelAmount = await getTotalCancelAmount(eventId)
+    // ✅ Step 4: Final response
+    return {
+      statusCode: 200,
+      success: true,
+      message: "Accommodation bookings grouped by month.",
+      data: {
+        ordersByMonth: orderDataByMonth,
+        grandTotalAccommodationAmount: Math.round(grandTotalAccommodationAmount),
+        grandTotalAccommodationTax: Math.round(grandTotalAccommodationTax),
+        grandTotalPaidAmount: Math.round(grandTotalPaidAmount),
+        grandTotalDueAmount: Math.round(grandTotalDueAmount),
+        totalAccommodationCount,
+        cancelAmount
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching accommodation monthly report:", error);
+    return { statusCode: 500, success: false, message: "Internal server error." };
+  }
+}
