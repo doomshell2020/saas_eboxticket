@@ -22,7 +22,8 @@ import {
   AccommodationExtension,
   EventHousing,
   HousingInfo,
-  EventOrganiser
+  Emailtemplet,
+  Payment
 } from "@/database/models";
 import { StatusCodes } from "http-status-codes";
 import moment from "moment-timezone";
@@ -1091,6 +1092,8 @@ export async function getTotalCancelAmount(eventID) {
         "totalTicketTax",
         "totalAccommodationAmount",
         "totalAccommodationTax",
+        'paymentOption',
+        'total_due_amount'
       ],
       include: [
         {
@@ -1130,8 +1133,35 @@ export async function getTotalCancelAmount(eventID) {
         canceledTotal += orderCancelBase * 1.1075; // add 10.75%
 
         if (order.BookAccommodationInfo) {
-          accommodationTotal += Number(order.BookAccommodationInfo.total_amount || 0);
+          // Prefer the accommodation-specific amount; fall back to total_amount if missing
+          let accommodationAmount = Number(order.totalAccommodationAmount ?? order.total_amount ?? 0);
+          // Ensure numeric
+          const due = Number(order.total_due_amount ?? 0);
+          const paymentOpt = order.paymentOption;
+          if (paymentOpt === "partial") {
+            accommodationAmount = accommodationAmount - due;
+          }
+          if (accommodationAmount < 0) accommodationAmount = 0;
+          // Add exactly once
+          accommodationTotal += accommodationAmount;
         }
+
+        // if (order.BookAccommodationInfo) {
+        //   // console.log("----order-----------orderorderorder--order-", order.paymentOption)
+        //   let accommodationAmount = Number(order.total_amount || 0);
+        //   let accAmount = Number(order.totalAccommodationAmount || 0);
+        //   console.log("------------------accAmount", accAmount)
+        //   // 🧮 Apply condition for partial payments
+        //   if (order.paymentOption === "partial") {
+        //     console.log("-===========order.total_due_amount",accAmount - order.total_due_amount)
+        //     const due = Number(order.total_due_amount || 0);
+        //     accommodationAmount = accAmount - due; // subtract due if partial
+        //   }
+        //   console.log("----accommodationTotal += accommodationAmount------",accommodationTotal+= accommodationAmount)
+        //   accommodationTotal += accommodationAmount;
+        //   // accommodationTotal += Number(order.BookAccommodationInfo.total_amount || 0);
+        //   // accommodationTotal += Number(order.total_amount || 0);
+        // }
       } else {
         // ✅ Rule for other events (only addons with 12%)
         const addonTotal =
@@ -2598,11 +2628,9 @@ export async function getTotalOrders({
 
     // console.log("couponCode-------------------------",couponCode)
     const orderConditions = {
-      [Op.or]: [
-        { is_free: { [Op.is]: null } },
-        { couponCode: { [Op.not]: null } },
-      ],
-      // ticket_status: { [Op.is]: null },  // comment kamal 15-09-2025
+      order_context: {
+        [Op.in]: ['regular', 'extension']
+      }
     };
 
     // Date filter
@@ -2719,7 +2747,12 @@ export async function getTotalOrders({
         },
         {
           model: AddonBook,
-          attributes: ["id"]
+          attributes: ["id"],
+          include: [
+            {
+              model: Addons,
+              attributes: ["id", "addon_name", "name"],
+            }]
         },
         {
           model: BookAccommodationInfo,
@@ -3430,12 +3463,13 @@ export async function searchOrderDetails(
 
     const orders = await Orders.findAll({
       where: {
-        [Op.or]: [
-          { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
-          { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
-        ],
-        ticket_status: null,
+        // [Op.or]: [
+        //   { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
+        //   { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
+        // ],
+        //  ticket_status: null,
         ...orderConditions,
+
       },
       attributes: ["id"], // Only select the 'id' column
       include: [{ model: User }],
@@ -3765,6 +3799,8 @@ export async function searchOrderDetails(
         housing_max_occupancy: Housing.MaxOccupancy || null,
         housing_num_bedrooms: Housing.NumBedrooms || null,
         housing_pool: Housing.Pool || null,
+        accommodation_cancel: accommodation.is_accommodation_cancel || '',
+        accommodation_infoId: accommodation.id || null,
         accommodationOndalindaPerDaysFeeAmount,
         accommodationPerDaysPropertyOwnerAmount
       });
@@ -4540,7 +4576,8 @@ export async function Add_Events(
       accommodation_bank_fee_percentage,
       accommodation_processing_fee_percentage,
     });
-
+    // ✅ Call the clone function after adding event
+    await cloneAllTemplates({ EventID: Eventdata.id });
     const redirectUrl = `/admin/events/add-2step/?id=${Eventdata.id}`;
     return {
       statusCode: StatusCodes.OK,
@@ -4556,6 +4593,108 @@ export async function Add_Events(
     };
   }
 }
+
+
+export async function cloneAllTemplates({ EventID }, res) {
+  try {
+    console.log("Target Event ID:", EventID);
+    if (!EventID) {
+      return {
+        statusCode: 400,
+        message: "Event ID is required.",
+      };
+    }
+
+    // 1️⃣ Find the latest old event ID (excluding current EventID)
+    const latestOldEvent = await Emailtemplet.findOne({
+      where: { eventId: { [Op.ne]: EventID } },
+      attributes: ["eventId"],
+      order: [["eventId", "DESC"]],
+      raw: true,
+    });
+
+    if (!latestOldEvent) {
+      return {
+        statusCode: 404,
+        message: "No previous event templates found to clone.",
+      };
+    }
+
+
+    const oldEventId = latestOldEvent.eventId;
+    console.log("Cloning from Event ID:", oldEventId);
+
+    // 2️⃣ Fetch all templates from the latest old event
+    const oldTemplates = await Emailtemplet.findAll({
+      where: { eventId: oldEventId },
+      raw: true,
+    });
+
+    if (!oldTemplates.length) {
+      return {
+        statusCode: 404,
+        message: "No templates found in the previous event.",
+      };
+    }
+    const clonedTemplates = [];
+    const skippedTemplates = [];
+    // 3️⃣ Loop through and clone, skipping existing ones
+    for (const template of oldTemplates) {
+      const exists = await Emailtemplet.findOne({
+        where: {
+          eventId: EventID,
+          templateId: template.templateId,
+        },
+      });
+      if (exists) {
+        skippedTemplates.push({
+          templateId: template.templateId,
+          reason: "Already exists for this event",
+        });
+        continue;
+      }
+      const cloned = await Emailtemplet.create({
+        title: template.title,
+        subject: template.subject,
+        type: template.type,
+        description: template.description,
+        mandril_template: template.mandril_template,
+        eventId: EventID,
+        templateId: template.templateId, // Keep original reference
+      });
+
+      clonedTemplates.push(cloned);
+    }
+
+    // 4️⃣ Response
+    return {
+      statusCode: 200,
+      success: true,
+      message: "Templates cloned successfully.",
+      fromEventId: oldEventId,
+      clonedCount: clonedTemplates.length,
+      skippedCount: skippedTemplates.length,
+      clonedTemplates,
+      skippedTemplates,
+    };
+  } catch (error) {
+    console.error("Error cloning templates:", error);
+    return {
+      statusCode: 500,
+      message: "Internal Server Error",
+      error: error.message,
+    };
+  }
+}
+
+
+
+
+
+
+
+
+
 
 // Events Invited
 export async function View_EventInvite(req) {
@@ -4967,16 +5106,25 @@ export async function viewCancelTickets(req, res) {
 // Cancel Orders find
 export async function eventCancelOrder({ eventName }, res) {
   try {
+    // 1. Find event ID
     const event = await Event.findOne({
       attributes: ["id"],
-      where: {
-        Name: {
-          [Op.like]: `%${eventName}%`, // Use Sequelize's LIKE operator
-        },
-      },
+      where: { Name: { [Op.like]: `%${eventName}%` } },
+      raw: true,
     });
 
+    if (!event) {
+      return res.json({
+        success: false,
+        message: "Event not found",
+        data: [],
+        count: 0,
+      });
+    }
+
     const eventID = event.id;
+
+    // 2. Fetch all cancelled orders (bulk, no per-order queries)
     const orders = await Orders.findAll({
       attributes: [
         "id",
@@ -4995,11 +5143,12 @@ export async function eventCancelOrder({ eventName }, res) {
         "ticket_cancel_id",
         "refund_reason",
         "cancel_date",
+        "book_accommodation_id"
       ],
       where: {
         [Op.or]: [
-          { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
-          { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
+          { is_free: { [Op.is]: null } },
+          { couponCode: { [Op.not]: null } },
         ],
         ticket_status: { [Op.not]: null },
       },
@@ -5010,126 +5159,112 @@ export async function eventCancelOrder({ eventName }, res) {
         },
       ],
       order: [["cancel_date", "DESC"]],
-      raw: true, // This will return plain objects instead of Sequelize instances
+      raw: true,
     });
 
-    let data = [];
-    let ticketCount = 0;
-    let addonCount = 0;
-    for (let order of orders) {
-      let tick1, ticket_addons;
-
-      if (eventName) {
-        // Assuming eventName is defined elsewhere
-        tick1 = await BookTicket.findOne({
-          where: { order_id: order.id, event_id: eventID },
-          include: [
-            { model: Event, include: [Currency] },
-            { model: EventTicketType },
-          ],
-          order: [["id", "DESC"]],
-          raw: true,
-        });
-
-        // count for event cancel tickets
-        ticketCount = await BookTicket.findAll({
-          where: {
-            event_id: eventID,
-            ticket_status: { [Op.not]: null },
-          },
-        });
-
-        // console.log("==================ticketCount", ticketCount.length)
-
-        ticket_addons = await AddonBook.findAll({
-          where: { order_id: order.id, event_id: eventID },
-          include: [{ model: Addons }, { model: Event, include: [Currency] }],
-          // group: ['addons_id'],
-          order: [["created", "DESC"]],
-          raw: true,
-        });
-
-        // count for event cancel Addons
-        addonCount = await AddonBook.findAll({
-          where: { event_id: eventID, ticket_status: { [Op.not]: null } },
-        });
-      } else {
-        tick1 = await BookTicket.findOne({
-          where: { order_id: order.id },
-          include: [
-            { model: Event, include: [Currency] },
-            { model: EventTicketType },
-          ],
-          // order: [['id', 'DESC']],
-          raw: true,
-        });
-
-        ticket_addons = await AddonBook.findAll({
-          where: { order_id: order.id },
-          group: ["addons_id"],
-          include: [{ model: Addons }, { model: Event, include: [Currency] }],
-          order: [["created", "DESC"]],
-          raw: true,
-        });
-      }
-
-      if (tick1 || ticket_addons.length) {
-        let order_data = {
-          eventName: tick1
-            ? tick1["Event.Name"]
-            : ticket_addons[0]["Event.Name"],
-          orderid: order.id,
-          tickettotal: await BookTicket.count({
-            where: { order_id: order.id },
-          }),
-          ticketaddontotal: await AddonBook.count({
-            where: { order_id: order.id },
-          }),
-          orderrrn: order.OriginalTrxnIdentifier,
-          name: `${order["User.FirstName"]} ${order["User.LastName"]}`,
-          email: order["User.Email"],
-          mobile: order["User.PhoneNumber"],
-          currencysign: tick1
-            ? tick1["Event.Currency.Currency_symbol"]
-            : ticket_addons[0]["Event.Currency.Currency_symbol"],
-          currencyvalue: tick1
-            ? tick1["Event.Currency.Currency"]
-            : ticket_addons[0]["Event.Currency.Currency"],
-          couponcode: order.couponCode || false,
-          afterdiscount: order.total_amount,
-          total_include_tax: order.total_amount,
-          totalamount: order.actualamount,
-          stripekey: order.RRN,
-          paymenttype: order.paymenttype,
-          tax_percentage: order.adminfee ? order.adminfee : 0,
-          actualamount: order.actualamount ? order.actualamount : 0,
-          orderDate: new Date(order.createdAt).toISOString(),
-          discountValue: order.discountValue || 0,
-          discountAmount: order.discountAmount || 0,
-          discountType: order.discountType || "",
-          is_free_ticket: order?.is_free == 1 ? true : false,
-          ticket_cancel_id: order.ticket_cancel_id,
-          refund_reason: order.refund_reason,
-        };
-
-        data.push(order_data);
-      }
+    if (!orders.length) {
+      return res.json({
+        success: true,
+        message: "No cancelled orders found",
+        data: [],
+        count: 0,
+      });
     }
 
-    // Modify the response format
+    const orderIds = orders.map((o) => o.id);
+
+    // 3. Fetch all tickets for these orders in bulk
+    const tickets = await BookTicket.findAll({
+      where: { order_id: { [Op.in]: orderIds }, event_id: eventID },
+      include: [
+        { model: Event, include: [Currency] },
+        { model: EventTicketType },
+      ],
+      raw: true,
+    });
+
+    // 4. Fetch all addons for these orders in bulk
+    const addons = await AddonBook.findAll({
+      where: { order_id: { [Op.in]: orderIds }, event_id: eventID },
+      include: [{ model: Addons }, { model: Event, include: [Currency] }],
+      raw: true,
+    });
+
+    // 5. Precompute ticketCount & addonCount (event-level, not per order)
+    const [ticketCount, addonCount] = await Promise.all([
+      BookTicket.count({ where: { event_id: eventID, ticket_status: { [Op.not]: null } } }),
+      AddonBook.count({ where: { event_id: eventID, ticket_status: { [Op.not]: null } } }),
+    ]);
+
+    // 6. Fetch cancelled accommodations (bulk)
+    const cancelAccommodation = await BookAccommodationInfo.count({
+      where: { event_id: eventID, is_accommodation_cancel: "Y" },
+    });
+
+    // 7. Build a map for tickets & addons (faster lookup per order)
+    const ticketMap = {};
+    tickets.forEach((t) => {
+      if (!ticketMap[t.order_id]) ticketMap[t.order_id] = [];
+      ticketMap[t.order_id].push(t);
+    });
+
+    const addonMap = {};
+    addons.forEach((a) => {
+      if (!addonMap[a.order_id]) addonMap[a.order_id] = [];
+      addonMap[a.order_id].push(a);
+    });
+
+    // 8. Construct final response
+    const data = orders.map((order) => {
+      const tickList = ticketMap[order.id] || [];
+      const addonList = addonMap[order.id] || [];
+
+      if (!tickList.length && !addonList.length) return null;
+
+      const baseEvent = tickList[0] || addonList[0];
+
+      return {
+        eventName: baseEvent?.["Event.Name"] || "",
+        orderid: order.id,
+        tickettotal: tickList.length,
+        ticketaddontotal: addonList.length,
+        orderrrn: order.OriginalTrxnIdentifier,
+        name: `${order["User.FirstName"]} ${order["User.LastName"]}`,
+        email: order["User.Email"],
+        mobile: order["User.PhoneNumber"],
+        currencysign: baseEvent?.["Event.Currency.Currency_symbol"] || "",
+        currencyvalue: baseEvent?.["Event.Currency.Currency"] || "",
+        couponcode: order.couponCode || false,
+        afterdiscount: order.total_amount,
+        total_include_tax: order.total_amount,
+        totalamount: order.actualamount,
+        stripekey: order.RRN,
+        paymenttype: order.paymenttype,
+        tax_percentage: order.adminfee || 0,
+        actualamount: order.actualamount || 0,
+        orderDate: new Date(order.createdAt).toISOString(),
+        discountValue: order.discountValue || 0,
+        discountAmount: order.discountAmount || 0,
+        discountType: order.discountType || "",
+        is_free_ticket: order?.is_free == 1,
+        ticket_cancel_id: order.ticket_cancel_id,
+        refund_reason: order.refund_reason,
+        book_accommodation_id: order.book_accommodation_id || null,
+      };
+    }).filter(Boolean);
+
     return res.json({
-      // statusCode: 200,
       success: true,
       message: "View Cancel Orders Successfully!",
-      data: data,
+      data,
       count: data.length,
-      ticketCount: ticketCount.length,
-      addonCount: addonCount.length,
-      // orders,
+      ticketCount,
+      addonCount,
+      AccommodationCount: cancelAccommodation,
     });
+
   } catch (error) {
     return res.json({
-      statusCode: 200,
       success: false,
       message: error.message,
       data: [],
@@ -5137,6 +5272,9 @@ export async function eventCancelOrder({ eventName }, res) {
     });
   }
 }
+
+
+
 
 // Search cancel Orders
 export async function searchCancelOrder(
@@ -6132,21 +6270,159 @@ export async function updateEventStatus(req, res) {
 }
 
 
+// view cancel accommodations
+export async function viewCancelAccommodation(req, res) {
+  const { email, startDate, endDate, eventName, name, lname, mobile, orderId } = req; // or req.body if it's from POST
 
+  try {
+    // Build dynamic filters
+    const eventFilters = {};
+    const userFilters = {};
+    const orderConditions = {};
 
+    // Date filter
+    if (startDate || endDate) {
+      orderConditions.createdAt = {};
 
+      if (startDate) {
+        const startOfDay = new Date(new Date(startDate).setHours(0, 0, 0));
+        orderConditions.createdAt[Op.gte] = startOfDay;
+      }
 
+      if (endDate) {
+        const endOfDay = new Date(new Date(endDate).setHours(23, 59, 59));
+        orderConditions.createdAt[Op.lte] = endOfDay;
+      }
+    }
 
+    if (eventName) {
+      eventFilters.Name = {
+        [Op.like]: `%${eventName.trim().toUpperCase()}%`,
+      };
+    }
 
+    if (email) {
+      userFilters.Email = {
+        [Op.like]: `%${email.trim().toUpperCase()}%`,
+      };
+    }
 
+    if (name) {
+      userFilters.FirstName = {
+        [Op.like]: `%${name.trim().toUpperCase()}%`,
+      };
+    }
 
+    if (lname) {
+      userFilters.LastName = {
+        [Op.like]: `%${lname.trim().toUpperCase()}%`,
+      };
+    }
 
+    if (mobile) {
+      userFilters.PhoneNumber = {
+        [Op.like]: `%${mobile}%`,
+      };
+    }
 
+    if (orderId) {
+      orderConditions.OriginalTrxnIdentifier = orderId;
+    }
 
+    // Find event
+    const event = await Event.findOne({
+      where: eventFilters,
+      include: { model: Currency },
+    });
 
+    if (!event) {
+      return res.json({
+        success: false,
+        message: "Event not found!",
+        data: [],
+        count: 0,
+      });
+    }
+    const eventID = event.id;
+    // 🔑 Fetch only accommodation cancellations
+    const totalOrders = await MyOrders.findAll({
+      where: orderConditions,
+      attributes: [
+        "id",
+        "createdAt",
+        "OriginalTrxnIdentifier",
+        "paymenttype",
+        "actualamount",
+        "total_amount",
+      ],
+      include: [
+        {
+          model: User,
+          attributes: ["FirstName", "LastName", "Email", "PhoneNumber"],
+          where: userFilters,
+          required: Object.keys(userFilters).length > 0,
+        }, {
+          model: BookAccommodationInfo,
+          attributes: [
+            "id",
+            "user_id",
+            "accommodation_id",
+            "check_in_date",
+            "check_out_date",
+            "total_night_stay",
+          ],
+          where: {
+            event_id: eventID,
+            is_accommodation_cancel: "Y", // ✅ only cancelled accommodations
+          },
+          include: [
+            {
+              model: HousingInfo,
+              attributes: ["Name", "Neighborhood", "MaxOccupancy", "NumBedrooms"],
+              include: [
+                {
+                  model: EventHousing,
+                  ...(eventID ? { where: { EventID: eventID } } : {}),
+                  attributes: [
+                    "id",
+                    "EventID",
+                    "NightlyPrice",
+                    "AvailabilityStartDate",
+                    "AvailabilityEndDate",
+                    "isDateExtensionRequestedSent",
+                  ],
+                },
+                {
+                  model: HousingNeighborhood,
+                  attributes: ["name"],
+                },
+              ],
+            },
+          ],
+        },
+        // {
+        //   model: BookAccommodationInfo,
+        //   where: {
+        //     event_id: eventID,
+        //     is_accommodation_cancel: "Y", // ✅ only cancelled accommodations
+        //   },
+        //   required: true, // ensures only orders with cancelled accommodations are fetched
 
+        // },
+      ],
+      order: [["id", "DESC"]],
+    });
 
-
-
-
-
+    return res.json({
+      success: true,
+      message: "View Cancel Accommodations Successfully!",
+      data: totalOrders
+    });
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: error.message,
+      data: [],
+    });
+  }
+}
