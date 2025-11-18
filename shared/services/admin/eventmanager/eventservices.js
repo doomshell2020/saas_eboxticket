@@ -6270,6 +6270,7 @@ export async function updateEventStatus(req, res) {
 }
 
 
+
 // view cancel accommodations
 export async function viewCancelAccommodation(req, res) {
   const { email, startDate, endDate, eventName, name, lname, mobile, orderId } = req; // or req.body if it's from POST

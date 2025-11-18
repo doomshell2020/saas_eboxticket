@@ -22,7 +22,8 @@ import {
   searchOrderDetailsForSales,
   searchOrder,
   viewCancelTickets,
-  searchCancelOrder
+  searchCancelOrder,
+  viewCancelAccommodation
 } from "@/shared/services/admin/eventmanager/eventservices";
 const handler = async (req, res) => {
   return checkApiKey(req, res, async () => {
@@ -88,6 +89,9 @@ const handler = async (req, res) => {
             } else if (req.body.key == "transferTicketCheck") {
               const ticketTransferCheck = await transferTicketCheck(req.body, res);
               res.json(ticketTransferCheck);
+            } else if (req.body.key == "cancel_accommodations") {
+              const cancelList = await viewCancelAccommodation(req.body, res);
+              res.json(cancelList);
             } else {
               res.json({ success: false, message: "Invalid key Please send Requirement" })
             }
