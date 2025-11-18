@@ -315,6 +315,7 @@ export async function getSalesTicTypeEventId({ eventId }, req, res) {
 // }
 
 
+// fetch cancel amount
 export async function getTotalCancelAmount(eventID) {
   try {
     const totalOrders = await MyOrders.findAll({
@@ -378,7 +379,6 @@ export async function getTotalCancelAmount(eventID) {
         // if (order.BookAccommodationInfo) {
         //   accommodationTotal += Number(order.BookAccommodationInfo.total_amount || 0);
         // }
-
         if (order.BookAccommodationInfo) {
           // Prefer the accommodation-specific amount; fall back to total_amount if missing
           let accommodationAmount = Number(order.totalAccommodationAmount ?? order.total_amount ?? 0);
@@ -392,9 +392,6 @@ export async function getTotalCancelAmount(eventID) {
           // Add exactly once
           accommodationTotal += accommodationAmount;
         }
-
-
-
       } else {
         // ✅ Rule for other events (only addons with 12%)
         const addonTotal =
@@ -414,7 +411,6 @@ export async function getTotalCancelAmount(eventID) {
     throw err;
   }
 }
-
 
 export async function summarizeTicketAddonValues2025(eventInfo) {
   const eventId = eventInfo.id;
@@ -441,6 +437,7 @@ export async function summarizeTicketAddonValues2025(eventInfo) {
   let grandTickAddonIncludeTaxes = 0;
   let grandTickAddonWithoutTaxes = 0;
   let grandTickAddonTaxes = 0;
+  let grandTotalAmount = 0; // 🆕 added variable to accumulate total_amount
 
   const orderInfo = await MyOrders.findAll({
     where: {
@@ -451,10 +448,7 @@ export async function summarizeTicketAddonValues2025(eventInfo) {
       ],
     },
     include: [
-      {
-        model: User,
-        attributes: [],
-      },
+      { model: User, attributes: [] },
       { model: BookTicket, attributes: [] },
       { model: AddonBook, attributes: [] },
     ],
@@ -466,6 +460,7 @@ export async function summarizeTicketAddonValues2025(eventInfo) {
       "totalTicketAmount",
       "totalTicketTax",
       "discountAmount",
+      "total_amount"
     ],
   });
 
@@ -476,12 +471,12 @@ export async function summarizeTicketAddonValues2025(eventInfo) {
     totalTicketTax += Math.round(parseFloat(single.totalTicketTax) || 0);
     totalAddonAmount += Math.round(parseFloat(single.totalAddonAmount) || 0);
     totalAddonTax += Math.round(parseFloat(single.totalAddonTax) || 0);
+    grandTotalAmount += Math.round(parseFloat(single.total_amount) || 0); // 🆕 accumulate total_amount
   });
 
   grandTickAddonIncludeTaxes = (totalTicketAmount + totalTicketTax + totalAddonAmount + totalAddonTax) - (totalDiscountAmount);
   grandTickAddonWithoutTaxes = (totalTicketAmount + totalAddonAmount) - (totalDiscountAmount);
   grandTickAddonTaxes = (totalTicketTax + totalAddonTax);
-
 
   // --- Tickets ---
   const findAllTickets = await MyTicketBook.findAll({
@@ -494,7 +489,6 @@ export async function summarizeTicketAddonValues2025(eventInfo) {
       }
     ],
   });
-
 
   const tickets = Object.values(
     findAllTickets.reduce((acc, order) => {
@@ -572,7 +566,7 @@ export async function summarizeTicketAddonValues2025(eventInfo) {
     addon_price_info.total_addon_limit = addon.total_count;
   });
 
-
+  // --- Accommodation Summary ---
   let grandTotalAccommodationAmount = 0;
   let grandTotalAccommodationTax = 0;
   let grandTotalPaidAmount = 0;
@@ -584,6 +578,13 @@ export async function summarizeTicketAddonValues2025(eventInfo) {
       book_accommodation_id: { [Op.ne]: null },
       order_context: { [Op.in]: ["regular", "extension"] }
     },
+    include: [
+      {
+        model: BookAccommodationInfo,
+        where: { event_id: eventId },
+        required: false,
+      },
+    ],
     attributes: [
       "id",
       "createdAt",
@@ -591,15 +592,28 @@ export async function summarizeTicketAddonValues2025(eventInfo) {
       "order_context",
       "totalAccommodationAmount",
       "totalAccommodationTax",
-      "total_due_amount"
+      "total_due_amount",
+      "total_due_amount",
+      'paymentOption'
     ],
   });
 
   getAccommodationOrders.forEach((order) => {
     const accommodationAmount = Math.round(order.totalAccommodationAmount) || 0;
     const accommodationTax = Math.round(order.totalAccommodationTax) || 0;
-    const dueAmount = Math.round(order.total_due_amount) || 0;
-    const paidAmount = Math.round(accommodationAmount - dueAmount);
+    // const dueAmount = Math.round(order.total_due_amount) || 0;
+    // const paidAmount = Math.round(accommodationAmount - dueAmount);
+
+    let dueAmount = 0;
+    if (order.BookAccommodationInfo) {
+      const paymentOpt = order.paymentOption;
+      if (paymentOpt === "partial" && order.BookAccommodationInfo.is_accommodation_cancel === "N") {
+        // accommodationAmount = accommodationAmount - due;
+        dueAmount = Math.round(parseFloat(order.total_due_amount) || 0);
+      }
+    }
+    const paidAmount = accommodationAmount - dueAmount;
+
 
     grandTotalAccommodationAmount += accommodationAmount;
     grandTotalAccommodationTax += accommodationTax;
@@ -619,7 +633,7 @@ export async function summarizeTicketAddonValues2025(eventInfo) {
   // --- Sort tickets by price high → low
   tickets.sort((a, b) => b.ticket_actual_price - a.ticket_actual_price);
 
-
+  // --- Final Response ---
   return {
     paymentInfo: {
       accommodationsInfo,
@@ -630,16 +644,16 @@ export async function summarizeTicketAddonValues2025(eventInfo) {
       totalAddonTax,
       grandTickAddonIncludeTaxes,
       grandTickAddonWithoutTaxes,
-      grandTickAddonTaxes
+      grandTickAddonTaxes,
     },
     totalOrderCount,
     tickets,
     addons,
     ticket_price_info,
     addon_price_info,
+    grandTotalAmount, // 🆕 Added in final response
   };
 }
-
 
 export async function summarizeTicketAddonValues(eventInfo) {
   const eventId = eventInfo.id;
