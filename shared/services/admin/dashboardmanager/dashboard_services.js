@@ -233,6 +233,88 @@ export async function getSalesTicTypeEventId({ eventId }, req, res) {
 }
 
 // fetch cancel amount
+// export async function getTotalCancelAmount(eventID) {
+//   try {
+//     const totalOrders = await MyOrders.findAll({
+//       where: { event_id: eventID },
+//       attributes: [
+//         "id",
+//         "RRN",
+//         "total_amount",
+//         "total_tax_amount",
+//         "discountAmount",
+//         "discountType",
+//         "couponCode",
+//         "is_free",
+//         "adminfee",
+//         "createdAt",
+//         "totalAddonAmount",
+//         "totalAddonTax",
+//         "totalTicketAmount",
+//         "totalTicketTax",
+//         "totalAccommodationAmount",
+//         "totalAccommodationTax",
+//       ],
+//       include: [
+//         {
+//           model: BookTicket,
+//           where: { event_id: eventID, ticket_status: { [Op.not]: null } },
+//           required: false,
+//         },
+//         {
+//           model: AddonBook,
+//           where: { event_id: eventID, ticket_status: { [Op.not]: null } },
+//           required: false,
+//         },
+//         {
+//           model: BookAccommodationInfo,
+//           where: { event_id: eventID, is_accommodation_cancel: "Y" },
+//           required: false,
+//         },
+//       ],
+//       order: [["id", "DESC"]],
+//     });
+
+//     let canceledTotal = 0;
+//     let accommodationTotal = 0;
+//     totalOrders.forEach((order) => {
+//       if (eventID == 111) {
+//         // ✅ Rule for event 111 (tickets + addons with 10.75%, accommodation no tax)
+
+//         const ticketTotal =
+//           order.TicketBooks?.reduce((sum, t) => sum + Number(t.amount || 0), 0) || 0;
+
+//         const addonTotal =
+//           order.AddonBooks?.reduce((sum, a) => sum + Number(a.price || 0), 0) || 0;
+
+//         const orderCancelBase = ticketTotal + addonTotal;
+
+//         canceledTotal += orderCancelBase * 1.1075; // add 10.75%
+
+//         if (order.BookAccommodationInfo) {
+//           accommodationTotal += Number(order.BookAccommodationInfo.total_amount || 0);
+//         }
+//       } else {
+//         // ✅ Rule for other events (only addons with 12%)
+//         const addonTotal =
+//           order.AddonBooks?.reduce((sum, a) => sum + Number(a.price || 0), 0) || 0;
+
+//         if (addonTotal > 0) {
+//           canceledTotal += addonTotal * 1.12; // 12% flat tax
+//         }
+//       }
+//     });
+//     // ✅ Final return
+//     return eventID == 111
+//       ? canceledTotal + accommodationTotal
+//       : canceledTotal;
+//   } catch (err) {
+//     console.error("Error in getTotalCancelAmount:", err);
+//     throw err;
+//   }
+// }
+
+
 export async function getTotalCancelAmount(eventID) {
   try {
     const totalOrders = await MyOrders.findAll({
@@ -254,6 +336,8 @@ export async function getTotalCancelAmount(eventID) {
         "totalTicketTax",
         "totalAccommodationAmount",
         "totalAccommodationTax",
+        'paymentOption',
+        'total_due_amount'
       ],
       include: [
         {
@@ -291,9 +375,26 @@ export async function getTotalCancelAmount(eventID) {
 
         canceledTotal += orderCancelBase * 1.1075; // add 10.75%
 
+        // if (order.BookAccommodationInfo) {
+        //   accommodationTotal += Number(order.BookAccommodationInfo.total_amount || 0);
+        // }
+
         if (order.BookAccommodationInfo) {
-          accommodationTotal += Number(order.BookAccommodationInfo.total_amount || 0);
+          // Prefer the accommodation-specific amount; fall back to total_amount if missing
+          let accommodationAmount = Number(order.totalAccommodationAmount ?? order.total_amount ?? 0);
+          // Ensure numeric
+          const due = Number(order.total_due_amount ?? 0);
+          const paymentOpt = order.paymentOption;
+          if (paymentOpt === "partial") {
+            accommodationAmount = accommodationAmount - due;
+          }
+          if (accommodationAmount < 0) accommodationAmount = 0;
+          // Add exactly once
+          accommodationTotal += accommodationAmount;
         }
+
+
+
       } else {
         // ✅ Rule for other events (only addons with 12%)
         const addonTotal =
@@ -313,6 +414,7 @@ export async function getTotalCancelAmount(eventID) {
     throw err;
   }
 }
+
 
 export async function summarizeTicketAddonValues2025(eventInfo) {
   const eventId = eventInfo.id;
