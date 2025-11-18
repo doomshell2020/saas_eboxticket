@@ -1,5 +1,4 @@
 import { addEventStaff, view_EventStaffByid, view_EventByid, view_StaffByid, UpdateStaff, deleteStaff, ImportExcel, getAllStaffTicket, sendInvitationEmailStaff, viewStaffByEvent, search_Staff, sendTicketUser } from "../../../shared/services/admin/eventmanager/eventstaffservices";
-
 import { generateStaffTicket } from "../../../shared/services/front/order_service";
 
 const handler = async (req, res) => {
@@ -40,6 +39,7 @@ const handler = async (req, res) => {
                     break;
                 }
             }
+            
             case "GET": {
                 const { eventId, EventID, StaffId, EventIDS } = query;
 
