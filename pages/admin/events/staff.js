@@ -1,3 +1,4 @@
+// testing.. page
 import React from "react";
 import { useState, useRef, useEffect } from "react";
 import {
@@ -11,10 +12,6 @@ import {
   Breadcrumb,
   Alert,
   Collapse,
-  Pagination,
-  Spinner,
-  ButtonGroup,
-  Dropdown,
 } from "react-bootstrap";
 import {
   useTable,
@@ -27,32 +24,15 @@ import Link from "next/link";
 import axios from "axios";
 import { CSVLink } from "react-csv";
 import { Tooltip, IconButton, Switch } from "@mui/material";
-import SendIcon from "@mui/icons-material/Send";
 import Moment from "react-moment";
-import moment from "moment";
-import { MultiSelect } from "react-multi-select-component";
 import { useRouter } from "next/router";
 import ClipLoader from "react-spinners/ClipLoader";
 import Swal from "sweetalert2";
 import {
-  CForm,
   CCol,
   CFormLabel,
-  CFormFeedback,
   CFormInput,
-  CInputGroup,
-  CInputGroupText,
-  CButton,
-  CFormCheck,
 } from "@coreui/react";
-import { platform } from "os";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-
-// console.log('platform',platform);
-// import { optiondefault } from "../../../shared/data/form/form-validation";
-// import { useDownloadExcel } from "react-export-table-to-excel";
-// import ReactExport from "react-export-table-to-excel";
 
 const MembersTable = () => {
   const [firstName, setFirstName] = useState("");
@@ -63,7 +43,6 @@ const MembersTable = () => {
   const [departments, setDepartments] = useState("");
   const [waiverFlag, setWaiverFlag] = useState("");
   const [pages, setPage] = useState(1);
-  const [pageSize, setManualPageSize] = useState(25); // console.log("Country", Country)
   const [eventName, setEventName] = useState(null);
   const [eventDepartment, setEventDepartment] = useState([]);
   const [status, setStatus] = useState({
@@ -74,14 +53,12 @@ const MembersTable = () => {
   const [lgShow, setLgShow] = useState(false);
   const [basic, setBasic] = useState(false);
   const [qrImg, setQrImg] = useState("");
-  const [staffTickets, setStaffTickets] = useState([]);
   const [ticketSaleInfo, setTicketSaleInfo] = useState({});
-  const [ticketScannedDepartmentWise, setTicketScannedDepartmentWise] =
-    useState({});
-
+  const [scanStatus, setScanStatus] = useState("");
+  const [ticketType, setTicketType] = useState("");
+  // console.log("scanStatus",scanStatus);
   const navigate = useRouter();
   const router = useRouter();
-  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const { id, currentPage, result } = router.query;
   const finalId = id;
@@ -94,6 +71,7 @@ const MembersTable = () => {
         handleViewDepartment(id);
       };
       fetchAllData();
+      setPageSize(50)
     }
   }, [id]);
 
@@ -114,10 +92,12 @@ const MembersTable = () => {
           return {
             ...member,
             QRCode: member.TicketDetails?.[0]?.qrcode ?? "",
+            AddonQrCode: member.AddonBooks?.[0]?.addon_qrcode ?? "",
             usedDate: member.TicketDetails?.[0]?.usedate ?? "",
             // scannedBy: member.TicketDetails?.[0]?.scanner_id ?? "",
-            scannedBy: `${member.TicketDetails?.[0]?.user?.FirstName || ""} ${member.TicketDetails?.[0]?.user?.LastName || ""
-              }`.trim(), // Concatenate FirstName and LastName
+            scannedBy: `${member.TicketDetails?.[0]?.user?.FirstName || ""} ${member.TicketDetails?.[0]?.user?.LastName || ""}`.trim(), // Concatenate FirstName and LastName
+            addonUseDate: member.AddonDetails?.[0]?.usedate ?? "",
+            addonScannedBy: `${member.AddonDetails?.[0]?.user?.FirstName || ""} ${member.AddonDetails?.[0]?.user?.LastName || ""}`.trim(),
           };
         });
         SetDATATABLE(mergedData || []);
@@ -244,14 +224,29 @@ const MembersTable = () => {
     // selectedIds.includes(staffID);
   };
 
+  // const toggleAllRowsSelected = () => {
+  //   const allRowIds = page.map((row) => row.original.Email);
+  //   if (selectedRows.length === allRowIds.length) {
+  //     setSelectedRows([]);
+  //   } else {
+  //     setSelectedRows(allRowIds);
+  //   }
+  // };
+
   const toggleAllRowsSelected = () => {
-    const allRowIds = page.map((row) => row.original.Email);
-    if (selectedRows.length === allRowIds.length) {
+    const selectableRowIds = page
+      .filter((row) => row.original.WaiverFlag !== 1)
+      .map((row) => row.original.Email);
+
+    if (selectedRows.length === selectableRowIds.length) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(allRowIds);
+      setSelectedRows(selectableRowIds);
     }
   };
+
+
+
 
   const getStatusBadgeColor = (status) => {
     switch (status) {
@@ -329,149 +324,6 @@ const MembersTable = () => {
     }
   };
 
-  //Sent Invitation Email
-  // const callStatusApi = async (Email, Status) => {
-  //     const STATUS_API = `/api/v1/eventstaff`;
-  //     console.log(Email);
-  //     // Find the email in the DATATABLE
-  //     if (Email.length == 1) {
-  //         try {
-  //             const confirmationResult = await Swal.fire({
-  //                 title: 'Warning',
-  //                 text: 'Are you sure you want to send invitation?',
-  //                 icon: "question",
-  //                 showCancelButton: true,
-  //                 confirmButtonText: "Yes!",
-  //                 cancelButtonText: "No, cancel",
-  //             });
-
-  //             if (confirmationResult.isConfirmed) {
-  //                 setIsLoading(true);
-  //                 const response = await axios.post(STATUS_API, {
-  //                     key: "sendInvitation",
-  //                     Email,
-  //                     Status,
-  //                 });
-  //                 if (response.data.statusCode == 200) {
-  //                     const msg = response.data.message;
-  //                     const MemberURL = `/api/v1/eventstaff?eventId=${finalId}`;
-  //                     fetch(MemberURL)
-  //                         .then((response) => response.json())
-  //                         .then((value) => {
-  //                             SetDATATABLE(value.data);
-  //                             setTimeout(() => {
-  //                                 setIsLoading(false);
-  //                             }, 3000);
-  //                             fetchData();
-  //                             Swal.fire({
-  //                                 title: "Done",
-  //                                 text: msg,
-  //                                 icon: "success",
-  //                             });
-  //                         });
-  //                 } else {
-  //                     setIsLoading(false);
-  //                     const msg = response.data.message;
-  //                     Swal.fire({
-  //                         title: "Oops!",
-  //                         text: msg,
-  //                         icon: "error",
-  //                     });
-  //                 }
-  //             }
-  //         } catch (error) {
-  //             Swal.fire({
-  //                 title: "Error",
-  //                 text: error,
-  //                 icon: "error",
-  //             });
-  //             console.error("Error:", error);
-  //         }
-  //     } else if (Email.length > 1) {
-  //         try {
-  //             const confirmationResult = await Swal.fire({
-  //                 title: 'Warning',
-  //                 text: 'Are you sure you want to send invitation?',
-  //                 icon: "question",
-  //                 showCancelButton: true,
-  //                 confirmButtonText: "Yes!",
-  //                 cancelButtonText: "No, cancel",
-  //             });
-
-  //             if (confirmationResult.isConfirmed) {
-  //                 setIsLoading(true);
-  //                 const response = await axios.post(STATUS_API, {
-  //                     key: "sendInvitation",
-  //                     Email,
-  //                     Status,
-  //                 });
-
-  //                 if (response.data.statusCode == 200) {
-  //                     const msg = response.data.message;
-  //                     // localStorage.setItem("staticAdded", msg);
-  //                     const MemberURL = `/api/v1/eventstaff?eventId=${finalId}`;
-  //                     fetch(MemberURL)
-  //                         .then((response) => response.json())
-  //                         .then((value) => {
-  //                             SetDATATABLE(value.data);
-  //                             setTimeout(() => {
-  //                                 setIsLoading(false);
-  //                             }, 3000);
-  //                             fetchData();
-  //                             Swal.fire({
-  //                                 title: "Done",
-  //                                 text: msg,
-  //                                 icon: "success",
-  //                             });
-  //                         });
-  //                 } else {
-  //                     setIsLoading(false);
-  //                     const msg = response.data.message;
-  //                     Swal.fire({
-  //                         title: "Oops!",
-  //                         text: msg,
-  //                         icon: "error",
-  //                     });
-  //                 }
-  //             }
-  //         } catch (error) {
-  //             Swal.fire({
-  //                 title: "Error",
-  //                 text: error,
-  //                 icon: "error",
-  //             });
-  //             console.error("Error:", error);
-  //         }
-
-  //     }
-  // };
-
-  // delete from the third party platform
-  const deleteStaff = async (email) => {
-    const url = "https://staging.eboxtickets.com/embedcart/deletestaff";
-
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      // console.log('Success:', data);
-      return data;
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
-  };
-
   // Deleted functionality the staff member
   const handleDeleteMember = (id, WaiverFlags, email) => {
     // console.log("WaiverFlagsWaiverFlags", id, WaiverFlags)
@@ -492,7 +344,6 @@ const MembersTable = () => {
           // await axios.delete(apiurl);
           const deleteResponse = await axios.delete(apiurl);
           if (deleteResponse.data.success) {
-            await deleteStaff(email);
             setIsLoading(false);
             const viewapi = `/api/v1/eventstaff?eventId=${finalId}`;
             const response = await axios.get(viewapi);
@@ -572,16 +423,6 @@ const MembersTable = () => {
       className: "borderrigth",
       Cell: ({ row }) => <div>{row.original.Department}</div>,
     },
-    // {
-    //     Header: "Wristbands",
-    //     accessor: "Wristbands",
-    //     className: "borderrigth",
-    //     Cell: ({ row }) => (
-    //         <div>
-    //             {row.original.Wristband}
-    //         </div>
-    //     ),
-    // },
     {
       Header: "Status ",
       accessor: "Waiver",
@@ -600,6 +441,232 @@ const MembersTable = () => {
         </div>
       ),
     },
+    {
+      Header: "Ticket QR Code",
+      accessor: "QRCode",
+      className: "borderrigth w-8",
+      Cell: ({ row }) => (
+        <div>
+          {/* <img src={row.original.QRCode && row.original.QRCode} alt="QR Code" className="img-fluid"
+                    /> */}
+          {row.original.QRCode ? (
+            <div className="position-relative d-flex justify-content-center align-items-center qrcode-img">
+              <Link
+                className="text-light stretched-link rounded-pill text-center d-block bg-success"
+                style={{
+                  width: "90%",
+                  zIndex: "2",
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                }}
+                href="#"
+                onClick={() => {
+                  handleClick(row.original.QRCode);
+                }}
+              >
+                Click Here
+              </Link>
+              <img
+                style={{ filter: "blur(3px)", width: "40%" }}
+                // src={`/qrCodes/${row.original.QRCode}`}
+                src={`${process.env.NEXT_PUBLIC_S3_URL}/qrCodes/${row.original.QRCode}`}
+                alt="QR Code"
+                className="pe-auto img-fluid "
+              />
+            </div>
+          ) : (
+            "N/A"
+          )}
+          <div>
+            {row.original.usedDate && (
+              <div className="mb-1">
+                <strong>Scanned Date: </strong>
+                <Moment format="DD-MMM-YYYY">{row.original.usedDate}</Moment>
+              </div>
+            )}
+            {row.original.scannedBy && (
+              <div className="mb-1">
+                <strong>Scanned By: </strong>
+                {row.original.scannedBy}
+              </div>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      Header: "Addon QR Code",
+      accessor: "AddonQRCode",
+      className: "borderrigth w-8",
+      Cell: ({ row }) => (
+        <div>
+          {row.original.AddonQrCode ? (
+            <div className="position-relative d-flex justify-content-center align-items-center qrcode-img">
+              <Link
+                className="text-light stretched-link rounded-pill text-center d-block bg-success"
+                style={{
+                  width: "90%",
+                  zIndex: "2",
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                }}
+                href="#"
+                onClick={() => {
+                  handleClick(row.original.AddonQrCode);
+                }}
+              >
+                Click Here
+              </Link>
+              <img
+                style={{ filter: "blur(3px)", width: "40%" }}
+                // src={`/qrCodes/${row.original.QRCode}`}
+                src={`${process.env.NEXT_PUBLIC_S3_URL}/qrCodes/${row.original.AddonQrCode}`}
+                alt="QR Code"
+                className="pe-auto img-fluid "
+              />
+            </div>
+          ) : (
+            "N/A"
+          )}
+          {row.original.addonUseDate && (
+            <div className="mb-1">
+              <strong>Scanned Date: </strong>
+              <Moment format="DD-MMM-YYYY">{row.original.addonUseDate}</Moment>
+            </div>
+          )}
+          {row.original.addonScannedBy && (
+            <div className="mb-1">
+              <strong>Scanned By: </strong>
+              {row.original.addonScannedBy}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    // {
+    //   Header: "Scanned",
+    //   accessor: "usedBy",
+    //   className: "borderrigth w-10",
+    //   Cell: ({ row }) => {
+    //     const { usedDate, scannedBy, addonUseDate, addonScannedBy } = row.original;
+
+    //     // Determine if ticket or addon scanned
+    //     const isTicketScanned = !!usedDate;
+    //     const isAddonScanned = !!addonUseDate;
+    //     const isAnyScanned = isTicketScanned || isAddonScanned;
+
+    //     return (
+    //       <div className="stf-tbl-lstTd">
+    //         {/* Overall Badge */}
+    //         <span
+    //           className={`badge bg-${getStatusBadgeColor(isAnyScanned ? 2 : 0)}`}
+    //         >
+    //           <span className="font-weight-semibold">
+    //             {isAnyScanned ? "Scanned" : "Not Yet Scanned"}
+    //           </span>
+    //         </span>
+
+    //         {/* Only show below details if any scanned */}
+    //         {isAnyScanned && (
+    //           <>
+    //             {/* Ticket Scan Details */}
+    //             <div className="mt-2">
+    //               {isTicketScanned ? (
+    //                 <>
+    //                   <strong>Ticket Scanned Date: </strong>
+    //                   <Moment format="DD-MMM-YYYY">{usedDate}</Moment>
+    //                   <br />
+    //                   {scannedBy && (
+    //                     <>
+    //                       <strong>Scanned By: </strong>
+    //                       {scannedBy}
+    //                     </>
+    //                   )}
+    //                 </>
+    //               ) : (
+    //                 <p style={{ color: "red" }}>Ticket Not Scanned</p>
+    //               )}
+    //             </div>
+
+    //             {/* Addon Scan Details */}
+    //             <div className="mt-2">
+    //               {isAddonScanned ? (
+    //                 <>
+    //                   <strong>Addon Scanned Date: </strong>
+    //                   <Moment format="DD-MMM-YYYY">{addonUseDate}</Moment>
+    //                   <br />
+    //                   {addonScannedBy && (
+    //                     <>
+    //                       <strong>Scanned By: </strong>
+    //                       {addonScannedBy}
+    //                     </>
+    //                   )}
+    //                 </>
+    //               ) : (
+    //                 <p style={{ color: "red" }}>Addon Not Scanned</p>
+    //               )}
+    //             </div>
+    //           </>
+    //         )}
+    //       </div>
+    //     );
+    //   },
+    // },
+
+
+
+    // {
+    //   Header: "Scanned",
+    //   accessor: "usedBy",
+    //   className: "borderrigth w-10",
+    //   Cell: ({ row }) => (
+    //     <div className="stf-tbl-lstTd">
+    //       <span
+    //         className={`badge bg-${getStatusBadgeColor(
+    //           row.original.usedDate ? 2 : 0
+    //         )}`}
+    //       >
+    //         <span className={`font-weight-semibold`}>
+    //           {row.original.usedDate ? "Ticket Scanned" : "Not Yet Scanned"}
+    //         </span>
+    //         <span className={`font-weight-semibold`}>
+    //           {row.original.addonUseDate ? "Addon Scanned" : "Not Yet Scanned"}
+    //         </span>
+    //       </span>
+
+    //       <div >
+    // {row.original.usedDate && (
+    //   <div className="mb-1">
+    //     <strong>Scanned Date: </strong>
+    //     <Moment format="DD-MMM-YYYY">{row.original.usedDate}</Moment>
+    //   </div>
+    // )}
+    // {row.original.scannedBy && (
+    //   <div className="mb-1">
+    //     <strong>Scanned By: </strong>
+    //     {row.original.scannedBy}
+    //   </div>
+    // )}
+    //         {row.original.addonUseDate && (
+    //           <div className="mb-1">
+    //             <strong>Scanned Date: </strong>
+    //             <Moment format="DD-MMM-YYYY">{row.original.addonUseDate}</Moment>
+    //           </div>
+    //         )}
+    //         {row.original.addonScannedBy && (
+    //           <div className="mb-1">
+    //             <strong>Scanned By: </strong>
+    //             {row.original.addonScannedBy}
+    //           </div>
+    //         )}
+    //       </div>
+    //     </div>
+    //   ),
+    // },
     {
       Header: "Action",
       accessor: "action",
@@ -643,81 +710,9 @@ const MembersTable = () => {
         </div>
       ),
     },
-    {
-      Header: "QR Code",
-      accessor: "QRCode",
-      className: "borderrigth w-8",
-      Cell: ({ row }) => (
-        <div>
-          {/* <img src={row.original.QRCode && row.original.QRCode} alt="QR Code" className="img-fluid"
-                    /> */}
 
-          {row.original.QRCode ? (
-            <div className="position-relative d-flex justify-content-center align-items-center">
-              <Link
-                className="text-light stretched-link rounded-pill text-center d-block bg-success"
-                style={{
-                  width: "90%",
-                  zIndex: "2",
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                }}
-                href="#"
-                onClick={() => {
-                  handleClick(row.original.QRCode);
-                }}
-              >
-                Click Here
-              </Link>
-              <img
-                style={{ filter: "blur(3px)", width: "50%" }}
-                src={`/qrCodes/${row.original.QRCode}`}
-                alt="QR Code"
-                className="pe-auto img-fluid"
-              />
-            </div>
-          ) : (
-            "N/A"
-          )}
-        </div>
-      ),
-    },
 
-    {
-      Header: "Scanned",
-      accessor: "usedBy",
-      className: "borderrigth w-10",
-      Cell: ({ row }) => (
-        <div className="stf-tbl-lstTd">
-          <span
-            className={`badge bg-${getStatusBadgeColor(
-              row.original.usedDate ? 2 : 0
-            )}`}
-          >
-            <span className={`font-weight-semibold`}>
-              {row.original.usedDate ? "Scanned" : "Not Yet Scanned"}
-            </span>
-          </span>
 
-          <div >
-            {row.original.usedDate && (
-              <div className="mb-1">
-                <strong>Scanned Date: </strong>
-                <Moment format="DD-MMM-YYYY">{row.original.usedDate}</Moment>
-              </div>
-            )}
-            {row.original.scannedBy && (
-              <div className="mb-1">
-                <strong>Scanned By: </strong>
-                {row.original.scannedBy}
-              </div>
-            )}
-          </div>
-        </div>
-      ),
-    },
   ]);
 
   const tableInstance = useTable(
@@ -786,6 +781,8 @@ const MembersTable = () => {
       FirstName: firstName,
       LastName: lastName,
       Email: formEmail,
+      scannedStatus: scanStatus,
+      ticketType:ticketType
     };
     setIsLoading(true);
     try {
@@ -797,9 +794,12 @@ const MembersTable = () => {
         return {
           ...member,
           QRCode: member.TicketDetails?.[0]?.qrcode ?? "",
+          AddonQrCode: member.AddonBooks?.[0]?.addon_qrcode ?? "",
           usedDate: member.TicketDetails?.[0]?.usedate ?? "",
           scannedBy: `${member.TicketDetails?.[0]?.user?.FirstName || ""} ${member.TicketDetails?.[0]?.user?.LastName || ""
             }`.trim(), // Concatenate FirstName and LastName
+          addonUseDate: member.AddonDetails?.[0]?.usedate ?? "",
+          addonScannedBy: `${member.AddonDetails?.[0]?.user?.FirstName || ""} ${member.AddonDetails?.[0]?.user?.LastName || ""}`.trim(),
         };
       });
       SetDATATABLE(mergedData || []);
@@ -832,43 +832,42 @@ const MembersTable = () => {
     setFirstName("");
     setLastName("");
     setFormEmail("");
+    setScanStatus("");
+    setTicketType("");
     // handleGetStaffTicket({});
     fetchData(id);
   };
 
-  var Firstname, Lastname, email, department, waiver;
+
+
+  // Helper to format date 
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    const options = {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    };
+    return date.toLocaleDateString("en-GB", options).replace(/ /g, " ");
+  };
+  let waiver;
   // Export Excel
   const headers = [
-    { label: "StaffID", key: "id" },
-    { label: "Last Name", key: "LastNamee" },
-    { label: "First Name", key: "FirstNamee" },
-    { label: "Email", key: "userEmail" },
+    { label: "Staff ID", key: "id" },
+    { label: "Last Name", key: "LastName" },
+    { label: "First Name", key: "FirstName" },
+    { label: "Email", key: "Email" },
     { label: "Department", key: "Department" },
-    // { label: "Waiver", key: "Waiver" },
     { label: "Completed", key: "Waiver" },
+    { label: "Ticket Scanned", key: "TicketScanned" },
+    { label: "Ticket Scanned Date", key: "TicketScannedDate" },
+    { label: "Addon Scanned", key: "AddonScanned" },
+    { label: "Addon Scanned Date", key: "AddonScannedDate" },
   ];
 
-  const data = DATATABLE.map((item) => {
-    if (item.FirstName != null) {
-      Firstname = item.FirstName;
-    } else {
-      Firstname = "----";
-    }
-    if (item.LastName != null) {
-      Lastname = item.LastName;
-    } else {
-      Lastname = "----";
-    }
-    if (item.Email != null) {
-      email = item.Email;
-    } else {
-      email = "----";
-    }
-    if (item.Department != null) {
-      department = item.Department;
-    } else {
-      department = "----";
-    }
+  const data = DATATABLE.map((item, index) => {
+    const getValue = (value) => (value != null ? value : "----");
     if (item.WaiverFlag != null) {
       // waiver = item.WaiverFlag;
       waiver =
@@ -882,13 +881,22 @@ const MembersTable = () => {
     } else {
       waiver = "----";
     }
+    const ticketStatus = item.usedDate ? "Scanned" : "Not Yet Scanned";
+    const addonStatus = item.addonUseDate ? "Scanned" : "Not Yet Scanned";
+
     return {
-      id: item.id + 1,
-      FirstNamee: Firstname,
-      LastNamee: Lastname,
-      userEmail: email,
-      Department: department,
+      id: index + 1,
+      FirstName: getValue(item.FirstName),
+      LastName: getValue(item.LastName),
+      Email: getValue(item.Email),
+      Department: getValue(item.Department),
       Waiver: waiver,
+      TicketScanned: ticketStatus,
+      // TicketScannedDate: item.usedDate || "N/A",
+      TicketScannedDate: formatDate(item.usedDate),
+      AddonScanned: addonStatus,
+      // AddonScannedDate: item.addonUseDate || "N/A",
+      AddonScannedDate: formatDate(item.addonUseDate),
     };
   });
 
@@ -897,13 +905,16 @@ const MembersTable = () => {
       headers.map((header) => header.label),
       ...data.map((item) => Object.values(item)),
     ];
+
     const csvOptions = {
-      filename: "my-file.csv",
+      filename: "staff-list.csv",
       separator: ",",
     };
+
     const csvExporter = new CSVLink(csvData, csvOptions);
     // csvExporter.click();
   };
+
 
   // Modal popup open
   const handleClick = (qrCodeData) => {
@@ -1036,6 +1047,45 @@ const MembersTable = () => {
 
                   <CCol md={12}>
                     <CFormLabel htmlFor="validationDefault04">
+                      Ticket Type
+                    </CFormLabel>
+                    <Form.Select
+                      aria-label="Default select example"
+                      className="admn-slct"
+                      value={ticketType}
+                      onChange={(e) => setTicketType(e.target.value)}
+                    >
+                      <option value="">Select Status</option>
+                      <option value="ticket">Ticket</option>
+                      <option value="addon">Addon</option>
+                    </Form.Select>
+                  </CCol>
+
+
+
+
+
+                  <CCol md={12}>
+                    <CFormLabel htmlFor="validationDefault04">
+                      Scanned Status
+                    </CFormLabel>
+                    <Form.Select
+                      aria-label="Default select example"
+                      className="admn-slct"
+                      value={scanStatus}
+                      onChange={(e) => setScanStatus(e.target.value)}
+                    >
+                      <option value="">Select Status</option>
+                      <option value="1">Scanned</option>
+                      <option value="0">Not Scanned</option>
+                    </Form.Select>
+                  </CCol>
+
+
+
+
+                  <CCol md={12}>
+                    <CFormLabel htmlFor="validationDefault04">
                       Department
                     </CFormLabel>
                     <Form.Select
@@ -1125,7 +1175,7 @@ const MembersTable = () => {
                         type="button"
                       >
                         {/* Total Scanned Tickets 123:{" "} */}
-                        Total Scanned Tickets:{" "}
+                        Scanned Tickets:{" "}
                         {ticketSaleInfo && ticketSaleInfo.totalscannedtickets} /{" "}
                         {ticketSaleInfo && ticketSaleInfo.totalstafftickets}{" "}
                       </button>
@@ -1143,11 +1193,29 @@ const MembersTable = () => {
                         }}
                         type="button"
                       >
+                        {/* Total Scanned Tickets 123:{" "} */}
+                        Scanned Addon:{" "}
+                        {ticketSaleInfo && ticketSaleInfo.totalScannedAddons} /{" "}
+                        {ticketSaleInfo && ticketSaleInfo.totalAddonsBook}{" "}
+                      </button>
+                    </div>
+                    <div>
+                      <button
+                        variant=""
+                        className="btn-sm btn-primary  my-1"
+                        style={{
+                          background: "#845adf",
+                          color: "white",
+                          border: "none",
+                          whiteSpace: "nowrap",
+                        }}
+                        type="button"
+                      >
                         {ticketSaleInfo && (
                           <span>
-                            COMP: {ticketSaleInfo.Comp} | CORE:{" "}
+                            GA: {ticketSaleInfo.GaVariant} | CORE:{" "}
                             {ticketSaleInfo.CORE} | STAFF:{" "}
-                            {ticketSaleInfo.STAFF} | PRESS/DJS:{" "}
+                            {ticketSaleInfo.STAFF} | PRESS & DJS:{" "}
                             {ticketSaleInfo.PressDJs}
                           </span>
                         )}
@@ -1214,10 +1282,16 @@ const MembersTable = () => {
                             <input
                               type="checkbox"
                               onChange={toggleAllRowsSelected}
+                              // checked={
+                              //   selectedRows.length == page.length &&
+                              //   page.length > 0
+                              // }
                               checked={
-                                selectedRows.length === page.length &&
-                                page.length > 0
+                                page.filter((row) => row.original.WaiverFlag !== 1).length > 0 &&
+                                selectedRows.length ===
+                                page.filter((row) => row.original.WaiverFlag !== 1).length
                               }
+
                             />
                           </th>
                           {headerGroups.map((headerGroup) => (
@@ -1299,6 +1373,7 @@ const MembersTable = () => {
                                   <input
                                     type="checkbox"
                                     checked={isSelected(row.original.Email)}
+                                    disabled={row.original.WaiverFlag == 1}
                                     onChange={() =>
                                       toggleRowSelected(
                                         row.original.Email,
@@ -1404,7 +1479,8 @@ const MembersTable = () => {
             <img
               className="bd-placeholder-img"
               width="200px"
-              src={`/qrCodes/${qrImg}`}
+              // src={`/qrCodes/${qrImg}`}
+              src={`${process.env.NEXT_PUBLIC_S3_URL}/qrCodes/${qrImg}`}
               alt="qrCodes"
             />
           </div>

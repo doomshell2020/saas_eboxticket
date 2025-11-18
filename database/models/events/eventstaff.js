@@ -1,7 +1,7 @@
 import { Model, DataTypes } from "sequelize";
 import connection from "../../connection";
 import TicketDetail from "../tickets/ticketdetail";
-import Event from "./event";
+// import Event from "./event";
 
 const initeventStaff = (sequelize, Types) => {
   class eventStaff extends Model {}

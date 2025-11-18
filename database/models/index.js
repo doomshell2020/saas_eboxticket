@@ -194,3 +194,4 @@ Orders.belongsTo(AccommodationBookingInfo, {
 User.hasMany(MyOrders, { foreignKey: 'user_id' });
 MyOrders.belongsTo(User, { foreignKey: 'user_id' });
 HousingNeighborhood.hasMany(Housing, { foreignKey: 'Neighborhood', as: 'Housings' });
+EventStaff.hasMany(AddonBook, { foreignKey: 'user_id' });
