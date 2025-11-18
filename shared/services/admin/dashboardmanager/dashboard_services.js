@@ -3011,7 +3011,6 @@ export async function TicketsAddonsSalesSummaryReport({ eventId }) {
   }
 }
 
-
 // New functionality added(11-09-2025)
 // export async function AccommodationSalesSummaryReportSecond({ eventId }) {
 //   try {
@@ -3177,7 +3176,7 @@ export async function AccommodationSalesSummaryReportSecond(eventId) {
       let dueAmount = 0;
       if (order.BookAccommodationInfo) {
         const paymentOpt = order.paymentOption;
-        if (paymentOpt === "partial" && order.BookAccommodationInfo.is_accommodation_cancel === "N" ) {
+        if (paymentOpt === "partial" && order.BookAccommodationInfo.is_accommodation_cancel === "N") {
           // accommodationAmount = accommodationAmount - due;
           dueAmount = Math.round(parseFloat(order.total_due_amount) || 0);
         }
