@@ -11,7 +11,7 @@ import {
   TicketsAddonsSalesMonthlyTest,
   getLastHousesBookedV1,
   getRecentlyBookedTicketsUser,
-  TicketsAddonsSalesSummaryReport,
+  TicketsAddonsSalesSummaryReport
 } from "@/shared/services/admin/dashboardmanager/dashboard_services";
 
 
@@ -24,7 +24,7 @@ const handler = async (req, res) => {
       switch (method) {
         case "POST": {
 
-          console.log('>>>>>>>>>>>>>>>>>>>>>>>', req.body);
+          // console.log('>>>>>>>>>>>>>>>>>>>>>>>', req.body);
 
           if (req.body.key == "dashboardData") {
             const dashboard_data = await getTicketsSoldPerDayByEventId(req.body);

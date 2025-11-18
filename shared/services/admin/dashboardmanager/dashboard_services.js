@@ -2911,99 +2911,99 @@ export async function TicketsAddonsSalesSummaryReport({ eventId }) {
 
 
 // New functionality added(11-09-2025)
-export async function AccommodationSalesSummaryReportSecond({ eventId }) {
-  try {
-    // Step 1: Fetch all accommodation orders (only those with book_accommodation_id not null)
-    const orders = await Order.findAll({
-      where: {
-        event_id: eventId,
-        book_accommodation_id: { [Op.ne]: null },
-        order_context: "regular"
-      },
-      attributes: [
-        "id",
-        "createdAt",
-        "book_accommodation_id",
-        "totalAccommodationAmount",
-        "totalAccommodationTax",
-        "partial_payment_amount",
-        "partial_payment_tax"
-      ],
-    });
+// export async function AccommodationSalesSummaryReportSecond({ eventId }) {
+//   try {
+//     // Step 1: Fetch all accommodation orders (only those with book_accommodation_id not null)
+//     const orders = await Order.findAll({
+//       where: {
+//         event_id: eventId,
+//         book_accommodation_id: { [Op.ne]: null },
+//         order_context: "regular"
+//       },
+//       attributes: [
+//         "id",
+//         "createdAt",
+//         "book_accommodation_id",
+//         "totalAccommodationAmount",
+//         "totalAccommodationTax",
+//         "partial_payment_amount",
+//         "partial_payment_tax"
+//       ],
+//     });
 
-    if (orders.length === 0) {
-      return {
-        statusCode: 200,
-        success: true,
-        message: "No accommodation bookings found for this event.",
-        data: {},
-      };
-    }
+//     if (orders.length === 0) {
+//       return {
+//         statusCode: 200,
+//         success: true,
+//         message: "No accommodation bookings found for this event.",
+//         data: {},
+//       };
+//     }
 
-    let orderDataByMonth = {};
-    let grandTotalAccommodationAmount = 0;
-    let grandTotalAccommodationTax = 0;
-    let grandTotalPartialAmount = 0;
-    let grandTotalPartialTax = 0;
+//     let orderDataByMonth = {};
+//     let grandTotalAccommodationAmount = 0;
+//     let grandTotalAccommodationTax = 0;
+//     let grandTotalPartialAmount = 0;
+//     let grandTotalPartialTax = 0;
 
-    // Step 2: Group by Month-Year
-    orders.forEach((order) => {
-      const monthYear = moment(order.createdAt).format("MM/YYYY");
+//     // Step 2: Group by Month-Year
+//     orders.forEach((order) => {
+//       const monthYear = moment(order.createdAt).format("MM/YYYY");
 
-      if (!orderDataByMonth[monthYear]) {
-        orderDataByMonth[monthYear] = {
-          totalAccommodationAmount: 0,
-          totalAccommodationTax: 0,
-          partial_payment_amount: 0,
-          partial_payment_tax: 0,
-          accommodationCount: 0,
-        };
-      }
+//       if (!orderDataByMonth[monthYear]) {
+//         orderDataByMonth[monthYear] = {
+//           totalAccommodationAmount: 0,
+//           totalAccommodationTax: 0,
+//           partial_payment_amount: 0,
+//           partial_payment_tax: 0,
+//           accommodationCount: 0,
+//         };
+//       }
 
-      const accommodationAmount = parseFloat(order.totalAccommodationAmount) || 0;
-      const accommodationTax = parseFloat(order.totalAccommodationTax) || 0;
-      const partialAmount = parseFloat(order.partial_payment_amount) || 0;
-      const partialTax = parseFloat(order.partial_payment_tax) || 0;
+//       const accommodationAmount = parseFloat(order.totalAccommodationAmount) || 0;
+//       const accommodationTax = parseFloat(order.totalAccommodationTax) || 0;
+//       const partialAmount = parseFloat(order.partial_payment_amount) || 0;
+//       const partialTax = parseFloat(order.partial_payment_tax) || 0;
 
-      // Update monthly totals
-      orderDataByMonth[monthYear].totalAccommodationAmount += accommodationAmount;
-      orderDataByMonth[monthYear].totalAccommodationTax += accommodationTax;
-      orderDataByMonth[monthYear].partial_payment_amount += partialAmount;
-      orderDataByMonth[monthYear].partial_payment_tax += partialTax;
-      orderDataByMonth[monthYear].accommodationCount += 1; // count bookings
+//       // Update monthly totals
+//       orderDataByMonth[monthYear].totalAccommodationAmount += accommodationAmount;
+//       orderDataByMonth[monthYear].totalAccommodationTax += accommodationTax;
+//       orderDataByMonth[monthYear].partial_payment_amount += partialAmount;
+//       orderDataByMonth[monthYear].partial_payment_tax += partialTax;
+//       orderDataByMonth[monthYear].accommodationCount += 1; // count bookings
 
-      // Update grand totals
-      grandTotalAccommodationAmount += accommodationAmount;
-      grandTotalAccommodationTax += accommodationTax;
-      grandTotalPartialAmount += partialAmount;
-      grandTotalPartialTax += partialTax;
-    });
+//       // Update grand totals
+//       grandTotalAccommodationAmount += accommodationAmount;
+//       grandTotalAccommodationTax += accommodationTax;
+//       grandTotalPartialAmount += partialAmount;
+//       grandTotalPartialTax += partialTax;
+//     });
 
-    // Step 3: Calculate total accommodation count correctly (sum of all months)
-    const totalAccommodationCount = Object.values(orderDataByMonth).reduce(
-      (sum, month) => sum + month.accommodationCount,
-      0
-    );
+//     // Step 3: Calculate total accommodation count correctly (sum of all months)
+//     const totalAccommodationCount = Object.values(orderDataByMonth).reduce(
+//       (sum, month) => sum + month.accommodationCount,
+//       0
+//     );
 
-    // Step 4: Final response
-    return {
-      statusCode: 200,
-      success: true,
-      message: "Accommodation bookings grouped by month.",
-      data: {
-        ordersByMonth: orderDataByMonth,
-        grandTotalAccommodationAmount,
-        grandTotalAccommodationTax,
-        grandTotalPartialAmount,
-        grandTotalPartialTax,
-        totalAccommodationCount, // ✅ correct total
-      },
-    };
-  } catch (error) {
-    console.error("Error fetching accommodation monthly report:", error);
-    return { statusCode: 500, success: false, message: "Internal server error." };
-  }
-}
+//     // Step 4: Final response
+//     return {
+//       statusCode: 200,
+//       success: true,
+//       message: "Accommodation bookings grouped by month.",
+//       data: {
+//         ordersByMonth: orderDataByMonth,
+//         grandTotalAccommodationAmount,
+//         grandTotalAccommodationTax,
+//         grandTotalPartialAmount,
+//         grandTotalPartialTax,
+//         totalAccommodationCount, // ✅ correct total
+//       },
+//     };
+//   } catch (error) {
+//     console.error("Error fetching accommodation monthly report:", error);
+//     return { statusCode: 500, success: false, message: "Internal server error." };
+//   }
+// }
 
 // New functionality added(11-09-2025)
 export async function AccommodationSalesSummaryReportSecond(eventId) {
