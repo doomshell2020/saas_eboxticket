@@ -58,6 +58,140 @@ export async function isInvitedIntoEvent(req, res) {
     }
 }
 
+export async function View_InvitationEventByid({ id, page, pageSize }, res) {
+
+    const offset = (parseInt(page, 10) - 1) * parseInt(pageSize, 10);
+
+    try {
+        const { count, rows } = await InvitationEvent.findAndCountAll({
+            order: [["createdAt", "DESC"]],
+            include: [{ model: User }],
+            where: {
+                EventID: id,
+            },
+            offset: offset,
+            limit: parseInt(pageSize, 10),
+        });
+        // console.log("🚀 ~ View_InvitationEventByid ~ rows:", rows)
+
+        // Check if count is zero and handle accordingly
+        if (count === 0) {
+            return {
+                data: [],
+                pagination: {
+                    totalRecords: 0,
+                    totalPages: 0,
+                    currentPage: parseInt(page, 10),
+                    pageSize: parseInt(pageSize, 10),
+                },
+                message: "No records found",
+            };
+        }
+
+        const totalPages = Math.ceil(count / parseInt(pageSize, 10));
+
+        return {
+            data: rows,
+            pagination: {
+                totalRecords: count,
+                totalPages: totalPages,
+                currentPage: parseInt(page, 10),
+                pageSize: parseInt(pageSize, 10),
+            },
+            message: "Invitation Event view successfully",
+        };
+    } catch (error) {
+        return error;
+    }
+}
+
+// view users for buy tickets 
+export async function User_ticketPurchased({ Eventid }, res) {
+
+    try {
+        const data = await InvitationEvent.findAll({
+            order: [["createdAt", "DESC"]],
+            include: [{ model: User }],
+            where: {
+                EventID: Eventid,
+                // Status: "1",
+
+            },
+
+        });
+        if (!data) {
+            const error = new Error("ID not found");
+            error.StatusCodes = 404; // You can set an appropriate status code
+            throw error;
+        }
+        return {
+            message: "View Users Successfully For Purchased Tickets",
+            data: data,
+        }
+    } catch (error) {
+        return error;
+    }
+}
+
+export async function getInvitationInfoForInvitedMember(req, res) {
+    const { invitationId } = req;
+    const invitationData = await InvitationEvent.findOne({
+        where: { ID: invitationId },
+        include: [{ model: User, attributes: ['id', 'FirstName', 'LastName', 'Email', 'ImageURL', 'MembershipTypes', 'createdAt', 'updatedAt'] },
+        { model: Event, attributes: ['id', 'Name', 'ShortName', 'EventTimeZone'] }],
+        attributes: ['UserID', 'EventID', 'accommodation_status', 'accommodation_status', 'ArrivalDate', 'DepartureDate', 'EligibleHousingIDs', 'InternalNotes', 'id', 'Status', 'required_tickets']
+
+    });
+
+    // const getPropertyInfo = await AccommodationBookingInfo.findOne({
+    const getPropertyInfo = await AccommodationBookingInfo.findAll({
+        where: { event_id: invitationData.EventID, user_id: invitationData.UserID, is_accommodation_cancel: "N" },
+        include: [{ model: MyOrders, attributes: ['user_id', 'event_id', 'book_accommodation_id', 'createdAt'] }, { model: Housing, attributes: ['Name', 'NumBedrooms', 'MaxOccupancy'] }],
+        attributes: ['user_id', 'event_id', 'accommodation_id', 'order_id']
+    })
+
+    const allData = { invitationData, getPropertyInfo };
+
+    if (invitationData) {
+        return {
+            statusCode: 200,
+            success: true,
+            message: 'Fetch data Successfully!',
+            data: allData
+        };
+
+    } else {
+        return {
+            statusCode: 500,
+            success: false,
+            data: [],
+            message: 'Failed to fetch data.',
+        };
+    }
+}
+
+// Events Invited
+export async function InvitationEvent_ViewAll(req) {
+    try {
+        const Invitationdata = await InvitationEvent.findAll({
+            order: [["createdAt", "DESC"]],
+            where: { status: 1 }
+        });
+        return {
+            statusCode: StatusCodes.OK,
+            status: true,
+            message: "Invitation Event view All Successfully!",
+            data: Invitationdata,
+        }
+    } catch (error) {
+        return {
+            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+            error
+        }
+    }
+}
+
+
 export async function Add_InvitationEvents({
     Invited,
     Registered,
@@ -258,75 +392,6 @@ async function sendInvitationEmail(email, firstName) {
     // await sendEmails(template);
 }
 
-// Events Invited
-export async function InvitationEvent_ViewAll(req) {
-    try {
-        const Invitationdata = await InvitationEvent.findAll({
-            order: [["createdAt", "DESC"]],
-            where: { status: 1 }
-        });
-        return {
-            statusCode: StatusCodes.OK,
-            status: true,
-            message: "Invitation Event view All Successfully!",
-            data: Invitationdata,
-        }
-    } catch (error) {
-        return {
-            statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-            error
-        }
-    }
-}
-
-export async function View_InvitationEventByid({ id, page, pageSize }, res) {
-
-    const offset = (parseInt(page, 10) - 1) * parseInt(pageSize, 10);
-
-    try {
-        const { count, rows } = await InvitationEvent.findAndCountAll({
-            order: [["createdAt", "DESC"]],
-            include: [{ model: User }],
-            where: {
-                EventID: id,
-            },
-            offset: offset,
-            limit: parseInt(pageSize, 10),
-        });
-        // console.log("🚀 ~ View_InvitationEventByid ~ rows:", rows)
-
-        // Check if count is zero and handle accordingly
-        if (count === 0) {
-            return {
-                data: [],
-                pagination: {
-                    totalRecords: 0,
-                    totalPages: 0,
-                    currentPage: parseInt(page, 10),
-                    pageSize: parseInt(pageSize, 10),
-                },
-                message: "No records found",
-            };
-        }
-
-        const totalPages = Math.ceil(count / parseInt(pageSize, 10));
-
-        return {
-            data: rows,
-            pagination: {
-                totalRecords: count,
-                totalPages: totalPages,
-                currentPage: parseInt(page, 10),
-                pageSize: parseInt(pageSize, 10),
-            },
-            message: "Invitation Event view successfully",
-        };
-    } catch (error) {
-        return error;
-    }
-}
-
-
 
 // Search Invited Members
 export async function Search_InvitedMember({ HousingOption, Status, FirstName, LastName, Email, MembershipLevel, Interest, ArtistType, UserID, EventID, CareyesHomeownerFlag, attended_festival_before, accommodation_status }) {
@@ -471,36 +536,6 @@ export async function Search_InvitedMember({ HousingOption, Status, FirstName, L
 
 
 
-
-
-
-// view users for buy tickets 
-export async function User_ticketPurchased({ Eventid }, res) {
-
-    try {
-        const data = await InvitationEvent.findAll({
-            order: [["createdAt", "DESC"]],
-            include: [{ model: User }],
-            where: {
-                EventID: Eventid,
-                // Status: "1",
-
-            },
-
-        });
-        if (!data) {
-            const error = new Error("ID not found");
-            error.StatusCodes = 404; // You can set an appropriate status code
-            throw error;
-        }
-        return {
-            message: "View Users Successfully For Purchased Tickets",
-            data: data,
-        }
-    } catch (error) {
-        return error;
-    }
-}
 
 // Search ticket purchased users
 const moment = require('moment');
@@ -695,42 +730,6 @@ export async function getInvitationInfo(req, res) {
     }
 }
 
-export async function getInvitationInfoForInvitedMember(req, res) {
-    const { invitationId } = req;
-    const invitationData = await InvitationEvent.findOne({
-        where: { ID: invitationId },
-        include: [{ model: User, attributes: ['id', 'FirstName', 'LastName', 'Email', 'ImageURL', 'MembershipTypes', 'createdAt', 'updatedAt'] },
-        { model: Event, attributes: ['id', 'Name', 'ShortName', 'EventTimeZone'] }],
-        attributes: ['UserID', 'EventID', 'accommodation_status', 'accommodation_status', 'ArrivalDate', 'DepartureDate', 'EligibleHousingIDs', 'InternalNotes', 'id', 'Status']
-
-    });
-
-    // const getPropertyInfo = await AccommodationBookingInfo.findOne({
-    const getPropertyInfo = await AccommodationBookingInfo.findAll({
-        where: { event_id: invitationData.EventID, user_id: invitationData.UserID },
-        include: [{ model: MyOrders, attributes: ['user_id', 'event_id', 'book_accommodation_id', 'createdAt'] }, { model: Housing, attributes: ['Name', 'NumBedrooms', 'MaxOccupancy'] }],
-        attributes: ['user_id', 'event_id', 'accommodation_id', 'order_id']
-    })
-
-    const allData = { invitationData, getPropertyInfo };
-
-    if (invitationData) {
-        return {
-            statusCode: 200,
-            success: true,
-            message: 'Fetch data Successfully!',
-            data: allData
-        };
-
-    } else {
-        return {
-            statusCode: 500,
-            success: false,
-            data: [],
-            message: 'Failed to fetch data.',
-        };
-    }
-}
 
 // New Api get invited members with pagination
 export async function getInvitedMember(req, res) {
@@ -750,8 +749,6 @@ export async function getInvitedMember(req, res) {
             attended_festival_before,
             accommodation_status
         } = req.query;
-        
-        console.log('req.query :>>>>>>>>>>>>>>>>>>>>>>>', req.query);
 
         const filters = {};
         const interestFilters = {};
