@@ -1850,19 +1850,14 @@ export async function summarizeTicketAddonValues(eventInfo) {
 // Events View
 export async function getAllEventsWithData(req, res) {
   const viewCms = await Event.findAll({
-    include: [
-      {
-        model: EventOrganiser,
-        as: 'organiser',
-        attributes: ['id', 'organisation_name', 'contact_person', 'contact_email'],
-      }
-    ],
     order: [["id", "DESC"]],
   });
 
   const eventsWithCounts = [];
   for (const event of viewCms) {
     const eventId = event.id;
+    // console.log('eventId>>>>>>>>>>>>>>> :', eventId);
+
     const totalTicketSold = await BookTicket.count({
       where: {
         event_id: eventId,
