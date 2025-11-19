@@ -19,7 +19,10 @@ import {
   Housing,
   AccommodationBookingInfo,
   HousingNeighborhood,
-  EventHousing
+  EventHousing,
+  BookAccommodationInfo,
+  HousingInfo,
+  AccommodationExtension
 } from "@/database/models";
 import { StatusCodes } from "http-status-codes";
 const {
@@ -137,6 +140,467 @@ export async function PromotionCodes({ eventName }, res) {
     res.status(500).json({
       success: false,
       message: "Failed to retrieve promotion codes :" + error.message,
+    });
+  }
+}
+
+
+// total order-list new function(kamal-23-09-2025)
+export async function fetchCompleteOrderListByEvent(req, res) {
+  const {
+    email,
+    eventName,
+    name,
+    mobile,
+    orderId,
+    startDate,
+    endDate,
+  } = req;
+
+  try {
+    const orderConditions = {
+      [Op.or]: [
+        { is_free: { [Op.is]: null } },
+        { couponCode: { [Op.not]: null } },
+      ],
+    };
+
+    // Date filter
+    if (startDate || endDate) {
+      orderConditions.created = {};
+      if (startDate) {
+        orderConditions.created[Op.gte] = new Date(new Date(startDate).setHours(0, 0, 0));
+      }
+      if (endDate) {
+        orderConditions.created[Op.lte] = new Date(new Date(endDate).setHours(23, 59, 59));
+      }
+    }
+
+    // Order ID
+    if (orderId?.trim()) {
+      orderConditions.OriginalTrxnIdentifier = {
+        [Op.like]: `%${orderId.trim().toUpperCase()}%`,
+      };
+    }
+
+    // User filters
+    if (email?.trim()) {
+      orderConditions["$User.Email$"] = {
+        [Op.like]: `%${email.trim().toUpperCase()}%`,
+      };
+    }
+
+    if (mobile) {
+      orderConditions["$User.PhoneNumber$"] = mobile;
+    }
+
+    if (name?.trim()) {
+      orderConditions["$User.FirstName$"] = {
+        [Op.like]: `%${name.trim().toUpperCase()}%`,
+      };
+    }
+
+    // Event name -> ID
+    let eventId = null;
+    if (eventName?.trim()) {
+      const event = await Event.findOne({
+        attributes: ["id"],
+        where: {
+          Name: {
+            [Op.like]: `%${eventName.trim()}%`,
+          },
+        },
+      });
+      if (event) {
+        eventId = event.id;
+        orderConditions.event_id = event.id;
+      }
+    }
+
+    const orders = await MyOrders.findAll({
+      where: orderConditions,
+      attributes: [
+        "id",
+        "actualamount",
+        "couponCode",
+        "discountValue",
+        "discountType",
+        "discountAmount",
+        "total_amount",
+        "total_tax_amount",
+        "RRN",
+        "paymenttype",
+        "createdAt",
+        "OriginalTrxnIdentifier",
+        "is_free",
+        "adminfee",
+        "ticket_cancel_id",
+        "totalAddonAmount",
+        "totalAddonTax",
+        "totalTicketAmount",
+        "totalTicketTax",
+        "totalAccommodationAmount",
+        "totalAccommodationTax",
+        "book_accommodation_id"
+      ],
+      include: [
+        {
+          model: User,
+          required: true,
+          attributes: ["id", "FirstName", "LastName", "Email", "PhoneNumber"]
+        },
+        {
+          model: Event,
+          attributes: ["Name"],
+          include: [{
+            model: Currency,
+            attributes: ["Currency_symbol", "Currency"],
+          }]
+        },
+        {
+          model: BookTicket,
+          attributes: ["id"]
+        },
+        {
+          model: AddonBook,
+          attributes: ["id"]
+        },
+        {
+          model: BookAccommodationInfo,
+          attributes: ["id", "user_id", "accommodation_id", "check_in_date", "check_out_date", "total_night_stay"],
+          include: [
+            {
+              model: HousingInfo,
+              attributes: [
+                "Name",
+                "Neighborhood",
+                "MaxOccupancy",
+                "NumBedrooms"
+              ],
+              include: [
+                {
+                  model: EventHousing,
+                  ...(eventId ? { where: { EventID: eventId } } : {}),
+                  attributes: ['id', 'EventID', 'NightlyPrice', 'AvailabilityStartDate', 'AvailabilityEndDate', 'isDateExtensionRequestedSent'],
+                  order: [['id', 'DESC']]
+                },
+                {
+                  model: HousingNeighborhood,
+                  attributes: ["name"]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          model: AccommodationExtension,
+          attributes: ["id", "user_id", "accommodation_id", "check_in_date", "check_out_date", "total_night_stay"],
+          include: [
+            {
+              model: HousingInfo,
+              attributes: [
+                "Name",
+                "Neighborhood",
+                "MaxOccupancy",
+                "NumBedrooms"
+              ],
+              include: [
+                {
+                  model: EventHousing,
+                  ...(eventId ? { where: { EventID: eventId } } : {}),
+                  attributes: ['id', 'EventID', 'NightlyPrice', 'AvailabilityStartDate', 'AvailabilityEndDate'],
+                  order: [['id', 'DESC']]
+                },
+                {
+                  model: HousingNeighborhood,
+                  attributes: ["name"]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      order: [["id", "DESC"]],
+    });
+
+    // 🔥 Calculate totals
+    let grandTotal = 0;
+    let totalTax = 0;
+
+    orders.forEach(order => {
+      // sum total amount
+      grandTotal += Number(order.total_amount || 0);
+      totalTax += Number(order.total_tax_amount || 0)
+    });
+
+    const faceValue = grandTotal - totalTax;
+    // ✅ Extract event info (from first order if exists)
+    let eventInfo = null;
+    if (orders.length > 0 && orders[0].Event) {
+      eventInfo = {
+        Name: orders[0].Event.Name,
+        Currency: orders[0].Event.Currency
+      };
+    }
+
+    // console.log("eventInfo-------",eventInfo?.Currency?.Currency_symbol)
+    return res.json({
+      statusCode: 200,
+      success: true,
+      message: "Orders fetched successfully!!!",
+      data: orders,
+      event: eventInfo,
+      totals: {
+        grandTotal,
+        totalTax,
+        faceValue,
+        currencySign: eventInfo?.Currency?.Currency_symbol
+      }
+    });
+
+  } catch (error) {
+    console.error("Error in fetchCompleteOrderListByEvent:", error);
+    return res.status(500).json({
+      statusCode: 500,
+      success: false,
+      message: "Error in getting total orders: " + error.message,
+    });
+  }
+}
+
+export async function findCompleteOrderListByEvent(req, res) {
+  try {
+    const {
+      email,
+      eventname,
+      Name,
+      PhoneNumber,
+      OriginalTrxnIdentifier,
+      startDate,
+      endDate,
+    } = req;
+
+    const event = await Event.findOne({
+      attributes: ["id", "Name", "StartDate", "EndDate", "payment_currency"],
+      include: [
+        {
+          model: Currency,
+          attributes: ["Currency_symbol", "Currency", "conversion_rate"],
+        },
+      ],
+      where: {
+        Name: {
+          [Op.like]: `%${eventname}%`, // Use Sequelize's LIKE operator
+        },
+      },
+    });
+
+    if (!event) {
+      return res.json({
+        success: false,
+        message: "Event not found",
+        data: [],
+      });
+    }
+
+    const eventID = event.id;
+
+    // ##############################Total Orders Start##############################
+    const totalTicketFind = await MyTicketBook.findAll({
+      where: {
+        event_id: eventID,
+      },
+      attributes: ["order_id"],
+      include: [
+        {
+          model: User,
+          attributes: [],
+          required: true,
+        },
+        {
+          model: MyOrders,
+          where: {
+            [Op.or]: [
+              { is_free: { [Op.is]: null } },
+              { couponCode: { [Op.not]: null } },
+            ],
+            // ticket_status: null,
+          },
+          required: true,
+          attributes: [],
+        },
+      ],
+    });
+
+    const orderTicketIds = [
+      ...new Set(totalTicketFind.map((ticket) => ticket.order_id)),
+    ];
+
+    const orderAddonIds = await AddonBook.findAll({
+      where: {
+        event_id: eventID,
+      },
+      attributes: ["order_id"],
+      include: [
+        {
+          model: User,
+          attributes: [],
+          required: true,
+        },
+        {
+          model: Orders,
+          where: {
+            [Op.or]: [
+              { is_free: { [Op.is]: null } },
+              { couponCode: { [Op.not]: null } },
+            ],
+            // ticket_status: null,
+          },
+          attributes: [],
+          required: true,
+        },
+      ],
+    });
+
+    const uniqueOrderAddonIds = [
+      ...new Set(orderAddonIds.map((addon) => addon.order_id)),
+    ];
+
+    const totalUniqueOrdersIds = [
+      ...new Set([...orderTicketIds, ...uniqueOrderAddonIds]),
+    ];
+    // ##############################Total Orders End##############################
+
+    // Build search conditions
+    const orderConditions = {
+      id: { [Op.in]: totalUniqueOrdersIds },
+      // ticket_status: null,
+    };
+
+    // Apply search filters individually if provided
+    if (email) {
+      orderConditions["$User.Email$"] = { [Op.like]: `%${email}%` };
+    }
+
+    if (Name) {
+      orderConditions[Op.or] = [
+        { "$User.FirstName$": { [Op.like]: `%${Name}%` } },
+        { "$User.LastName$": { [Op.like]: `%${Name}%` } },
+      ];
+    }
+
+    if (PhoneNumber) {
+      orderConditions["$User.PhoneNumber$"] = { [Op.like]: `%${PhoneNumber}%` };
+    }
+
+    if (OriginalTrxnIdentifier) {
+      orderConditions["OriginalTrxnIdentifier"] = {
+        [Op.like]: `%${OriginalTrxnIdentifier}%`,
+      };
+    }
+
+    if (startDate && endDate) {
+      // Convert strings to Date objects
+      const start = new Date(`${startDate}T00:00:00.000Z`);
+      const end = new Date(`${endDate}T23:59:59.999Z`);
+
+      orderConditions.createdAt = {
+        [Op.between]: [start, end],
+      };
+    } else if (startDate) {
+      // Convert startDate string to a Date object
+      const start = new Date(`${startDate}T00:00:00.000Z`);
+      const endOfDay = new Date(`${startDate}T23:59:59.999Z`);
+
+      orderConditions.createdAt = {
+        [Op.between]: [start, endOfDay],
+      };
+    } else if (endDate) {
+      // Convert endDate string to a Date object
+      const startOfDay = new Date(`${endDate}T00:00:00.000Z`);
+      const end = new Date(`${endDate}T23:59:59.999Z`);
+
+      orderConditions.createdAt = {
+        [Op.between]: [startOfDay, end],
+      };
+    }
+
+    const totalOrders = await MyOrders.findAll({
+      where: orderConditions,
+      attributes: [
+        "id",
+        "actualamount",
+        "couponCode",
+        "discountValue",
+        "discountType",
+        "discountAmount",
+        "total_amount",
+        "RRN",
+        "paymenttype",
+        "createdAt",
+        "OriginalTrxnIdentifier",
+        "is_free",
+        "adminfee",
+        "ticket_cancel_id",
+      ],
+      include: [
+        {
+          model: User,
+          attributes: ["FirstName", "LastName", "Email", "PhoneNumber"],
+          required: true,
+        },
+        {
+          model: BookTicket,
+          where: {
+            event_id: eventID,
+          },
+          attributes: ["id", "event_ticket_id"],
+          required: false,
+        },
+        {
+          model: AddonBook,
+          where: {
+            event_id: eventID,
+          },
+          attributes: ["id"],
+          required: false,
+        },
+      ],
+      order: [["id", "DESC"]],
+    });
+
+    let amountInfo = {
+      total_amount: 0,
+      total_taxes: 0,
+      gross_total: 0,
+      currencySign: event.Currency?.Currency_symbol,
+    };
+
+    totalOrders.forEach((order) => {
+      let amountAfterDiscount = order.actualamount;
+
+      if (order.couponCode) {
+        amountAfterDiscount -= order.discountAmount;
+      }
+      const taxAmount = Math.round(
+        (amountAfterDiscount * order.adminfee) / 100
+      );
+
+      amountInfo.total_amount += amountAfterDiscount;
+      amountInfo.total_taxes += taxAmount;
+      amountInfo.gross_total += order.total_amount;
+    });
+
+    return res.json({
+      success: true,
+      message: "View Order List Successfully!",
+      data: { totalOrders, event, amountInfo },
+    });
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: error.message,
+      data: [],
     });
   }
 }
@@ -2803,242 +3267,6 @@ export async function eventOrderList(req, res) {
   }
 }
 
-export async function findCompleteOrderListByEvent(req, res) {
-  try {
-    const {
-      email,
-      eventname,
-      Name,
-      PhoneNumber,
-      OriginalTrxnIdentifier,
-      startDate,
-      endDate,
-    } = req;
-
-    const event = await Event.findOne({
-      attributes: ["id", "Name", "StartDate", "EndDate", "payment_currency"],
-      include: [
-        {
-          model: Currency,
-          attributes: ["Currency_symbol", "Currency", "conversion_rate"],
-        },
-      ],
-      where: {
-        Name: {
-          [Op.like]: `%${eventname}%`, // Use Sequelize's LIKE operator
-        },
-      },
-    });
-
-    if (!event) {
-      return res.json({
-        success: false,
-        message: "Event not found",
-        data: [],
-      });
-    }
-
-    const eventID = event.id;
-
-    // ##############################Total Orders Start##############################
-    const totalTicketFind = await MyTicketBook.findAll({
-      where: {
-        event_id: eventID,
-      },
-      attributes: ["order_id"],
-      include: [
-        {
-          model: User,
-          attributes: [],
-          required: true,
-        },
-        {
-          model: MyOrders,
-          where: {
-            [Op.or]: [
-              { is_free: { [Op.is]: null } },
-              { couponCode: { [Op.not]: null } },
-            ],
-            // ticket_status: null,
-          },
-          required: true,
-          attributes: [],
-        },
-      ],
-    });
-
-    const orderTicketIds = [
-      ...new Set(totalTicketFind.map((ticket) => ticket.order_id)),
-    ];
-
-    const orderAddonIds = await AddonBook.findAll({
-      where: {
-        event_id: eventID,
-      },
-      attributes: ["order_id"],
-      include: [
-        {
-          model: User,
-          attributes: [],
-          required: true,
-        },
-        {
-          model: Orders,
-          where: {
-            [Op.or]: [
-              { is_free: { [Op.is]: null } },
-              { couponCode: { [Op.not]: null } },
-            ],
-            // ticket_status: null,
-          },
-          attributes: [],
-          required: true,
-        },
-      ],
-    });
-
-    const uniqueOrderAddonIds = [
-      ...new Set(orderAddonIds.map((addon) => addon.order_id)),
-    ];
-
-    const totalUniqueOrdersIds = [
-      ...new Set([...orderTicketIds, ...uniqueOrderAddonIds]),
-    ];
-    // ##############################Total Orders End##############################
-
-    // Build search conditions
-    const orderConditions = {
-      id: { [Op.in]: totalUniqueOrdersIds },
-      // ticket_status: null,
-    };
-
-    // Apply search filters individually if provided
-    if (email) {
-      orderConditions["$User.Email$"] = { [Op.like]: `%${email}%` };
-    }
-
-    if (Name) {
-      orderConditions[Op.or] = [
-        { "$User.FirstName$": { [Op.like]: `%${Name}%` } },
-        { "$User.LastName$": { [Op.like]: `%${Name}%` } },
-      ];
-    }
-
-    if (PhoneNumber) {
-      orderConditions["$User.PhoneNumber$"] = { [Op.like]: `%${PhoneNumber}%` };
-    }
-
-    if (OriginalTrxnIdentifier) {
-      orderConditions["OriginalTrxnIdentifier"] = {
-        [Op.like]: `%${OriginalTrxnIdentifier}%`,
-      };
-    }
-
-    if (startDate && endDate) {
-      // Convert strings to Date objects
-      const start = new Date(`${startDate}T00:00:00.000Z`);
-      const end = new Date(`${endDate}T23:59:59.999Z`);
-
-      orderConditions.createdAt = {
-        [Op.between]: [start, end],
-      };
-    } else if (startDate) {
-      // Convert startDate string to a Date object
-      const start = new Date(`${startDate}T00:00:00.000Z`);
-      const endOfDay = new Date(`${startDate}T23:59:59.999Z`);
-
-      orderConditions.createdAt = {
-        [Op.between]: [start, endOfDay],
-      };
-    } else if (endDate) {
-      // Convert endDate string to a Date object
-      const startOfDay = new Date(`${endDate}T00:00:00.000Z`);
-      const end = new Date(`${endDate}T23:59:59.999Z`);
-
-      orderConditions.createdAt = {
-        [Op.between]: [startOfDay, end],
-      };
-    }
-
-    const totalOrders = await MyOrders.findAll({
-      where: orderConditions,
-      attributes: [
-        "id",
-        "actualamount",
-        "couponCode",
-        "discountValue",
-        "discountType",
-        "discountAmount",
-        "total_amount",
-        "RRN",
-        "paymenttype",
-        "createdAt",
-        "OriginalTrxnIdentifier",
-        "is_free",
-        "adminfee",
-        "ticket_cancel_id",
-      ],
-      include: [
-        {
-          model: User,
-          attributes: ["FirstName", "LastName", "Email", "PhoneNumber"],
-          required: true,
-        },
-        {
-          model: BookTicket,
-          where: {
-            event_id: eventID,
-          },
-          attributes: ["id", "event_ticket_id"],
-          required: false,
-        },
-        {
-          model: AddonBook,
-          where: {
-            event_id: eventID,
-          },
-          attributes: ["id"],
-          required: false,
-        },
-      ],
-      order: [["id", "DESC"]],
-    });
-
-    let amountInfo = {
-      total_amount: 0,
-      total_taxes: 0,
-      gross_total: 0,
-      currencySign: event.Currency?.Currency_symbol,
-    };
-
-    totalOrders.forEach((order) => {
-      let amountAfterDiscount = order.actualamount;
-
-      if (order.couponCode) {
-        amountAfterDiscount -= order.discountAmount;
-      }
-      const taxAmount = Math.round(
-        (amountAfterDiscount * order.adminfee) / 100
-      );
-
-      amountInfo.total_amount += amountAfterDiscount;
-      amountInfo.total_taxes += taxAmount;
-      amountInfo.gross_total += order.total_amount;
-    });
-
-    return res.json({
-      success: true,
-      message: "View Order List Successfully!",
-      data: { totalOrders, event, amountInfo },
-    });
-  } catch (error) {
-    return res.json({
-      success: false,
-      message: error.message,
-      data: [],
-    });
-  }
-}
 
 // find All Addons for priticular user_id
 export async function findAddons(req, res) {

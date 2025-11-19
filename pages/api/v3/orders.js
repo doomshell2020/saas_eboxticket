@@ -13,7 +13,8 @@ import {
   findAddons,
   transferOneAddon,
   SendRemainingAmountEmail,
-  findDueAmount
+  findDueAmount,
+  fetchCompleteOrderListByEvent
 } from "@/shared/services/admin/ordermanager/orderservices";
 import { checkApiKey } from '@/middleware/checkApiKey';
 
@@ -33,7 +34,7 @@ const handler = async (req, res) => {
         case "POST": {
           try {
             if (req.body.key == "order_list") {
-              const orderList = await findCompleteOrderListByEvent(
+              const orderList = await fetchCompleteOrderListByEvent(
                 req.body,
                 res
               );
