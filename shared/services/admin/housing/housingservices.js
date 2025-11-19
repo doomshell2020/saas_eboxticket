@@ -705,6 +705,7 @@ export async function View_Housing(req) {
 }
 
 
+
 // add housing - old
 export async function add_Hosuing({
     Name,
@@ -1902,6 +1903,7 @@ const createTemplate = (html, replacements) => {
     return processedHtml;
 };
 
+
 export async function isBookingRequest(req, res) {
     try {
 
@@ -1965,11 +1967,28 @@ export async function isBookingRequest(req, res) {
         const subject = getTemplateHtml.subject;
         const templateName = getTemplateHtml.mandril_template;
 
+        // Merge check-in / check-out dates
+        let checkInDate = previousCheckIn;
+        let checkOutDate = previousCheckOut;
+
+        if (new Date(check_in_date) < new Date(checkInDate)) {
+            checkInDate = check_in_date;
+        }
+
+        if (new Date(check_out_date) > new Date(checkOutDate)) {
+            checkOutDate = check_out_date;
+        }
+
+
+
+
+
         // Replace placeholders with actual values
         const replacements = {
             FirstName: firstName,
             PropertyName: fullPropertyName,
-            CheckOutDate: moment(check_out_date).format("Do [of] MMMM YYYY"), // "10th of November 2025"
+            // CheckOutDate: moment(check_out_date).format("Do [of] MMMM YYYY"), // "10th of November 2025"
+            CheckOutDate: formatDateRange(checkInDate, checkOutDate), // ✅ range format
             ExtensionLink: extensionUrl,
             totalNights: totalNight,
             arrivalDate: previousCheckIn,
@@ -2195,8 +2214,10 @@ export async function searchEventHousing({ Name, Neighborhood, Type, NumBedrooms
                 { model: HousingTypes, attributes: ['name'] },
                 {
                     model: AccommodationBooking,
+                    separate: true,
                     where: Object.keys(bookingWhere).length > 0 ? bookingWhere : undefined,
-                    attributes: ['user_id', 'event_id', 'first_name', 'last_name', 'email', 'payment_status', 'check_in_date', 'check_out_date', 'total_night_stay'],
+                    attributes: ['user_id', 'event_id', 'first_name', 'last_name', 'email', 'payment_status', 'check_in_date', 'check_out_date', 'total_night_stay', 'is_accommodation_cancel'],
+                    order: [['id', 'DESC']],
                     include: [
                         {
                             model: MyOrders,
@@ -2241,6 +2262,7 @@ export async function searchEventHousing({ Name, Neighborhood, Type, NumBedrooms
         };
     }
 }
+
 
 
 
@@ -2557,7 +2579,6 @@ export async function bookOutsideProperty(req, res) {
     }
 }
 
-
 // update book out side property Api
 export async function updateOutsideProperty(req, res) {
     try {
@@ -2593,3 +2614,4 @@ export async function updateOutsideProperty(req, res) {
         };
     }
 }
+
