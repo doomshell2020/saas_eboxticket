@@ -6,7 +6,9 @@ const handler = async (req, res) => {
     switch (method) {
       case "GET": {
         // 👉 In GET, filters will come from req.query
-        const search_data = await getInvitedMember(req.query);
+
+        console.log(' :>>>>>>>>>>>>>>>>>>>>>>');
+        const search_data = await getInvitedMember(req,res);
         return res.status(200).json(search_data);
       }
       case "POST": {

@@ -1,4 +1,4 @@
-import { InvitationEvent, MyOrders, EventHousingRental, User, Event, HousingNeighborhood, UserInterest, Emailtemplet, AccommodationBookingInfo, BookAccommodationInfo, Housing, AddonBook, BookTicket,AccommodationExtension } from "../../../../database/models"
+import { InvitationEvent, MyOrders, EventHousingRental, User, Event, HousingNeighborhood, UserInterest, Emailtemplet, AccommodationBookingInfo, BookAccommodationInfo, Housing, AddonBook, BookTicket, AccommodationExtension } from "../../../../database/models"
 import { StatusCodes } from 'http-status-codes';
 import ResponseManagement from "../../../../utils/responsemanagement"
 import { sendEmails } from "../../../../utils/email"
@@ -733,9 +733,8 @@ export async function getInvitationInfoForInvitedMember(req, res) {
 }
 
 // New Api get invited members with pagination
-export async function getInvitedMember(queryParams) {
+export async function getInvitedMember(req, res) {
     try {
-        // Destructure from queryParams (instead of body)
         const {
             HousingOption,
             Status,
@@ -746,193 +745,155 @@ export async function getInvitedMember(queryParams) {
             Interest,
             ArtistType,
             UserID,
-            EventID,
+            id, // EventID
             CareyesHomeownerFlag,
             attended_festival_before,
-            accommodation_status,
-            keyword,
-            page = 1,
-            limit = 50
-        } = queryParams; // ✅ data comes from req.query now
-        const whereMain = {};
-        // 👉 Build main filters
-        if (HousingOption) whereMain.HousingOption = { [Op.in]: HousingOption.split(',') };
-        if (Status) whereMain.Status = { [Op.in]: Status.split(',') };
-        if (accommodation_status)
-            whereMain.accommodation_status = { [Op.like]: `%${accommodation_status.trim()}%` };
-        if (UserID) whereMain.UserID = { [Op.like]: `%${UserID}%` };
-        if (EventID) whereMain.EventID = EventID;
-        // 👉 Build User filters
-        const whereUser = {};
-        if (FirstName) whereUser.FirstName = { [Op.like]: `%${FirstName.trim()}%` };
-        if (LastName) whereUser.LastName = { [Op.like]: `%${LastName.trim()}%` };
-        if (Email) whereUser.Email = { [Op.like]: `%${Email.trim()}%` };
-        if (MembershipLevel) whereUser.MembershipLevel = { [Op.like]: `%${MembershipLevel}%` };
-        if (ArtistType) whereUser.ArtistType = { [Op.like]: `%${ArtistType}%` };
+            accommodation_status
+        } = req.query;
+        
+        console.log('req.query :>>>>>>>>>>>>>>>>>>>>>>>', req.query);
 
-        // ✅ Keyword search across multiple fields
-        if (keyword && keyword.trim() !== "") {
-            const kw = `%${keyword.trim()}%`;
-            // merge with OR condition
-            whereUser[Op.or] = [
-                { FirstName: { [Op.like]: kw } },
-                { LastName: { [Op.like]: kw } },
-                { Email: { [Op.like]: kw } },
-                { Email: { [Op.like]: kw } },
-                { PhoneNumber: { [Op.like]: kw } } // <-- make sure 'PhoneNumber' is in your User model
-            ];
+        const filters = {};
+        const interestFilters = {};
+
+        // Housing Option filter
+        if (HousingOption) {
+            filters.HousingOption = { [Op.in]: HousingOption.split(',') };
         }
 
-        if (CareyesHomeownerFlag)
-            whereUser.CareyesHomeownerFlag = { [Op.like]: `%${CareyesHomeownerFlag}%` };
+        // Status filter
+        if (Status) {
+            filters.Status = { [Op.in]: Status.split(',') };
+        }
 
+        // Accommodation status filter
+        if (accommodation_status) {
+            filters.accommodation_status = { [Op.like]: `%${accommodation_status.trim()}%` };
+        }
+
+        // Basic filters
+        if (UserID) filters.UserID = UserID;
+        if (id) filters.EventID = id;
+
+        // User fields filters
+        if (FirstName) filters['$User.FirstName$'] = { [Op.like]: `%${FirstName.trim()}%` };
+        if (LastName) filters['$User.LastName$'] = { [Op.like]: `%${LastName.trim()}%` };
+        if (Email) filters['$User.Email$'] = { [Op.like]: `%${Email.trim()}%` };
+        if (MembershipLevel) filters['$User.MembershipLevel$'] = { [Op.like]: `%${MembershipLevel}%` };
+        if (ArtistType) filters['$User.ArtistType$'] = { [Op.like]: `%${ArtistType}%` };
+        if (CareyesHomeownerFlag) filters['$User.CareyesHomeownerFlag$'] = { [Op.like]: `%${CareyesHomeownerFlag}%` };
+
+        // Attended festival filter
         if (attended_festival_before) {
+            const attendedField = '$User.attended_festival_before$';
             if (attended_festival_before === 'I HAVE NEVER ATTENDED AN ONDALINDA EVENT') {
-                whereUser.attended_festival_before = {
-                    [Op.like]: '%I HAVE NEVER ATTENDED AN ONDALINDA EVENT%'
-                };
+                filters[attendedField] = { [Op.like]: `%${attended_festival_before}%` };
             } else if (attended_festival_before === 'ANY') {
-                whereUser.attended_festival_before = {
+                filters[attendedField] = {
                     [Op.ne]: 'I HAVE NEVER ATTENDED AN ONDALINDA EVENT',
                     [Op.notLike]: '%ONDALINDA x MONTENEGRO 2024%'
                 };
-            } else if (attended_festival_before === 'ONDALINDA x MONTENEGRO 2024') {
-                whereUser.attended_festival_before = {
-                    [Op.like]: '%ONDALINDA x MONTENEGRO 2024%'
-                };
+            } else {
+                filters[attendedField] = { [Op.like]: `%${attended_festival_before}%` };
             }
         }
 
-        // 👉 Handle Interest filter separately
+        // Interest filter (needs separate query to get UserIDs)
         if (Interest) {
-            const interestIds = await UserInterest.findAll({
-                attributes: ['UserID'],
-                where: { Interest: { [Op.in]: Interest.split(',') } },
-                raw: true
-            });
-            const userIds = interestIds.map((i) => i.UserID);
-
-            if (userIds.length === 0) {
-                return {
-                    statusCode: 200,
-                    success: true,
-                    message: 'Search Invited Members Successfully!!',
-                    data: [],
-                    pagination: {
-                        totalRecords: 0,
-                        currentPage: parseInt(page) || 1,
-                        totalPages: 0,
-                        pageSize: parseInt(limit) || 50
-                    }
-                };
+            interestFilters.Interest = { [Op.in]: Interest.split(',') };
+            const interestResults = await UserInterest.findAll({ where: interestFilters });
+            const interestUserIDs = interestResults.map(e => e.UserID);
+            if (interestUserIDs.length) {
+                filters.UserID = { [Op.in]: interestUserIDs };
             }
-            whereMain.UserID = { [Op.in]: userIds };
         }
 
-        // 👉 Pagination
-        const pageNum = parseInt(page) || 1;
-        const limitNum = parseInt(limit) || 50;
-        const offset = (pageNum - 1) * limitNum;
+        console.log('filters :>>>>>>>>>>>>>>', filters);
 
-        // 👉 Main query
-        const { rows, count } = await InvitationEvent.findAndCountAll({
-            where: whereMain,
-            subQuery: false,
-            distinct: true,
-            attributes: [
-                'id',
-                'EventID',
-                'UserID',
-                'Status',
-                'is_preference_submitted',
-                'accommodation_status',
-                'is_booking_status',
-                'createdAt',
-                'updatedAt'
-            ],
+        // Main query
+        const searchResults = await InvitationEvent.findAll({
+            where: filters,
             include: [
                 {
                     model: User,
-                    where: whereUser,
-                    required: true,
                     attributes: [
-                        'id',
-                        'FirstName',
-                        'LastName',
-                        'Email',
-                        'PhoneNumber',
-                        'ImageURL',
-                        'Status',
-                        'country_group',
-                        'MembershipTypes',
-                        'DateCreated',
-                        'admin_notes'
-                    ]
-                }
-            ],
-            order: [['id', 'DESC']],
-            limit: limitNum,
-            offset,
-            logging: false
-        });
-
-        // ✅ Load heavy relations separately
-        const resultsWithOrders = await Promise.all(
-            rows.map(async (invitation, index) => {
-                const orders = await MyOrders.findAll({
-                    where: { user_id: invitation.UserID, event_id: EventID },
-                    attributes: ['id', 'user_id', 'event_id', 'OriginalTrxnIdentifier'],
+                        'id', 'FirstName', 'LastName', 'Email', 'PhoneNumber', 'ImageURL',
+                        'Status', 'country_group', 'MembershipTypes', 'DateCreated', 'admin_notes'
+                    ],
                     include: [
                         {
-                            model: BookTicket,
-                            attributes: ['id', 'event_id'],
-                            where: { event_id: EventID },
-                            required: false
-                        },
-                        {
-                            model: AddonBook,
-                            attributes: ['id', 'event_id'],
-                            where: { event_id: EventID },
-                            required: false
-                        },
-                        {
-                            model: BookAccommodationInfo,
-                            attributes: ['id', 'check_in_date', 'check_out_date', 'event_id', 'accommodation_id'],
-                            where: { event_id: EventID },
+                            model: MyOrders,
+                            attributes: ['id', 'user_id', 'event_id', 'OriginalTrxnIdentifier'],
+                            where: { event_id: id },
                             required: false,
-                            include: {
-                                model: Housing,
-                                attributes: ['Name'],
-                                include: { model: HousingNeighborhood, attributes: ['name'] }
-                            }
+                            include: [
+                                {
+                                    model: BookTicket,
+                                    attributes: ['id', 'event_id', 'ticket_status'],
+                                    where: { event_id: id, ticket_status: null },
+                                    required: false
+                                },
+                                {
+                                    model: AddonBook,
+                                    attributes: ['id', 'event_id', 'ticket_status'],
+                                    where: { event_id: id, ticket_status: null },
+                                    required: false
+                                },
+                                {
+                                    model: BookAccommodationInfo,
+                                    attributes: ['id', 'check_in_date', 'check_out_date', 'event_id', 'accommodation_id', "is_accommodation_cancel"],
+                                    // where: { event_id: id ,is_accommodation_cancel: "N" },
+                                    where: {
+                                        event_id: id,
+                                        is_accommodation_cancel: "N"
+                                    },
+                                    required: false,
+                                    include: {
+                                        model: Housing,
+                                        attributes: ['Name'],
+                                        include: { model: HousingNeighborhood, attributes: ['name'] }
+                                    }
+                                },
+                                {
+                                    model: AccommodationExtension,
+                                    attributes: ['id', 'user_id', 'accommodation_id', 'check_in_date', 'check_out_date', 'total_night_stay', "is_accommodation_cancel"],
+                                    where: { is_accommodation_cancel: "N" },
+                                    required: false,
+                                    include: [
+                                        {
+                                            model: Housing,
+                                            attributes: ['Name', 'Neighborhood'],
+                                            include: { model: HousingNeighborhood, attributes: ['name'] }
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            model: UserInterest,
+                            attributes: [],
+                            required: false
                         }
-                    ]
-                });
+                    ],
+                    required: true
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
 
-                const serialNo = (pageNum - 1) * limitNum + (index + 1);
-                return {
-                    serialNo,
-                    ...invitation.toJSON(),
-                    Orders: orders
-                };
-            })
-        );
-
-        return {
+        return res.status(200).json({
             statusCode: 200,
             success: true,
             message: 'Search Invited Members Successfully!!',
-            data: resultsWithOrders,
-            pagination: {
-                totalRecords: count,
-                currentPage: pageNum,
-                totalPages: Math.ceil(count / limitNum),
-                pageSize: limitNum
-            }
-        };
+            data: searchResults,
+            searchResultsCount: searchResults.length
+        });
     } catch (error) {
-        console.error('error', error.message);
-        return { success: false, data: [], message: 'Internal Server Error :' + error.message };
+        console.error('Error fetching invited members:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal Server Error: ' + error.message
+        });
     }
 }
 
@@ -1062,29 +1023,3 @@ export async function sendInvitationEmailsToFilteredUsers(body, res) {
         return res.status(500).json({ success: false, message: "Internal Server Error: " + err.message });
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
