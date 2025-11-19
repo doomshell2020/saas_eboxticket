@@ -737,6 +737,14 @@ export async function add_Hosuing({
     bookingStatus
 }, filename, res) {
     try {
+        if (!Name) {
+            return {
+                success: false,
+                message: "Name is required",
+            }
+
+        }
+
         const housingData = await Housing.create({
             Name,
             Neighborhood,
@@ -2162,8 +2170,6 @@ export async function deletedPreferenceRequest(req, res) {
     }
 }
 
-
-
 // Search Api for manage property manager searching....(19-05-2025-kamal)
 export async function searchEventHousing({ Name, Neighborhood, Type, NumBedrooms, Status, location, paymentStatus }) {
     try {
@@ -2263,9 +2269,6 @@ export async function searchEventHousing({ Name, Neighborhood, Type, NumBedrooms
     }
 }
 
-
-
-
 // new get method 
 export async function GetHousingNeighborhood(req) {
     try {
@@ -2289,7 +2292,6 @@ export async function GetHousingNeighborhood(req) {
         };
     }
 }
-
 
 export async function searchEventHousingNew(query) {
     try {
