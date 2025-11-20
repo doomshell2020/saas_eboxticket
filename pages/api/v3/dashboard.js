@@ -4,7 +4,6 @@ import {
   view_Events,
   viewEventsIsDataAvailable,
   getDashboardData,
-  getTicketsSoldPerDayByEventId,
   getSalesTicTypeEventId,
   TicketsAddonsSalesMonthlyReport,
   TicketsAddonsSalesMonthly,
@@ -13,6 +12,9 @@ import {
   getRecentlyBookedTicketsUser,
   TicketsAddonsSalesSummaryReport
 } from "@/shared/services/admin/dashboardmanager/dashboard_services";
+import {
+  getTicketsSoldPerDayByEventId,
+} from "@/shared/services/admin/dashboardmanager/dashboardservices";
 
 
 import { checkApiKey } from '@/middleware/checkApiKey';
@@ -25,9 +27,10 @@ const handler = async (req, res) => {
         case "POST": {
 
           // console.log('>>>>>>>>>>>>>>>>>>>>>>>', req.body);
+          const { eventId } = req.body;
 
           if (req.body.key == "dashboardData") {
-            const dashboard_data = await getTicketsSoldPerDayByEventId(req.body);
+            const dashboard_data = await getTicketsSoldPerDayByEventId({ eventId }, req, res);
             res.json(dashboard_data);
             break;
           } else if (req.body.key == "sale_ticket_reports") {

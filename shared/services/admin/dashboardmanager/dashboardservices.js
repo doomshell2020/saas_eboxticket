@@ -1038,10 +1038,27 @@ export async function getTicketsSoldPerDayByEventId({ eventId }, req, res) {
 
     let total_addon_count = 0;
     const totaladdonSold = await AddonBook.count({
+      // where: {
+      //   event_id: event.id,
+      //   ticket_status: null
+      // },
       where: {
         event_id: event.id,
-        ticket_status: null
+        ticket_status: { [Op.is]: null },
       },
+      include: [
+        {
+          model: Orders,
+          where: {
+            [Op.or]: [
+              { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
+              { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
+            ],
+            ticket_status: null,
+          },
+          required: true,
+        },
+      ],
     });
 
 
@@ -1068,6 +1085,19 @@ export async function getTicketsSoldPerDayByEventId({ eventId }, req, res) {
             required: true,
           },
         ],
+        // include: [
+        //   {
+        //     model: Orders,
+        //     where: {
+        //       // [Op.or]: [
+        //       //   { is_free: { [Op.is]: null } }, // Include records where `is_free` is null
+        //       //   { couponCode: { [Op.not]: null } }, // Include records where `couponCode` is not null
+        //       // ],
+        //       ticket_status: null,
+        //     },
+        //     required: true,
+        //   },
+        // ],
       });
       const addonSalesData = {
         tier: `ADD-ON`,
